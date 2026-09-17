@@ -1,5 +1,7 @@
 # Kitchen Designer
 
+Automatic kitchen design planner.
+
 Kitchen layout planning demo with catalogue-based cabinet placement, rule checks,
 detailed and overview plans, zoom and fullscreen viewing, 3D models, pricing,
 and saved layout versions.
