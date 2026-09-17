@@ -1,0 +1,104 @@
+{
+  "project": "Default kitchen",
+  "_confidence": "Room size, wall lengths and which wall each anchor sits on are READ off your drawing. Positions marked ~ are my estimates from a compressed image and need checking against the source file.",
+  "height": "8ft",
+  "handle": "CJ",
+  "walls": [
+    {
+      "id": "AA",
+      "length": 4275,
+      "dir": "E"
+    },
+    {
+      "id": "BB",
+      "length": 3000,
+      "dir": "S"
+    },
+    {
+      "id": "CC",
+      "length": 4275,
+      "dir": "W"
+    },
+    {
+      "id": "DD",
+      "length": 3000,
+      "dir": "N"
+    }
+  ],
+  "openings": [
+    {
+      "wall": "DD",
+      "type": "door",
+      "at": 1050,
+      "width": 900
+    },
+    {
+      "wall": "AA",
+      "type": "window",
+      "at": 1125,
+      "width": 900
+    }
+  ],
+  "columns": [],
+  "anchors": [
+    {
+      "item": "fridge",
+      "wall": "CC",
+      "at": 2700,
+      "width": 600,
+      "_": "placed in the bench"
+    },
+    {
+      "item": "hob",
+      "wall": "BB",
+      "at": 1575,
+      "width": 900,
+      "_": "placed in the bench"
+    },
+    {
+      "item": "sink",
+      "wall": "AA",
+      "at": 1125,
+      "width": 900,
+      "_": "placed in the bench"
+    }
+  ],
+  "zones": {
+    "base": [
+      {
+        "wall": "CC",
+        "from": 0,
+        "to": 1500
+      },
+      {
+        "wall": "BB",
+        "from": 0,
+        "to": 3000
+      },
+      {
+        "wall": "AA",
+        "from": 0,
+        "to": 4275
+      }
+    ],
+    "wall": [
+      {
+        "wall": "BB",
+        "from": 0,
+        "to": 3000
+      },
+      {
+        "wall": "AA",
+        "from": 0,
+        "to": 4275
+      }
+    ],
+    "tall": [
+      {
+        "wall": "CC",
+        "from": 1500,
+        "to": 4275
+      }
+    ]
+  }
+}

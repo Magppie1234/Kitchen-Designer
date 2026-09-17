@@ -1,0 +1,341 @@
+{
+  "request": {
+    "anchors": [
+      {
+        "type": "hob",
+        "wall": "W1",
+        "off": 1800,
+        "elevation": "A",
+        "src": "designer"
+      },
+      {
+        "type": "sink",
+        "wall": "W2",
+        "off": 1809,
+        "elevation": "A",
+        "src": "designer",
+        "suggested": false
+      },
+      {
+        "type": "fridge",
+        "wall": "W3",
+        "off": 3300,
+        "elevation": "A",
+        "src": "designer",
+        "suggested": false
+      }
+    ],
+    "options": {
+      "ceiling": 3100,
+      "kitchenHeight": 8,
+      "kitchenHeightMm": 2438,
+      "fridgeType": "builtin",
+      "island": true,
+      "islandType": "storage",
+      "pg": "PG1",
+      "finish": "Classic",
+      "lookName": "Art",
+      "dishwasher": true,
+      "veggieSink": false,
+      "appliances": [
+        "crockery",
+        "crockery"
+      ],
+      "seriesId": "signature",
+      "dims": {
+        "w": 3600,
+        "h": 3600,
+        "shape": "rect"
+      },
+      "walls": [
+        {
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            3600,
+            0
+          ],
+          "length": 3600,
+          "thickness": 115
+        },
+        {
+          "a": [
+            3600,
+            0
+          ],
+          "b": [
+            3600,
+            3600
+          ],
+          "length": 3600,
+          "thickness": 115
+        },
+        {
+          "a": [
+            3600,
+            3600
+          ],
+          "b": [
+            0,
+            3600
+          ],
+          "length": 3600,
+          "thickness": 115
+        },
+        {
+          "a": [
+            0,
+            3600
+          ],
+          "b": [
+            0,
+            0
+          ],
+          "length": 3600,
+          "thickness": 115
+        }
+      ],
+      "structures": [],
+      "roomMode": "enclosed",
+      "openWalls": [],
+      "sinkWidth": 900,
+      "handles": "C & J",
+      "kubos": false,
+      "tark": false,
+      "openings": [
+        {
+          "type": "door",
+          "variant": "single",
+          "wall": "W0",
+          "off": 1800,
+          "width": 1000,
+          "required": true
+        },
+        {
+          "type": "window",
+          "variant": "sliding",
+          "wall": "W2",
+          "off": 1800,
+          "width": 1200,
+          "sill": 900,
+          "winH": 1200
+        }
+      ],
+      "zones": [
+        {
+          "id": "z12_mu2n7km4",
+          "wall": "W2",
+          "tier": "wall",
+          "s": 0,
+          "e": 1200
+        },
+        {
+          "id": "z13_mu2n7t70",
+          "wall": "W1",
+          "tier": "wall",
+          "s": 0,
+          "e": 3600
+        },
+        {
+          "id": "z14_mu2n8078",
+          "wall": "W1",
+          "tier": "base",
+          "s": 0,
+          "e": 3600
+        },
+        {
+          "id": "z15_mu2n8078",
+          "wall": "W2",
+          "tier": "base",
+          "s": 0,
+          "e": 3600
+        },
+        {
+          "id": "z16_mu2n8078",
+          "wall": "W3",
+          "tier": "base",
+          "s": 0,
+          "e": 1280
+        },
+        {
+          "id": "z17_mu2n84ns",
+          "wall": "W0",
+          "tier": "tall",
+          "s": 0,
+          "e": 330
+        },
+        {
+          "id": "z18_mu2n84ns",
+          "wall": "W3",
+          "tier": "tall",
+          "s": 1280,
+          "e": 3600
+        },
+        {
+          "id": "z19_mu2n8kap",
+          "wall": "W2",
+          "tier": "wall",
+          "s": 2400,
+          "e": 3600
+        },
+        {
+          "id": "z20_mu2n8kap",
+          "wall": "W3",
+          "tier": "wall",
+          "s": 0,
+          "e": 1280
+        }
+      ],
+      "keeps": [],
+      "hobSides": {
+        "left": {
+          "mode": "none",
+          "cabinet": null,
+          "drawerCount": null,
+          "drawers": []
+        },
+        "right": {
+          "mode": "none",
+          "cabinet": null,
+          "drawerCount": null,
+          "drawers": []
+        }
+      },
+      "hobDesign": "2HB",
+      "hobFlanks": {
+        "left": null,
+        "right": null
+      }
+    }
+  },
+  "input": {
+    "project": "UI",
+    "height": "8ft",
+    "ceiling": 3100,
+    "inputProblems": [],
+    "dishwasher": true,
+    "handle": "CJ",
+    "walls": [
+      {
+        "id": "0",
+        "length": 3600,
+        "dir": "E"
+      },
+      {
+        "id": "1",
+        "length": 3600,
+        "dir": "S"
+      },
+      {
+        "id": "2",
+        "length": 3600,
+        "dir": "W"
+      },
+      {
+        "id": "3",
+        "length": 3600,
+        "dir": "N"
+      }
+    ],
+    "openings": [
+      {
+        "type": "door",
+        "variant": "single",
+        "wall": "0",
+        "off": 1800,
+        "width": 1000,
+        "required": true,
+        "at": 1300
+      },
+      {
+        "type": "window",
+        "variant": "sliding",
+        "wall": "2",
+        "off": 1800,
+        "width": 1200,
+        "sill": 900,
+        "winH": 1200,
+        "at": 1200
+      }
+    ],
+    "columns": [],
+    "anchors": [
+      {
+        "item": "hob",
+        "wall": "1",
+        "at": 1350,
+        "width": 900,
+        "center": 1800,
+        "design": "2HB"
+      },
+      {
+        "item": "sink",
+        "wall": "2",
+        "at": 1359,
+        "width": 900
+      },
+      {
+        "item": "fridge",
+        "wall": "3",
+        "at": 3000,
+        "width": 600
+      }
+    ],
+    "structures": [],
+    "zones": {
+      "base": [
+        {
+          "wall": "1",
+          "from": 0,
+          "to": 3600
+        },
+        {
+          "wall": "2",
+          "from": 0,
+          "to": 3600
+        },
+        {
+          "wall": "3",
+          "from": 0,
+          "to": 1280
+        }
+      ],
+      "wall": [
+        {
+          "wall": "2",
+          "from": 0,
+          "to": 1200
+        },
+        {
+          "wall": "1",
+          "from": 0,
+          "to": 3600
+        },
+        {
+          "wall": "2",
+          "from": 2400,
+          "to": 3600
+        },
+        {
+          "wall": "3",
+          "from": 0,
+          "to": 1280
+        }
+      ],
+      "tall": [
+        {
+          "wall": "0",
+          "from": 0,
+          "to": 330
+        },
+        {
+          "wall": "3",
+          "from": 1280,
+          "to": 3600
+        }
+      ]
+    }
+  }
+}

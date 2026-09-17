@@ -1,0 +1,27 @@
+# Dependencies and local caches
+node_modules/
+verification/npm-cache/
+
+# Credentials and local environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local design databases (schema migrations remain tracked)
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Local backups, agent settings and browser artifacts
+.audit-originals/
+.claude/
+.codex/
+.playwright-mcp/
+
+# Generated logs and operating-system files
+*.log
+Thumbs.db
+.DS_Store

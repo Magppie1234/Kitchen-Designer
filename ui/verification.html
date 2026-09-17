@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>Kitchen geometry verification</title>
+<style>body{margin:0;font:14px system-ui;background:#fff;color:#222}header{padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}button,select{padding:7px}#status{padding:7px 12px;background:#e9f2e8}iframe{border:0;width:100%;height:calc(100vh - 100px)}</style>
+<header><strong>Local kitchen verification</strong><select id="fixture"><option>u</option><option>l</option><option>seven</option><option>straight</option><option>concave</option><option>reflected</option><option>p5</option><option>p6</option></select><button onclick="load()">Load fixture</button><button onclick="view('2d')">2D</button><button onclick="view('elev')">Elevation</button><button onclick="view('3d')">3D + measure</button><button onclick="view('walk')">Walk</button><button onclick="generateInApp()">Generate via app</button><button onclick="runAll()">Verify all scenes</button></header>
+<div id="status">Loading application…</div><iframe id="app" src="/builder.html"></iframe>
+<script>
+const frame=document.getElementById('app'),statusEl=document.getElementById('status');let data,current,results=[];
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+const status=s=>statusEl.textContent=s;
+window.addEventListener('error',e=>status('ERROR: '+e.message));
+async function load(name=document.getElementById('fixture').value){
+  data??=await fetch('/verification-fixtures.json').then(r=>r.json());current=data[name];const w=frame.contentWindow,S=w.S;
+  if(!S||!w.activeRoom())throw new Error('App is not ready');
+  const request=structuredClone(current.request);w.activeRoom().seriesId='signature';
+  S.walls=request.options.walls;S.anchors=request.anchors;S.openings=request.options.openings;S.structures=[];
+  S.zones=request.options.zones.map((z,i)=>({...z,id:'qa'+i}));Object.assign(S.options,request.options,{island:false,islandType:null});
+  S.hob.size=request.anchors.find(a=>a.type==='hob').width;S.hob.shape=null;S.hob.drawerCount=2;
+  S.sink.pick='900-1200';S.sink.doubleSize=900;S.sink.type='double';S.fridge.type='builtin';
+  S.roomMode='enclosed';S.roomName='Verification '+name;S.view='2d';S.reResult=null;
+  const xs=S.walls.flatMap(w=>[w.a[0],w.b[0]]),ys=S.walls.flatMap(w=>[w.a[1],w.b[1]]);
+  S.dims={width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};
+  const response=await fetch('/api/build',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(request)}),plan=await response.json();
+  if(!response.ok)throw new Error(JSON.stringify(plan));S.plan=plan;w.go('result');
+  status(name+': '+plan.verdict+'; '+plan.log.filter(l=>l.status==='conflict').length+' hard conflicts; 2D loaded');return plan;
+}
+async function view(mode){
+  const w=frame.contentWindow;w.setResultView(mode);
+  if(mode==='3d'||mode==='walk'){
+    for(let n=0;n<100&&!w.inspectSceneGeometry?.();n++)await delay(100);
+    await delay(300);const actual=w.inspectSceneGeometry?.();if(!actual)throw new Error('3D scene failed to initialize');
+    const unused=[...actual.volumes],errors=[];
+    for(const e of current.expected){const i=unused.findIndex(a=>a.code===e.code&&['x0','x1','y0','y1','z0','z1'].every(k=>Math.abs(a[k]-e[k])<0.1));
+      if(i<0)errors.push(e.code);else unused.splice(i,1);}
+    status((errors.length?'FAIL':'PASS')+': '+current.expected.length+' rendered cabinet volumes measured; '+errors.length+' mismatches; '+w.S.plan.verdict+(mode==='walk'?'; camera inside='+actual.cameraInside:''));
+    return {mode,expected:current.expected.length,mismatches:errors,cameraInside:actual.cameraInside};
+  }
+}
+async function generateInApp(){await frame.contentWindow.generate();await delay(1800);status('App generation: '+frame.contentWindow.S.plan.verdict);}
+async function runAll(){results=[];for(const name of ['u','l','seven','straight','concave','reflected']){document.getElementById('fixture').value=name;await load(name);results.push({name,...await view('3d')});}status(JSON.stringify(results));}
+frame.onload=async()=>{for(let n=0;n<50&&!frame.contentWindow.startScene;n++)await delay(100);await delay(500);try{await load();}catch(e){status('ERROR '+e.message);}};
+</script>

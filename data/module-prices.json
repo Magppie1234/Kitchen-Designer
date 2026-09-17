@@ -1,0 +1,10 @@
+{
+  "currency": "INR",
+  "note": "PLACEHOLDER per-module list prices. Only the 3 values below are real (the only hardcoded numbers found in the Drive catalog; everything else on the Drive pricing sheet was #REF!). All other modules resolve to null and are flagged 'unpriced' by the costing engine. Replace byCabinetName with the real Magppie rate-master / per-module price list to make costing real.",
+  "byCabinetName": {
+    "BASE HOB 2 DRAWER UNIT": 40000,
+    "BASE HOB 3 DRAWER UNIT": 40000,
+    "WALL SHUTTER UNIT": 36000,
+    "TALL APPLIANCE UNIT": 98000
+  }
+}

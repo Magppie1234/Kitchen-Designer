@@ -1,0 +1,235 @@
+{
+  "note": "Parsed from 'Price Matrix' sheet (sheet4). Kitchen price driver = shutter saleable Sq.Ft x 'Price / Sq.ft' for the chosen Stone Group (PG1/PG2) + Shutter family (Classic/Modern). Carcass billed separately at its own per-sqft rate. Countertop/backsplash priced by their own surface sqft. Numbers verbatim from sheet.",
+  "shutterAndCarcassRates": {
+    "headers": [
+      "Stone Group",
+      "Shutter Type",
+      "Price / Sq.ft",
+      "Total",
+      "Current / sq.ft Price"
+    ],
+    "rows": [
+      {
+        "stoneGroup": "Carcass",
+        "shutterType": "NA",
+        "pricePerSqft": 6000,
+        "total": null,
+        "currentPerSqft": null
+      },
+      {
+        "stoneGroup": "PG1",
+        "shutterType": "Classic",
+        "pricePerSqft": 5200,
+        "total": 11200,
+        "currentPerSqft": 11215
+      },
+      {
+        "stoneGroup": "PG1",
+        "shutterType": "Modern",
+        "pricePerSqft": 3950,
+        "total": 9950,
+        "currentPerSqft": 9943
+      },
+      {
+        "stoneGroup": "PG2",
+        "shutterType": "Classic",
+        "pricePerSqft": 4150,
+        "total": 10150,
+        "currentPerSqft": 10176
+      },
+      {
+        "stoneGroup": "PG2",
+        "shutterType": "Modern",
+        "pricePerSqft": 2900,
+        "total": 8900,
+        "currentPerSqft": 8904
+      }
+    ]
+  },
+  "surfaceRates": {
+    "headers": [
+      "Surface type",
+      "Stone Group",
+      "Price / Sq.ft",
+      "Installation Price / Sq.ft"
+    ],
+    "rows": [
+      {
+        "surfaceType": "Countertop",
+        "stoneGroup": "PG1",
+        "pricePerSqft": 551,
+        "installationPricePerSqft": 780
+      },
+      {
+        "surfaceType": "Countertop",
+        "stoneGroup": "PG2",
+        "pricePerSqft": 551,
+        "installationPricePerSqft": 780
+      },
+      {
+        "surfaceType": "Backsplash",
+        "stoneGroup": "PG1",
+        "pricePerSqft": 551,
+        "installationPricePerSqft": 300
+      },
+      {
+        "surfaceType": "Backsplash",
+        "stoneGroup": "PG2",
+        "pricePerSqft": 551,
+        "installationPricePerSqft": 300
+      },
+      {
+        "surfaceType": "Visible Panels",
+        "stoneGroup": "PG1",
+        "pricePerSqft": null,
+        "installationPricePerSqft": "NA"
+      },
+      {
+        "surfaceType": "Visible Panels",
+        "stoneGroup": "PG2",
+        "pricePerSqft": null,
+        "installationPricePerSqft": "NA"
+      }
+    ]
+  },
+  "installationAddOns": [
+    {
+      "item": "Cabinets",
+      "pricePerSqft": 280
+    },
+    {
+      "item": "Site Visit",
+      "pricePerSqft": "As per actuals"
+    },
+    {
+      "item": "Transportation",
+      "pricePerSqft": "As per actuals"
+    },
+    {
+      "item": "Loading/Unloading",
+      "pricePerSqft": "As per actuals"
+    }
+  ],
+  "corniceAddOns": {
+    "headers": [
+      "Stone Group",
+      "Shutter Type",
+      "Price / Run.mtr"
+    ],
+    "rows": [
+      {
+        "stoneGroup": "PG1",
+        "shutterType": "Classic",
+        "pricePerRunningMtr": 10500,
+        "note": "Need to provide information to TOD Team"
+      },
+      {
+        "stoneGroup": "PG1",
+        "shutterType": "Modern",
+        "pricePerRunningMtr": 10500,
+        "note": "Need to provide information to TOD Team"
+      },
+      {
+        "stoneGroup": "PG2",
+        "shutterType": "Classic",
+        "pricePerRunningMtr": 10500,
+        "note": "Need to provide information to TOD Team"
+      },
+      {
+        "stoneGroup": "PG2",
+        "shutterType": "Modern",
+        "pricePerRunningMtr": 10500,
+        "note": "Need to provide information to TOD Team"
+      }
+    ]
+  },
+  "configProfiles": {
+    "note": "From 'Config' sheet 'Additional Configuration settings' table: maps shutter profile (MD1/MD2/.../CL1/CL2/NEON20) to Modern/Classic family and stone thickness (mm).",
+    "headers": [
+      "Profile",
+      "Shutter Type",
+      "Stone Thickness",
+      "Handle"
+    ],
+    "rows": [
+      {
+        "profile": "MD1",
+        "shutterType": "Modern",
+        "stoneThickness": 6,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "MD2",
+        "shutterType": "Modern",
+        "stoneThickness": 6,
+        "handle": "STD"
+      },
+      {
+        "profile": "MD3",
+        "shutterType": "Modern",
+        "stoneThickness": 9,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "MD1+CM1",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "MD1+CM2",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "MD2+CM1",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "STD"
+      },
+      {
+        "profile": "MD2+CM2",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "STD"
+      },
+      {
+        "profile": "MD3+CM1",
+        "shutterType": "Classic",
+        "stoneThickness": 9,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "MD3+CM2",
+        "shutterType": "Classic",
+        "stoneThickness": 9,
+        "handle": "XCJ"
+      },
+      {
+        "profile": "CL1",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "NA"
+      },
+      {
+        "profile": "CL2",
+        "shutterType": "Classic",
+        "stoneThickness": 6,
+        "handle": "NA"
+      },
+      {
+        "profile": "NEON20",
+        "shutterType": "Modern",
+        "stoneThickness": 5,
+        "handle": "NA"
+      },
+      {
+        "profile": "NEON20 shutter profile design has its own handle profile- HM533. LH/ RH configurations. STD type Handle/ Profile.",
+        "shutterType": null,
+        "stoneThickness": null,
+        "handle": null
+      }
+    ]
+  }
+}

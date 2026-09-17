@@ -1,0 +1,15 @@
+import {DatabaseSync} from 'node:sqlite';
+import {writeFileSync} from 'node:fs';
+import {toEngineInput} from '../server.mjs';
+import {loadCatalog} from '../loadCatalog.mjs';
+import {layout} from '../engine.mjs';
+const db=new DatabaseSync('db/design.sqlite',{readOnly:true});
+const row=db.prepare('SELECT state FROM rooms WHERE id=?').get('a121507c-206c-4e2a-a317-96259c27f52b');db.close();
+const s=JSON.parse(row.state);
+const request={anchors:s.anchors.map(a=>({...a,width:a.type==='sink'?(s.options.sinkWidth||900):a.type==='hob'?(s.hob.size||900):600})),options:{...s.options,walls:s.walls,openings:s.openings,zones:s.zones,structures:s.structures,openWalls:s.openWalls,hobDesign:s.hob.shape||null,hobFlanks:s.hob.flankShape,hobSides:s.hob.sides}};
+const {input}=toEngineInput(request.anchors,request.options);
+writeFileSync('verification/corner-log-request.json',JSON.stringify(request,null,2));
+writeFileSync('verification/corner-log-input.json',JSON.stringify(input,null,2));
+const result=layout({...input,lockAnchors:true,lockZones:true},loadCatalog().ok,{fast:true});
+writeFileSync('verification/corner-log-before.json',JSON.stringify(result,null,2));
+console.log(JSON.stringify({input,problems:result.problems},null,2));

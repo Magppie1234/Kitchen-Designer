@@ -1,0 +1,11 @@
+{
+  "name": "kitchen-designer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
+}

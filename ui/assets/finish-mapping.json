@@ -1,0 +1,6 @@
+{
+  "note": "Per-finish texture-mapping behaviour for the 3D views (Stage 7.4-7.6). 'randomised' offsets the pattern per panel (deterministic hash of panel position - the only permitted randomness) so nothing tiles visibly; 'flow' runs the pattern continuously along a run by world position (grain direction consistent); 'fixed' anchors every panel to the same origin. textureWorldMm = how many mm of cabinet one texture repeat spans. byName overrides the default per finish (keys = finish names from finishes.js).",
+  "default": "randomised",
+  "textureWorldMm": 1200,
+  "byName": {}
+}

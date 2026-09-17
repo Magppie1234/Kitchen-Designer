@@ -1,0 +1,40 @@
+{
+  "_provenance": {
+    "file": "Accessories List with Zone and Wall Details.xlsx",
+    "sheet": "Kitchen Accessories",
+    "descriptionColumn": "PRODUCT NAME (col C) — text below the product-name line",
+    "extractedTo": "data/accessories-master/",
+    "note": "Keys re-aligned 2026-09-01 to the client's clarified per-size catalog (size now baked into the accessory name). Description text preserved from the original Excel rows; items without a matching Excel row (baskets, divider, pot & pan holder) have no description yet."
+  },
+  "_unmatched": [],
+  "Cutlery Tray (Small)": {
+    "desc": "Material : Sintered Stone",
+    "excelName": "Cutlery Tray",
+    "sizes": ["600"]
+  },
+  "Cutlery Tray (Large)": {
+    "desc": "Material : Sintered Stone",
+    "excelName": "Cutlery Tray",
+    "sizes": ["900"]
+  },
+  "Rolling Board & Rolling Pin Tray": {
+    "desc": "Includes\n- Rolling Board Round\n- Rolling Pin\n- 10 Stainless Steel Canisters (Medium, Capacity 750 ml)\n- Spice Box\n- Base Tray in Sintered Stone",
+    "excelName": "ROLLING BOARD & ROLLING PIN TRAY",
+    "sizes": ["900"]
+  },
+  "Pulse Canister Tray (Small)": {
+    "desc": "Includes\n- 25 Stainless Steel Canisters (Small, Capacity 100 ml)\n- Base Tray in Sintered Stone",
+    "excelName": "SPICE CANISTER TRAY (SMALL)",
+    "sizes": ["600"]
+  },
+  "Pulse Canister Tray (Medium)": {
+    "desc": "Includes\n- 24 Stainless Steel Canisters (Medium, Capacity 750 ml)\n- Base Tray in Sintered Stone",
+    "excelName": "SPICE CANISTER TRAY (MEDIUM)",
+    "sizes": ["900"]
+  },
+  "Pulse Canister Tray (Large)": {
+    "desc": "Includes\n- 24 Stainless Steel Canisters (Large, Capacity 1500 ml)\n- Base Tray in Sintered Stone",
+    "excelName": "PULSE CANISTER TRAY (LARGE)",
+    "sizes": ["900"]
+  }
+}

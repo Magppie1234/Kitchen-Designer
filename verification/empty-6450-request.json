@@ -1,0 +1,216 @@
+{
+  "anchors": [
+    {
+      "type": "hob",
+      "wall": "W1",
+      "off": 1655,
+      "elevation": "A",
+      "src": "designer",
+      "suggested": false,
+      "width": 900
+    },
+    {
+      "type": "sink",
+      "wall": "W0",
+      "off": 2962,
+      "elevation": "A",
+      "src": "designer",
+      "suggested": false,
+      "width": 900
+    },
+    {
+      "type": "fridge",
+      "wall": "W3",
+      "off": 818,
+      "elevation": "A",
+      "src": "designer",
+      "suggested": false,
+      "width": 600
+    }
+  ],
+  "options": {
+    "ceiling": 3100,
+    "kitchenHeight": 8,
+    "kitchenHeightMm": 2438,
+    "fridgeType": "builtin",
+    "island": false,
+    "islandType": "storage",
+    "pg": "PG1",
+    "finish": "Classic",
+    "lookName": "Art",
+    "dishwasher": true,
+    "veggieSink": false,
+    "appliances": [
+      "pantry",
+      "oven"
+    ],
+    "seriesId": "signature",
+    "dims": {
+      "w": 6450,
+      "h": 4155,
+      "shape": "rect"
+    },
+    "walls": [
+      {
+        "a": [
+          -517,
+          -555
+        ],
+        "b": [
+          5933,
+          -555
+        ],
+        "length": 6450,
+        "thickness": 230
+      },
+      {
+        "a": [
+          5933,
+          -555
+        ],
+        "b": [
+          5933,
+          3600
+        ],
+        "length": 4155,
+        "thickness": 230
+      },
+      {
+        "a": [
+          5933,
+          3600
+        ],
+        "b": [
+          -517,
+          3600
+        ],
+        "length": 6450,
+        "thickness": 230
+      },
+      {
+        "a": [
+          -517,
+          3600
+        ],
+        "b": [
+          -517,
+          -555
+        ],
+        "length": 4155,
+        "thickness": 230
+      }
+    ],
+    "structures": [],
+    "kubos": false,
+    "tark": false,
+    "openings": [
+      {
+        "type": "door",
+        "variant": "single",
+        "wall": "W1",
+        "off": 3655,
+        "width": 1000,
+        "required": true,
+        "flip": 1
+      },
+      {
+        "type": "door",
+        "variant": "single",
+        "wall": "W2",
+        "off": 4699,
+        "width": 1000,
+        "flip": 2
+      },
+      {
+        "type": "window",
+        "variant": "panel",
+        "wall": "W0",
+        "off": 3400,
+        "width": 3700,
+        "sill": 900,
+        "winH": 1200
+      }
+    ],
+    "zones": [
+      {
+        "id": "z14_mu3vjlyc",
+        "wall": "W1",
+        "tier": "base",
+        "s": 0,
+        "e": 2755
+      },
+      {
+        "id": "z17_mu3vjsmw",
+        "wall": "W0",
+        "tier": "base",
+        "s": 0,
+        "e": 6450
+      },
+      {
+        "id": "z21_mu3vkf2g",
+        "wall": "W3",
+        "tier": "tall",
+        "s": 530,
+        "e": 2330
+      },
+      {
+        "id": "z24_mu3vkpkj",
+        "wall": "W0",
+        "tier": "wall",
+        "s": 0,
+        "e": 1550
+      },
+      {
+        "id": "z25_mu3vkpkj",
+        "wall": "W0",
+        "tier": "wall",
+        "s": 5250,
+        "e": 6450
+      },
+      {
+        "id": "z26_mu3vkpkj",
+        "wall": "W1",
+        "tier": "wall",
+        "s": 0,
+        "e": 2755
+      },
+      {
+        "id": "z27_mu3vkso0",
+        "wall": "W3",
+        "tier": "wall",
+        "s": 2340,
+        "e": 4155
+      },
+      {
+        "id": "z28_mu3vkznm",
+        "wall": "W3",
+        "tier": "base",
+        "s": 2340,
+        "e": 4155
+      }
+    ],
+    "keeps": [],
+    "hobSides": {
+      "left": {
+        "mode": "none",
+        "cabinet": null,
+        "drawerCount": null,
+        "drawers": []
+      },
+      "right": {
+        "mode": "none",
+        "cabinet": null,
+        "drawerCount": null,
+        "drawers": []
+      }
+    },
+    "hobDesign": null,
+    "hobFlanks": {
+      "left": null,
+      "right": null
+    },
+    "roomMode": "enclosed",
+    "openWalls": [],
+    "sinkWidth": 900
+  }
+}

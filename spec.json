@@ -1,0 +1,391 @@
+{
+  "_": "Analysis of the R00-R30 replacement specification against this codebase. Data, not prose, so coverage can be queried and the gaps tracked. Source: revised-rulebook.md v1.0, 12 Sep 2026.",
+  "shape": {
+    "spec_is": "a VERIFICATION contract over a finished candidate, plus a bounded external search driver (R30).",
+    "this_engine_is": "a GENERATOR: expand() cascades anchors, fill() packs the remainder, solve() ranks candidates.",
+    "consequence": "Adopting the spec wholesale means inverting the architecture — rules stop producing layout and only judge it, and a separate builder enumerates candidates. That is a rewrite, not an extension. The incremental path is to adopt the spec's RESULT MODEL (typed statuses, UNRESOLVED, a final gate) while keeping the generator, and to convert rule by rule.",
+    "spec_self_assessment": "The document states its own status as implementation-blocked: 26 unresolved decisions, no verified catalogue adapter, no geometry/aperture/motion evidence, no BOM interface."
+  },
+  "conflicts_with_stated_rules": [
+    {
+      "id": "C1",
+      "severity": "must resolve before either is trusted",
+      "topic": "hob to sink separation",
+      "you_said": 350,
+      "spec_says": 600,
+      "spec_source": "R09 / CNF-02 / DV-114 shared_wall.min_clear_counter_between_fixtures_mm",
+      "note": "Not a rounding difference — 600 rejects layouts 350 accepts. Currently implemented as 350 (your figure). Unchanged pending your decision."
+    },
+    {
+      "id": "C2",
+      "severity": "resolved by user cancellation",
+      "topic": "dish rack above the sink",
+      "you_said": "there is no such thing as a dish rack over a sink — rule refuted",
+      "spec_says": "R17 / CNF-06: WDR directly above sink in a compatible wall host is mandatory; U12 only questions the 1050/1200 bowl case",
+      "note": "The user cancelled the dish-rack rule and preference. It no longer blocks release; rules.json version 4 is authoritative."
+    },
+    {
+      "id": "C3",
+      "severity": "spec is better grounded — applied",
+      "topic": "counter height and wall gap",
+      "you_said": "derived 855 counter + 560 backsplash (my subtraction, never measured)",
+      "spec_says": "850 = 720 carcass + 100 legs + 30 top (DV-049); wall gap 565 default, 450-600 range (DV-154 / NKBA-10 / R17)",
+      "note": "Both close to 2500 and 2140, but the spec decomposes into real parts and gives the SAME 565 gap in both height systems. Mine only worked because I fitted it. Applied."
+    },
+    {
+      "id": "C4",
+      "severity": "low",
+      "topic": "filler maximum",
+      "you_said": "40-100, sometimes more",
+      "spec_says": "90 (DV-132/DV-040), with 70 preferred but marked Disputed (DV-068)",
+      "note": "Spec's own U02 leaves 90 vs 100 open. Left at your 100."
+    }
+  ],
+  "contracts": [
+    {
+      "id": "R00",
+      "name": "Freeze and validate run input",
+      "coverage": "partial",
+      "where": "checkInput.mjs",
+      "missing": "input hashing, version freeze, candidate manifest"
+    },
+    {
+      "id": "R01",
+      "name": "Bind exact read-only catalogue records",
+      "coverage": "good",
+      "where": "catalog.mjs, loadCatalog.mjs",
+      "missing": "U01 code-column semantics; 20 malformed rows excluded rather than resolved"
+    },
+    {
+      "id": "R02",
+      "name": "Compile configuration and binding registry",
+      "coverage": "partial",
+      "where": "config.mjs, rules.json params",
+      "missing": "rule registry, cycle detection, binding check for every hard rule"
+    },
+    {
+      "id": "R03",
+      "name": "Route room functions and water anchors",
+      "coverage": "none",
+      "missing": "multi-room model; engine assumes one room"
+    },
+    {
+      "id": "R04",
+      "name": "Room and usable-wall eligibility",
+      "coverage": "none",
+      "missing": "1800/1800/3.24 m2/1200 thresholds"
+    },
+    {
+      "id": "R05",
+      "name": "Openings and enclosed-room entry",
+      "coverage": "partial",
+      "where": "checkInput.mjs",
+      "missing": "door 650x2100, window 600 wide / 1200 high / sill 0-1200, 300 side clearance"
+    },
+    {
+      "id": "R06",
+      "name": "Height stack and ceiling fit",
+      "coverage": "good",
+      "where": "engine.mjs P.heights",
+      "missing": "measured ceiling input; 150-leg variant (U10)"
+    },
+    {
+      "id": "R07",
+      "name": "Preserve designer decisions",
+      "coverage": "none",
+      "missing": "lock model; anchors are input but not immutable-locked"
+    },
+    {
+      "id": "R08",
+      "name": "Anchor completeness and binding",
+      "coverage": "partial",
+      "where": "checkInput.mjs",
+      "missing": "named hood binding, gas wall, cooling service evidence"
+    },
+    {
+      "id": "R09",
+      "name": "Anchor and appliance separation",
+      "coverage": "partial",
+      "where": "checkInput.mjs hob-sink",
+      "missing": "hob-fridge 600 with intervening cabinetry, hob-oven 200/panel, corner 450/150 — and conflict C1"
+    },
+    {
+      "id": "R10",
+      "name": "Landing and preparation surfaces",
+      "coverage": "none",
+      "missing": "450 floor, 600 target, 900 prep — blocked on U05 side selection"
+    },
+    {
+      "id": "R11",
+      "name": "Optional dishwasher and appliance housing",
+      "coverage": "partial",
+      "where": "engine.mjs expand()",
+      "missing": "aperture evidence, MOD-51/APP-18 panel capability"
+    },
+    {
+      "id": "R12",
+      "name": "Hood type, fit and ventilation",
+      "coverage": "partial",
+      "where": "engine.mjs chimney",
+      "missing": "substrate-driven hood type, mounting height (U03), route documentation"
+    },
+    {
+      "id": "R13",
+      "name": "Declared glazed-hob exception",
+      "coverage": "unsupported",
+      "missing": "requires 700mm cabinet depth; the catalogue has none. The spec itself marks this UNSUPPORTED_CAPABILITY."
+    },
+    {
+      "id": "R14",
+      "name": "One solution per physical corner",
+      "coverage": "partial",
+      "where": "engine.mjs corners()",
+      "missing": "100-110 deg door angle, hidden geometry, tray envelope, stacked-corner cardinality (U21)"
+    },
+    {
+      "id": "R15",
+      "name": "Exact packing and filler closure",
+      "coverage": "good",
+      "where": "engine.mjs fill()",
+      "missing": "0<gap<40 vertical panel branch; top filler 50-100 x 2400"
+    },
+    {
+      "id": "R16",
+      "name": "Construction, shutter and finish compatibility",
+      "coverage": "partial",
+      "where": "catalog.mjs handle rule",
+      "missing": "shutter-count convention, shelf material, filler finish matching"
+    },
+    {
+      "id": "R17",
+      "name": "Wall band and selected WDR",
+      "coverage": "partial",
+      "where": "engine.mjs",
+      "missing": "450-600 gap enforced as a range; WDR — see conflict C2"
+    },
+    {
+      "id": "R18",
+      "name": "Visible and filler panel specification",
+      "coverage": "partial",
+      "where": "engine.mjs panel 25",
+      "missing": "height = H-3, width = depth+25, chimney-adjacent = depth, finish matching"
+    },
+    {
+      "id": "R19",
+      "name": "Optional chimney furniture assembly",
+      "coverage": "partial",
+      "where": "engine.mjs chimney width",
+      "missing": "50mm flank reductions via real rows, panel 500 at 725 wall, 1085 unresolved (U11)"
+    },
+    {
+      "id": "R20",
+      "name": "Countertop and structural depth specials",
+      "coverage": "none",
+      "missing": "30 thickness, 15 overhang, island 15-20, cantilever 300"
+    },
+    {
+      "id": "R21",
+      "name": "Island and peninsula eligibility",
+      "coverage": "none",
+      "missing": "entire island model — 3962x4572 / 2743x3353 eligibility, 1260-2800 length"
+    },
+    {
+      "id": "R22",
+      "name": "Island hosting, seating, separation",
+      "coverage": "none",
+      "missing": "entire island model"
+    },
+    {
+      "id": "R23",
+      "name": "Final aisle and walkway clearance",
+      "coverage": "none",
+      "missing": "corridor model entirely — 1050 working, 1200 mixed, 900 passage. Biggest single gap: nothing checks the space BETWEEN runs."
+    },
+    {
+      "id": "R24",
+      "name": "Operation envelopes and refrigerator bay",
+      "coverage": "none",
+      "missing": "swept volumes, hinge kinematics, fridge 50mm ventilation"
+    },
+    {
+      "id": "R25",
+      "name": "Loft and mid rolling-shutter units",
+      "coverage": "none",
+      "missing": "loft 600, mid 1290/1650 — blocked on U10/U17"
+    },
+    {
+      "id": "R26",
+      "name": "Required services and advisory accessories",
+      "coverage": "none",
+      "missing": "floor gas/water/waste points, accessory reach"
+    },
+    {
+      "id": "R27",
+      "name": "Preferences and deterministic ranking",
+      "coverage": "partial",
+      "where": "engine.mjs solve()",
+      "missing": "lexicographic preference vector in the spec's declared component order"
+    },
+    {
+      "id": "R28",
+      "name": "Aggregate findings without repeated triggering",
+      "coverage": "none",
+      "missing": "dedup by (candidate,rule,subject,clause); 3-MEDIUM summary"
+    },
+    {
+      "id": "R29",
+      "name": "Final candidate compatibility and release gate",
+      "coverage": "added",
+      "where": "engine.mjs gate()",
+      "missing": "per-rule terminal results; currently classifies aggregate problems/unresolved/notes"
+    },
+    {
+      "id": "R30",
+      "name": "Select bounded alternatives and terminate",
+      "coverage": "partial",
+      "where": "engine.mjs solve()",
+      "missing": "candidate/operation budgets, canonical signatures, NO_FEASIBLE_DESIGN vs SEARCH_LIMIT distinction"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "U01",
+      "topic": "authoritative cabinet-code column and Yes/No/blank design-flag semantics",
+      "our_position": "resolved: corrected column is authoritative, STD is a group alias"
+    },
+    {
+      "id": "U02",
+      "topic": "filler maximum 90 vs 100; preferred 70 marked Disputed",
+      "our_position": "using 100 on your word"
+    },
+    {
+      "id": "U03",
+      "topic": "hood mounting minimum 600 vs 750",
+      "our_position": "open — we model chimney WIDTH (hob+100) but not mounting height"
+    },
+    {
+      "id": "U04",
+      "topic": "island seat pitch 750 vs 600",
+      "our_position": "not applicable — no island model"
+    },
+    {
+      "id": "U05",
+      "topic": "landing floors and which sides they apply to",
+      "our_position": "open — no landing model"
+    },
+    {
+      "id": "U06",
+      "topic": "cross-run and corner distance metric",
+      "our_position": "partially resolved: hob-sink measures around the corner along the countertop"
+    },
+    {
+      "id": "U07",
+      "topic": "passage 900 vs front 1050 vs walkway 1100 scopes",
+      "our_position": "open — no corridor model"
+    },
+    {
+      "id": "U08",
+      "topic": "100mm servicing clearance vs unexplained DV-167 = 40",
+      "our_position": "not applicable"
+    },
+    {
+      "id": "U09",
+      "topic": "ceiling evidence when not measured",
+      "our_position": "open — we assume the 7ft/8ft system fits"
+    },
+    {
+      "id": "U10",
+      "topic": "150mm leg capability and mid-unit contradictions",
+      "our_position": "not applicable — 100 legs only"
+    },
+    {
+      "id": "U11",
+      "topic": "1085-wall chimney panel height",
+      "our_position": "open"
+    },
+    {
+      "id": "U12",
+      "topic": "WDR over 1050/1200 bowl",
+      "our_position": "superseded by conflict C2 — you refuted the whole rule"
+    },
+    {
+      "id": "U13",
+      "topic": "optional vs mandatory island in an Open shape",
+      "our_position": "not applicable"
+    },
+    {
+      "id": "U14",
+      "topic": "continuous usable wall and non-rectangular rooms",
+      "our_position": "open — rooms are rectangles of four walls"
+    },
+    {
+      "id": "U15",
+      "topic": "dishwasher adjacency gaps and panels",
+      "our_position": "partially resolved: dishwasher sits immediately beside the sink"
+    },
+    {
+      "id": "U16",
+      "topic": "assigning hosts from room names",
+      "our_position": "not applicable — single room"
+    },
+    {
+      "id": "U17",
+      "topic": "catalogue construction/mount/shelf conflicts",
+      "our_position": "open — 20 rows excluded as malformed rather than resolved"
+    },
+    {
+      "id": "U18",
+      "topic": "code vs column dimension conflicts",
+      "our_position": "resolved: loadCatalog uses the correction-sheet dimensions for all reported code mismatches"
+    },
+    {
+      "id": "U19",
+      "topic": "glazed-wall 700mm cabinet depth",
+      "our_position": "unsupported — no 700 rows exist"
+    },
+    {
+      "id": "U20",
+      "topic": "real appliance inventory and service routing",
+      "our_position": "open — appliances are dimensionless placeholders"
+    },
+    {
+      "id": "U21",
+      "topic": "corner geometry, hidden overlaps, swing envelopes",
+      "our_position": "open — corners are width reservations only"
+    },
+    {
+      "id": "U22",
+      "topic": "pricing, quantity formulas, BOM interface",
+      "our_position": "out of scope by your decision"
+    },
+    {
+      "id": "U23",
+      "topic": "minimum-wall presets mixing Hard priority and Soft strategy",
+      "our_position": "open"
+    },
+    {
+      "id": "U24",
+      "topic": "one 600 hob/fridge buffer vs several totalling 600",
+      "our_position": "not applicable — no hob-fridge rule implemented"
+    },
+    {
+      "id": "U25",
+      "topic": "extending island constraints to peninsulas",
+      "our_position": "not applicable"
+    },
+    {
+      "id": "U26",
+      "topic": "anchor-free vs shorter corner-leg preference",
+      "our_position": "not applicable — corner side is not chosen by preference yet"
+    }
+  ],
+  "current_user_overrides": {
+    "authority": "rules.json version 4 supersedes conflicting historical specification entries",
+    "cancelled": [
+      "Dish-rack and vegetable-basket requirements and preferences",
+      "Countertop adjacency for microwave/oven cabinet"
+    ],
+    "storage": "Grain trolley required anywhere; bottle pullout required beside hob or beyond a hob-flanking cabinet.",
+    "anchors": "Each appliance may move within 100mm of the designer starting position to improve fit, including already fitting layouts."
+  }
+}

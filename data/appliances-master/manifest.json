@@ -1,0 +1,136 @@
+{
+  "source": "Appliances List with Zone Details.xlsx",
+  "extractedSheets": [
+    {
+      "index": 1,
+      "name": "Kitchen Appliances",
+      "state": "visible",
+      "sourceFile": "sheet1.xml",
+      "rows": 25,
+      "nonEmptyRows": 25,
+      "cols": 15
+    },
+    {
+      "index": 2,
+      "name": "Copy of Kitchen Modules",
+      "state": "hidden",
+      "sourceFile": "sheet2.xml",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 3,
+      "name": "Shutters",
+      "state": "hidden",
+      "sourceFile": "sheet3.xml",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 4,
+      "name": "Shutter Parts Detail",
+      "state": "hidden",
+      "sourceFile": "sheet4.xml",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    },
+    {
+      "index": 5,
+      "name": "Copy of Cabinet price",
+      "state": "hidden",
+      "sourceFile": "sheet5.xml",
+      "rows": 90,
+      "nonEmptyRows": 89,
+      "cols": 39
+    },
+    {
+      "index": 6,
+      "name": "Copy of Kitchen Modules (1)",
+      "state": "hidden",
+      "sourceFile": "sheet6.xml",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 7,
+      "name": "Shutters (1)",
+      "state": "hidden",
+      "sourceFile": "sheet7.xml",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 8,
+      "name": "Shutter Parts Detail (1)",
+      "state": "hidden",
+      "sourceFile": "sheet8.xml",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    },
+    {
+      "index": 9,
+      "name": "Copy of Cabinet price (1)",
+      "state": "hidden",
+      "sourceFile": "sheet9.xml",
+      "rows": 90,
+      "nonEmptyRows": 89,
+      "cols": 39
+    },
+    {
+      "index": 10,
+      "name": "Copy of Kitchen Modules (2)",
+      "state": "hidden",
+      "sourceFile": "sheet10.xml",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 11,
+      "name": "Shutters (2)",
+      "state": "hidden",
+      "sourceFile": "sheet11.xml",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 12,
+      "name": "Shutter Parts Detail (2)",
+      "state": "hidden",
+      "sourceFile": "sheet12.xml",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    }
+  ],
+  "mediaImages": 23,
+  "imageRowMap": {
+    "1": "image1.png",
+    "2": "image2.png",
+    "3": "image3.png",
+    "4": "image4.png",
+    "6": "image5.png",
+    "7": "image6.png",
+    "8": "image8.png",
+    "9": "image9.png",
+    "10": "image10.png",
+    "12": "image11.png",
+    "13": "image12.png",
+    "14": "image14.png",
+    "16": "image15.png",
+    "17": "image17.png",
+    "19": "image18.png",
+    "20": "image19.png",
+    "21": "image20.png",
+    "22": "image21.png",
+    "23": "image22.png",
+    "24": "image23.png"
+  }
+}

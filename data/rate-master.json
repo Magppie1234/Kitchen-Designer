@@ -1,0 +1,20 @@
+{
+  "currency": "INR",
+  "note": "Raw-material rate master for the cost ESTIMATE engine (lib/costEstimate.js). The Zoho item master (org 60063687231) is fully rate-populated (2,164 items with real purchase rates), so the dominant cost drivers below are REAL Magppie rates derived from actual SKUs (source:'zoho', with the SKU + how it was reduced to a per-unit rate). A few items with no clean SKU (sink bowl, Lemans mechanism, back panel, edge band) remain source:'assumed' — any quote touching an assumed rate is still flagged ESTIMATE. Stone/board are priced per sheet/slab in Zoho with dimensions in the SKU name; per-sqft = rate / (sheet area in sqft).",
+  "rates": {
+    "carcassBoard_sqft":   { "value": 79,    "unit": "INR/sqft", "source": "zoho",    "sku": "HDHMR SF BSL 2440X1220X18 = ₹2531.59/sheet ÷ 32.04 sqft" },
+    "backPanel_sqft":      { "value": 45,    "unit": "INR/sqft", "source": "assumed", "of": "6mm back panel — no clean Zoho SKU; assumed below carcass board" },
+    "shutterStone_sqft":   { "value": 230,   "unit": "INR/sqft", "source": "zoho",    "sku": "STONE MATT 2800X1200X6 CREAM/KHAKI GREY GAUN = ₹8329.33/slab ÷ 36.17 sqft (premium stones range to ~₹910/sqft)" },
+    "counterStone_sqft":   { "value": 358,   "unit": "INR/sqft", "source": "zoho",    "sku": "QUARTZ MATT 3270X1650X20 CARRARA CLOUD MLPL = ₹20816.9/slab ÷ 58.08 sqft" },
+    "edgeBand_m":          { "value": 18,    "unit": "INR/m",    "source": "assumed", "of": "PVC FOIL edge band — Zoho prices per roll (₹686–1225), per-m not cleanly derivable; assumed" },
+    "hinge_each":          { "value": 150,   "unit": "INR/ea",   "source": "zoho",    "sku": "HETTICH soft-close hinge range ₹80 (C00 100°) – ₹433 (160°); blended ₹150" },
+    "drawerRunner_set":    { "value": 938,   "unit": "INR/set",  "source": "zoho",    "sku": "DRAWER TANDEM SOFT CLOSE HB 500 LIAN = ₹937.86/set" },
+    "handle_each":         { "value": 900,   "unit": "INR/ea",   "source": "zoho",    "sku": "ALU profile handle range; ALU PROF FOR HANDLE 1200 = ₹4717.5 (≈₹2360/600); blended ₹900/running unit for mid handle" },
+    "leg_each":            { "value": 130,   "unit": "INR/ea",   "source": "zoho",    "sku": "SS LEG 150-160MM ADJUSTABLE WITH TOP = ₹130/ea" },
+    "sinkBowl_each":       { "value": 6500,  "unit": "INR/ea",   "source": "assumed", "of": "SS sink bowl — no clean Zoho SKU surfaced; assumed" },
+    "lemansMechanism_each":{ "value": 18500, "unit": "INR/ea",   "source": "assumed", "of": "Lemans corner pull-out — no Zoho SKU surfaced; assumed" },
+    "tallPantry_each":     { "value": 21687, "unit": "INR/ea",   "source": "zoho",    "sku": "TANDEM PANTRY SOFT CLOSE 600MM 510X485X2210 GREY 202256 HI GOLD = ₹21687/ea" }
+  },
+  "labour": { "factorOnMaterial": 0.35, "note": "fabrication + assembly + install, as a fraction of material cost (assumed)" },
+  "margin": { "factor": 0.0, "note": "gross margin multiplier applied after labour; 0 = cost only, set by Magppie" }
+}

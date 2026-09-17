@@ -1,0 +1,117 @@
+{
+  "_provenance": {
+    "accessories": "Accessories List with Zone and Wall Details.xlsx → Kitchen Accessories",
+    "appliances": "Appliances List with Zone Details.xlsx → Kitchen Appliances",
+    "note": "Descriptions verbatim from Excel; images visually verified & pre-copied to public/assets/."
+  },
+  "_flags": [
+    "\"Blind Corner\": intentional placeholder — drop config/corner-blind.jpg to activate."
+  ],
+  "Detergent Pullout – Three Basket": {
+    "serial": 18,
+    "img": "assets/config/sink-detergent-3.jpg",
+    "excelName": "DETERGENT PULLOUT",
+    "desc": "3 Baskets"
+  },
+  "Detergent Pullout – Single Basket": {
+    "serial": 19,
+    "img": "assets/config/sink-detergent-1.jpg",
+    "excelName": "DETERGENT PULLOUT",
+    "desc": "Single Basket"
+  },
+  "Waste Bin PVC – 14 L × 2": {
+    "serial": 15,
+    "img": "assets/config/sink-wastebin-14.jpg",
+    "excelName": "WASTEBIN PVC",
+    "desc": "Capacity 14 lt X 2"
+  },
+  "Waste Bin – 30 L × 2": {
+    "serial": 13,
+    "img": "assets/config/sink-wastebin-30.jpg",
+    "excelName": "WASTEBIN STAINLESS STEEL",
+    "desc": "Capacity 30 lt X 2"
+  },
+  "Lehmans Corner": {
+    "serial": 11,
+    "img": "assets/config/corner-lehman.jpg",
+    "excelName": "LEHMANS CORNER",
+    "desc": "For Blind Corners LH"
+  },
+  "Blind Corner": {
+    "serial": null,
+    "img": "assets/config/corner-blind.jpg",
+    "excelName": null,
+    "desc": null,
+    "placeholder": true
+  },
+  "Kubos": {
+    "serial": 26,
+    "img": "assets/kubos.jpg",
+    "excelName": "KUBOS",
+    "desc": "Open shelving in metal & glass"
+  },
+  "Tark System": {
+    "serial": 32,
+    "img": "assets/tark.jpg",
+    "excelName": "TARK SYSTEM",
+    "desc": "Sintered Stone"
+  },
+  "Tandem Pantry": {
+    "serial": 30,
+    "img": "assets/config/fridge-tandem-pantry.jpg",
+    "excelName": "TANDEM PANTRY",
+    "desc": null
+  },
+  "Pantry": {
+    "serial": 31,
+    "img": "assets/config/fridge-pantry.jpg",
+    "excelName": "5 DRAWER SET",
+    "desc": "3Low back  & 2High back Drawers"
+  },
+  "Fridge Built-In": {
+    "serial": 2,
+    "img": "assets/appliances/fridge-builtin.png",
+    "source": "appliances sheet",
+    "excelName": "Refrigerator Built-In",
+    "desc": "Single Door · Double Doors",
+    "size": "600mm Cabinet"
+  },
+  "Fridge Free Standing": {
+    "serial": 1,
+    "img": "assets/appliances/fridge-freestanding.png",
+    "source": "appliances sheet",
+    "excelName": "Refrigerator Free standing",
+    "desc": "Single Door · Double Doors · Three Doors",
+    "size": "650mm Width to · 1050mm Width"
+  },
+  "Hob": {
+    "serial": 4,
+    "img": "assets/appliances/hob.png",
+    "source": "appliances sheet",
+    "excelName": "Hob",
+    "desc": "1 Burner (300mm) · 2 Burner (300 to 350mm) · 3 Burner (600mm) · 4 Burner (600 to 750mm) · 5 Burner (800 to 900mm) · 6 Burner (900mm)",
+    "size": "600mm Cabinet · 900mm Cabinet"
+  },
+  "Bottle Pull-Out – Single": {
+    "img": "assets/config/sink-bottle-single.jpg",
+    "desc": "150 mm Pull-Out Unit (BPO)",
+    "excelName": "BOTTLE PULLOUT",
+    "size": "150 mm"
+  },
+  "Bottle Pull-Out – Double": {
+    "img": "assets/config/sink-bottle-double.jpg",
+    "desc": "300 mm Pull-Out Unit (BPO)",
+    "excelName": "BOTTLE PULLOUT",
+    "size": "300 mm"
+  },
+  "Bottle Pull-Out – Triple": {
+    "img": "assets/config/sink-bottle-double.jpg",
+    "desc": "Pull-Out Unit (BPO)",
+    "excelName": "BOTTLE PULLOUT"
+  },
+  "Waste Bin Pull-Out": {
+    "img": "assets/config/sink-wastebin-30.jpg",
+    "desc": "Stainless Steel · Capacity 30 lt × 2",
+    "excelName": "WASTEBIN STAINLESS STEEL"
+  }
+}

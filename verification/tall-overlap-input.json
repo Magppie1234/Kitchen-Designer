@@ -1,0 +1,142 @@
+{
+  "project": "UI",
+  "height": "8ft",
+  "ceiling": 3100,
+  "inputProblems": [],
+  "dishwasher": true,
+  "handle": "CJ",
+  "walls": [
+    {
+      "id": "0",
+      "length": 10622,
+      "dir": "E"
+    },
+    {
+      "id": "1",
+      "length": 3970,
+      "dir": "S"
+    },
+    {
+      "id": "2",
+      "length": 5629,
+      "dir": "W"
+    },
+    {
+      "id": "3",
+      "length": 2014,
+      "dir": "S"
+    },
+    {
+      "id": "4",
+      "length": 4993,
+      "dir": "W"
+    },
+    {
+      "id": "5",
+      "length": 5984,
+      "dir": "N"
+    }
+  ],
+  "openings": [
+    {
+      "type": "door",
+      "variant": "single",
+      "wall": "0",
+      "off": 500,
+      "width": 1000,
+      "required": true,
+      "at": 0
+    },
+    {
+      "type": "window",
+      "variant": "sliding",
+      "wall": "2",
+      "off": 2909,
+      "width": 1200,
+      "sill": 900,
+      "winH": 1200,
+      "at": 2309
+    }
+  ],
+  "columns": [],
+  "anchors": [
+    {
+      "item": "hob",
+      "wall": "0",
+      "at": 5757,
+      "width": 900,
+      "center": 6207,
+      "design": "2HB",
+      "flanks": {
+        "left": "DW:2LB+1HB",
+        "right": "DW:2LB+1HB"
+      }
+    },
+    {
+      "item": "sink",
+      "wall": "2",
+      "at": 2317,
+      "width": 1200
+    },
+    {
+      "item": "fridge",
+      "wall": "4",
+      "at": 2288,
+      "width": 600
+    }
+  ],
+  "structures": [],
+  "zones": {
+    "base": [
+      {
+        "wall": "0",
+        "from": 5020,
+        "to": 10622
+      },
+      {
+        "wall": "1",
+        "from": 0,
+        "to": 3970
+      },
+      {
+        "wall": "2",
+        "from": 0,
+        "to": 5629
+      }
+    ],
+    "wall": [
+      {
+        "wall": "0",
+        "from": 5040,
+        "to": 10622
+      },
+      {
+        "wall": "1",
+        "from": 0,
+        "to": 3970
+      },
+      {
+        "wall": "2",
+        "from": 0,
+        "to": 2309
+      },
+      {
+        "wall": "2",
+        "from": 3509,
+        "to": 5629
+      }
+    ],
+    "tall": [
+      {
+        "wall": "5",
+        "from": 0,
+        "to": 410
+      },
+      {
+        "wall": "4",
+        "from": 0,
+        "to": 4993
+      }
+    ]
+  }
+}

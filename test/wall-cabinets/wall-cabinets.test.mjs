@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {layout,wallFlankProblems} from '../../engine.mjs';
+import {loadCatalog} from '../../loadCatalog.mjs';
+import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
+const cat=loadCatalog().ok;
+test('wall symmetry follows the actual base flank, survives solid substitution and rejects mismatches',()=>{
+  const j=runEndFixture(),r=layout(j,cat);
+  assert.deepEqual(r.problems,[]);assert.deepEqual(wallFlankProblems(r.placed),[]);
+  const hood=r.placed.wall.find(p=>p.role==='chimney');
+  const pair=r.placed.wall.filter(p=>p.code&&(p.at+p.width===hood.at||p.at===hood.at+hood.width));
+  assert.deepEqual(pair.map(p=>p.width),[550,550],'900 hob with 600 base flank gives 550 wall flanks');
+  const solid=layout(j,cat.filter(c=>c.material!=='GL'));assert.deepEqual(wallFlankProblems(solid.placed),[]);
+  const bad=structuredClone(r.placed);bad.wall.find(p=>p.at===pair[0].at).width-=50;
+  assert.ok(wallFlankProblems(bad).some(p=>p.includes('wall-width-follows-hob-flank')));
+});
+test('wall-only view shows actual upper units, hood, fillers and tall cabinets with editable wall references',()=>{
+  const html=readFileSync('ui/builder.html','utf8'),start=html.indexOf('function draw2dLegacy()'),end=html.indexOf('function renderLegend()',start);
+  const svg={innerHTML:'',querySelectorAll:()=>[]};
+  const S={planTier:'wall',options:{},walls:[{a:[0,0],b:[3000,0],length:3000}],modules:[],plan:{runs:[{key:'W0',segments:[{kind:'cabinet',func:'base',width:600,x0:0},{kind:'tallBank',width:600,x0:2400,units:[{type:'fridge',width:600}]}]}],tiers:{W0:{wall:[{kind:'wallSolid',label:'upper storage',width:450,x0:1000,code:'wall-code'},{kind:'chimney',label:'chimney',width:1000,x0:1450},{kind:'filler',label:'panel',width:25,x0:975}]}}}};
+  const ctx=vm.createContext({S,TIER:{wall:'#abc',tall:'#123',base:'#def',counter:'#ccc'},TALL_ANCHORS:[],$:()=>svg,refitView:()=>{},tf:()=>({sc:.1,X:x=>x*.1,Y:y=>y*.1}),depthOf:t=>t==='wall'?336:560,inwardSign:()=>1,bounds:()=>({a:{x:0,y:0},b:{x:3000,y:3000}}),labelFits:()=>true,modTitle:()=>'',tierColor:()=>'',abbrevFunc:String,highlightSelection:()=>{},renderLegend:()=>{},pushMod:m=>S.modules.push(m)-1});
+  vm.runInContext(html.slice(start,end),ctx);ctx.draw2dLegacy();
+  assert.equal(S.modules.filter(m=>m.tier==='wall').length,3);assert.equal(S.modules.filter(m=>m.tier==='base').length,0);assert.equal(S.modules.filter(m=>m.tier==='tall').length,1);
+  assert.match(svg.innerHTML,/CHIMNEY/);assert.match(svg.innerHTML,/x="100"/);
+  assert.equal(S.modules.find(m=>m.code==='wall-code').segTier,'wall');
+  S.planTier='base';ctx.draw2dLegacy();assert.equal(S.modules.filter(m=>m.tier==='wall').length,0);
+  S.planTier='overlay';ctx.draw2dLegacy();assert.equal(S.modules.filter(m=>m.tier==='wall').length,1);
+});

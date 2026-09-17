@@ -1,0 +1,131 @@
+{
+    "created":  "2026-09-16T09:50:30.632Z",
+    "cases":  [
+                  {
+                      "name":  "u",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294,
+                      "elapsedMs":  17920
+                  },
+                  {
+                      "name":  "l",
+                      "problems":  0,
+                      "cabinets":  22,
+                      "storageCabinets":  18,
+                      "grossStorageLitres":  5597,
+                      "fillerMm":  304,
+                      "elapsedMs":  2958
+                  },
+                  {
+                      "name":  "seven",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5064,
+                      "fillerMm":  294,
+                      "elapsedMs":  16203
+                  },
+                  {
+                      "name":  "straight",
+                      "problems":  0,
+                      "cabinets":  29,
+                      "storageCabinets":  25,
+                      "grossStorageLitres":  7757,
+                      "fillerMm":  250,
+                      "elapsedMs":  3040
+                  },
+                  {
+                      "name":  "concave",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294,
+                      "elapsedMs":  16648
+                  },
+                  {
+                      "name":  "reflected",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294,
+                      "elapsedMs":  17610
+                  },
+                  {
+                      "name":  "u-hob--75",
+                      "problems":  1,
+                      "cabinets":  24,
+                      "storageCabinets":  20,
+                      "grossStorageLitres":  5826,
+                      "fillerMm":  644,
+                      "elapsedMs":  16809
+                  },
+                  {
+                      "name":  "u-sink--75",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319,
+                      "elapsedMs":  16105
+                  },
+                  {
+                      "name":  "u-hob--25",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5881,
+                      "fillerMm":  494,
+                      "elapsedMs":  17330
+                  },
+                  {
+                      "name":  "u-sink--25",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319,
+                      "elapsedMs":  15989
+                  },
+                  {
+                      "name":  "u-hob-25",
+                      "problems":  2,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5899,
+                      "fillerMm":  444,
+                      "elapsedMs":  26463
+                  },
+                  {
+                      "name":  "u-sink-25",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319,
+                      "elapsedMs":  17595
+                  },
+                  {
+                      "name":  "u-hob-75",
+                      "problems":  2,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5883,
+                      "fillerMm":  494,
+                      "elapsedMs":  27005
+                  },
+                  {
+                      "name":  "u-sink-75",
+                      "problems":  1,
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319,
+                      "elapsedMs":  16893
+                  }
+              ]
+}

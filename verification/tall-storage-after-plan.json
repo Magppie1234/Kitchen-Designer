@@ -1,0 +1,2878 @@
+{
+  "schemaVersion": 2,
+  "validationVersion": 9,
+  "geometry": {
+    "height": "8ft",
+    "baseTop": 850,
+    "wallBottom": 1415,
+    "wallTop": 2500,
+    "tall": 2400,
+    "counterThickness": 30
+  },
+  "openings": [
+    {
+      "type": "door",
+      "variant": "single",
+      "wall": "W0",
+      "off": 500,
+      "width": 1000,
+      "required": true,
+      "at": 0
+    },
+    {
+      "type": "window",
+      "variant": "sliding",
+      "wall": "W2",
+      "off": 2909,
+      "width": 1200,
+      "sill": 900,
+      "winH": 1200,
+      "at": 2309
+    }
+  ],
+  "runs": [
+    {
+      "key": "W0",
+      "wall": "0",
+      "total": 10622,
+      "segments": [
+        {
+          "kind": "door",
+          "tier": "base",
+          "label": "door",
+          "width": 1000,
+          "wall": "W0",
+          "x": 0,
+          "from": 0,
+          "to": 1000,
+          "x0": 0,
+          "x1": 1000,
+          "code": null,
+          "func": "door (no cabinet)",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "gap",
+          "width": 4020,
+          "wall": "W0",
+          "x": 1000,
+          "x0": 1000,
+          "x1": 5020
+        },
+        {
+          "kind": "filler",
+          "tier": "base",
+          "label": "countertop return",
+          "width": 25,
+          "wall": "W0",
+          "x": 5020,
+          "from": 5020,
+          "to": 5045,
+          "x0": 5020,
+          "x1": 5045,
+          "code": null,
+          "func": "countertop return",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "filler",
+          "tier": "base",
+          "label": "gap filler",
+          "width": 50,
+          "wall": "W0",
+          "x": 5045,
+          "from": 5045,
+          "to": 5095,
+          "x0": 5045,
+          "x1": 5095,
+          "code": null,
+          "func": "gap filler",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W0",
+          "x": 5095,
+          "from": 5095,
+          "to": 5695,
+          "x0": 5095,
+          "x1": 5695,
+          "code": "BC-DW-CJ-ST-2LB-1HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "anchor",
+          "tier": "base",
+          "label": "hob",
+          "width": 900,
+          "wall": "W0",
+          "x": 5695,
+          "from": 5695,
+          "to": 6595,
+          "x0": 5695,
+          "x1": 6595,
+          "code": "BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+          "func": "hob",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W0",
+          "x": 6595,
+          "from": 6595,
+          "to": 7195,
+          "x0": 6595,
+          "x1": 7195,
+          "code": "BC-DW-CJ-ST-2LB-1HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "bottle pullout",
+          "width": 300,
+          "wall": "W0",
+          "x": 7195,
+          "from": 7195,
+          "to": 7495,
+          "x0": 7195,
+          "x1": 7495,
+          "code": "BC-AC-CJ-ST-BPO-LHS-XXX-300-720-560-15",
+          "func": "bottle pullout",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "grain trolley",
+          "width": 450,
+          "wall": "W0",
+          "x": 7495,
+          "from": 7495,
+          "to": 7945,
+          "x0": 7495,
+          "x1": 7945,
+          "code": "BC-GD-CJ-ST-1BL-1HF-XXX-450-720-560-15",
+          "func": "grain trolley",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "shutter",
+          "width": 550,
+          "wall": "W0",
+          "x": 7945,
+          "from": 7945,
+          "to": 8495,
+          "x0": 7945,
+          "x1": 8495,
+          "code": "BC-SH-CJ-ST-1SX-LHS-XXX-550-720-560-15",
+          "func": "shutter",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W0",
+          "x": 8495,
+          "from": 8495,
+          "to": 9095,
+          "x0": 8495,
+          "x1": 9095,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 900,
+          "wall": "W0",
+          "x": 9095,
+          "from": 9095,
+          "to": 9995,
+          "x0": 9095,
+          "x1": 9995,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "filler",
+          "tier": "base",
+          "label": "corner filler",
+          "width": 67,
+          "wall": "W0",
+          "x": 9995,
+          "from": 9995,
+          "to": 10062,
+          "x0": 9995,
+          "x1": 10062,
+          "code": null,
+          "func": "corner filler",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "gap",
+          "tier": "base",
+          "label": "corner void",
+          "width": 560,
+          "wall": "W0",
+          "x": 10062,
+          "from": 10062,
+          "to": 10622,
+          "x0": 10062,
+          "x1": 10622,
+          "code": null,
+          "func": "corner void",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        }
+      ]
+    },
+    {
+      "key": "W1",
+      "wall": "1",
+      "total": 3970,
+      "segments": [
+        {
+          "kind": "corner",
+          "tier": "base",
+          "label": "LeMans corner",
+          "width": 1050,
+          "wall": "W1",
+          "x": 0,
+          "from": 0,
+          "to": 1050,
+          "x0": 0,
+          "x1": 1050,
+          "code": "BB-AC-CJ-ST-LMC-LHS-XXX-1050-720-560-15",
+          "func": "LeMans corner",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100,
+          "corner": {
+            "id": "0:1",
+            "end": "from",
+            "adjacentWall": "0",
+            "adjacentEnd": "to",
+            "deadSpace": 0
+          },
+          "shutter": {
+            "x0": 600,
+            "x1": 1050,
+            "width": 450,
+            "cornerDistance": 600,
+            "adjacentFront": 560,
+            "clearance": 40
+          }
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "shutter",
+          "width": 500,
+          "wall": "W1",
+          "x": 1050,
+          "from": 1050,
+          "to": 1550,
+          "x0": 1050,
+          "x1": 1550,
+          "code": "BC-SH-CJ-ST-1SX-LHS-XXX-500-720-560-15",
+          "func": "shutter",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W1",
+          "x": 1550,
+          "from": 1550,
+          "to": 2150,
+          "x0": 1550,
+          "x1": 2150,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W1",
+          "x": 2150,
+          "from": 2150,
+          "to": 2750,
+          "x0": 2150,
+          "x1": 2750,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "corner",
+          "tier": "base",
+          "label": "blind corner",
+          "width": 1150,
+          "wall": "W1",
+          "x": 2750,
+          "from": 2750,
+          "to": 3900,
+          "x0": 2750,
+          "x1": 3900,
+          "code": "BB-SH-CJ-ST-1SX-LHS-XXX-1150-720-560-15",
+          "func": "blind corner",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100,
+          "corner": {
+            "id": "1:2",
+            "end": "to",
+            "adjacentWall": "2",
+            "adjacentEnd": "from",
+            "deadSpace": 70
+          },
+          "shutter": {
+            "x0": 2750,
+            "x1": 3370,
+            "width": 620,
+            "cornerDistance": 600,
+            "adjacentFront": 560,
+            "clearance": 40
+          }
+        },
+        {
+          "kind": "gap",
+          "tier": "base",
+          "label": "concealed corner space",
+          "width": 70,
+          "wall": "W1",
+          "x": 3900,
+          "from": 3900,
+          "to": 3970,
+          "x0": 3900,
+          "x1": 3970,
+          "code": null,
+          "func": "concealed corner space",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100,
+          "hiddenCorner": true
+        }
+      ]
+    },
+    {
+      "key": "W2",
+      "wall": "2",
+      "total": 5629,
+      "segments": [
+        {
+          "kind": "gap",
+          "tier": "base",
+          "label": "corner void",
+          "width": 560,
+          "wall": "W2",
+          "x": 0,
+          "from": 0,
+          "to": 560,
+          "x0": 0,
+          "x1": 560,
+          "code": null,
+          "func": "corner void",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "filler",
+          "tier": "base",
+          "label": "corner filler",
+          "width": 44,
+          "wall": "W2",
+          "x": 560,
+          "from": 560,
+          "to": 604,
+          "x0": 560,
+          "x1": 604,
+          "code": null,
+          "func": "corner filler",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "shutter",
+          "width": 500,
+          "wall": "W2",
+          "x": 604,
+          "from": 604,
+          "to": 1104,
+          "x0": 604,
+          "x1": 1104,
+          "code": "BC-SH-CJ-ST-1SX-LHS-XXX-500-720-560-15",
+          "func": "shutter",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W2",
+          "x": 1104,
+          "from": 1104,
+          "to": 1704,
+          "x0": 1104,
+          "x1": 1704,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W2",
+          "x": 1704,
+          "from": 1704,
+          "to": 2304,
+          "x0": 1704,
+          "x1": 2304,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "anchor",
+          "tier": "base",
+          "label": "sink",
+          "width": 1200,
+          "wall": "W2",
+          "x": 2304,
+          "from": 2304,
+          "to": 3504,
+          "x0": 2304,
+          "x1": 3504,
+          "code": "BC-SK-CJ-ST-XXX-2HS-XXX-1200-720-560-15",
+          "func": "sink",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "anchor",
+          "tier": "base",
+          "label": "dishwasher",
+          "width": 600,
+          "wall": "W2",
+          "x": 3504,
+          "from": 3504,
+          "to": 4104,
+          "x0": 3504,
+          "x1": 4104,
+          "code": null,
+          "func": "dishwasher",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 600,
+          "wall": "W2",
+          "x": 4104,
+          "from": 4104,
+          "to": 4704,
+          "x0": 4104,
+          "x1": 4704,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "cabinet",
+          "tier": "base",
+          "label": "drawers",
+          "width": 900,
+          "wall": "W2",
+          "x": 4704,
+          "from": 4704,
+          "to": 5604,
+          "x0": 4704,
+          "x1": 5604,
+          "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+          "func": "drawers",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        },
+        {
+          "kind": "filler",
+          "tier": "base",
+          "label": "countertop return",
+          "width": 25,
+          "wall": "W2",
+          "x": 5604,
+          "from": 5604,
+          "to": 5629,
+          "x0": 5604,
+          "x1": 5629,
+          "code": null,
+          "func": "countertop return",
+          "height": 720,
+          "depth": 560,
+          "offset": 0,
+          "z": 100
+        }
+      ]
+    },
+    {
+      "key": "W3",
+      "wall": "3",
+      "total": 2014,
+      "segments": [
+        {
+          "kind": "gap",
+          "width": 2014,
+          "wall": "W3",
+          "x": 0,
+          "x0": 0,
+          "x1": 2014
+        }
+      ]
+    },
+    {
+      "key": "W4",
+      "wall": "4",
+      "total": 4993,
+      "segments": [
+        {
+          "kind": "filler",
+          "tier": "tall",
+          "label": "wall filler",
+          "width": 40,
+          "wall": "W4",
+          "x": 0,
+          "from": 0,
+          "to": 40,
+          "x0": 0,
+          "x1": 40,
+          "code": null,
+          "func": "wall filler (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "trim": true
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tall shelf",
+          "width": 450,
+          "wall": "W4",
+          "x": 40,
+          "from": 40,
+          "to": 490,
+          "x0": 40,
+          "x1": 490,
+          "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+          "func": "tall shelf (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "shelves",
+              "width": 450,
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tall shelf",
+          "width": 600,
+          "wall": "W4",
+          "x": 490,
+          "from": 490,
+          "to": 1090,
+          "x0": 490,
+          "x1": 1090,
+          "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+          "func": "tall shelf (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "shelves",
+              "width": 600,
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "microwave + oven",
+          "width": 600,
+          "wall": "W4",
+          "x": 1090,
+          "from": 1090,
+          "to": 1690,
+          "x0": 1090,
+          "x1": 1690,
+          "code": "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15",
+          "func": "microwave + oven (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "appliance",
+              "width": 600,
+              "code": "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tandem pantry",
+          "width": 600,
+          "wall": "W4",
+          "x": 1690,
+          "from": 1690,
+          "to": 2290,
+          "x0": 1690,
+          "x1": 2290,
+          "code": "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15",
+          "func": "tandem pantry (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "pantry",
+              "width": 600,
+              "code": "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "refrigerator",
+          "width": 600,
+          "wall": "W4",
+          "x": 2290,
+          "from": 2290,
+          "to": 2890,
+          "x0": 2290,
+          "x1": 2890,
+          "code": "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15",
+          "func": "refrigerator (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "fridge",
+              "width": 600,
+              "code": "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tall shelf",
+          "width": 450,
+          "wall": "W4",
+          "x": 2890,
+          "from": 2890,
+          "to": 3340,
+          "x0": 2890,
+          "x1": 3340,
+          "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+          "func": "tall shelf (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "shelves",
+              "width": 450,
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tall shelf",
+          "width": 600,
+          "wall": "W4",
+          "x": 3340,
+          "from": 3340,
+          "to": 3940,
+          "x0": 3340,
+          "x1": 3940,
+          "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+          "func": "tall shelf (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "shelves",
+              "width": 600,
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "tallBank",
+          "tier": "tall",
+          "label": "tall shelf",
+          "width": 900,
+          "wall": "W4",
+          "x": 3940,
+          "from": 3940,
+          "to": 4840,
+          "x0": 3940,
+          "x1": 4840,
+          "code": "TC-SH-TTS-ST-6SX-2HS-XXX-900-2400-560-15",
+          "func": "tall shelf (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "units": [
+            {
+              "type": "shelves",
+              "width": 900,
+              "code": "TC-SH-TTS-ST-6SX-2HS-XXX-900-2400-560-15",
+              "height": 2400,
+              "depth": 560,
+              "offset": 0,
+              "z": 0
+            }
+          ]
+        },
+        {
+          "kind": "filler",
+          "tier": "tall",
+          "label": "gap filler",
+          "width": 113,
+          "wall": "W4",
+          "x": 4840,
+          "from": 4840,
+          "to": 4953,
+          "x0": 4840,
+          "x1": 4953,
+          "code": null,
+          "func": "gap filler (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "trim": true
+        },
+        {
+          "kind": "filler",
+          "tier": "tall",
+          "label": "wall filler",
+          "width": 40,
+          "wall": "W4",
+          "x": 4953,
+          "from": 4953,
+          "to": 4993,
+          "x0": 4953,
+          "x1": 4993,
+          "code": null,
+          "func": "wall filler (tall above)",
+          "height": 2400,
+          "depth": 560,
+          "offset": 0,
+          "z": 0,
+          "trim": true
+        }
+      ]
+    },
+    {
+      "key": "W5",
+      "wall": "5",
+      "total": 5984,
+      "segments": [
+        {
+          "kind": "gap",
+          "width": 5984,
+          "wall": "W5",
+          "x": 0,
+          "x0": 0,
+          "x1": 5984
+        }
+      ]
+    }
+  ],
+  "tiers": {
+    "W0": {
+      "wall": [
+        {
+          "kind": "filler",
+          "width": 25,
+          "x0": 5040,
+          "x1": 5065,
+          "code": null,
+          "label": "panel",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "filler",
+          "width": 30,
+          "x0": 5065,
+          "x1": 5095,
+          "code": null,
+          "label": "gap filler",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallGlass",
+          "width": 550,
+          "x0": 5095,
+          "x1": 5645,
+          "code": "WC-SH-NHX-GL-3SG-LHS-XXX-550-1085-336-15",
+          "label": "glass (chimney flank)",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "chimney",
+          "width": 1000,
+          "x0": 5645,
+          "x1": 6645,
+          "code": null,
+          "label": "chimney",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallGlass",
+          "width": 550,
+          "x0": 6645,
+          "x1": 7195,
+          "code": "WC-SH-NHX-GL-3SG-RHS-XXX-550-1085-336-15",
+          "label": "glass (chimney flank)",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 450,
+          "x0": 7195,
+          "x1": 7645,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-450-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 850,
+          "x0": 7645,
+          "x1": 8495,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 850,
+          "x0": 8495,
+          "x1": 9345,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 900,
+          "x0": 9345,
+          "x1": 10245,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "filler",
+          "width": 41,
+          "x0": 10245,
+          "x1": 10286,
+          "code": null,
+          "label": "corner filler",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        }
+      ],
+      "loft": [],
+      "tall": []
+    },
+    "W1": {
+      "wall": [
+        {
+          "kind": "wallBlind",
+          "width": 900,
+          "x0": 0,
+          "x1": 900,
+          "code": "WB-SH-NHX-ST-3SG-LHS-XXX-900-1085-336-15",
+          "label": "wall blind corner",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415,
+          "corner": {
+            "id": "0:1",
+            "end": "from",
+            "adjacentWall": "0",
+            "adjacentEnd": "to",
+            "deadSpace": 0
+          },
+          "shutter": {
+            "x0": 376,
+            "x1": 900,
+            "width": 524,
+            "cornerDistance": 376,
+            "adjacentFront": 336,
+            "clearance": 40
+          }
+        },
+        {
+          "kind": "wallSolid",
+          "width": 600,
+          "x0": 900,
+          "x1": 1500,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 600,
+          "x0": 1500,
+          "x1": 2100,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 900,
+          "x0": 2100,
+          "x1": 3000,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallBlind",
+          "width": 900,
+          "x0": 3000,
+          "x1": 3900,
+          "code": "WB-SH-NHX-ST-3SG-LHS-XXX-900-1085-336-15",
+          "label": "wall blind corner",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415,
+          "corner": {
+            "id": "1:2",
+            "end": "to",
+            "adjacentWall": "2",
+            "adjacentEnd": "from",
+            "deadSpace": 70
+          },
+          "shutter": {
+            "x0": 3000,
+            "x1": 3594,
+            "width": 594,
+            "cornerDistance": 376,
+            "adjacentFront": 336,
+            "clearance": 40
+          }
+        }
+      ],
+      "loft": [],
+      "tall": []
+    },
+    "W2": {
+      "wall": [
+        {
+          "kind": "filler",
+          "width": 48,
+          "x0": 336,
+          "x1": 384,
+          "code": null,
+          "label": "corner filler",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 450,
+          "x0": 384,
+          "x1": 834,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-450-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 550,
+          "x0": 834,
+          "x1": 1384,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-550-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 900,
+          "x0": 1384,
+          "x1": 2284,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "filler",
+          "width": 25,
+          "x0": 2284,
+          "x1": 2309,
+          "code": null,
+          "label": "panel",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "filler",
+          "width": 45,
+          "x0": 3509,
+          "x1": 3554,
+          "code": null,
+          "label": "corner filler",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 550,
+          "x0": 3554,
+          "x1": 4104,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-550-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 600,
+          "x0": 4104,
+          "x1": 4704,
+          "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "wallSolid",
+          "width": 900,
+          "x0": 4704,
+          "x1": 5604,
+          "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+          "label": "shutter",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        },
+        {
+          "kind": "filler",
+          "width": 25,
+          "x0": 5604,
+          "x1": 5629,
+          "code": null,
+          "label": "panel",
+          "height": 1085,
+          "depth": 336,
+          "offset": 0,
+          "z": 1415
+        }
+      ],
+      "loft": [],
+      "tall": []
+    },
+    "W3": {
+      "wall": [],
+      "loft": [],
+      "tall": []
+    },
+    "W4": {
+      "wall": [],
+      "loft": [],
+      "tall": []
+    },
+    "W5": {
+      "wall": [],
+      "loft": [],
+      "tall": []
+    }
+  },
+  "bom": {
+    "BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15": 1,
+    "BC-DW-CJ-ST-2LB-1HB-XXX-600-720-560-15": 2,
+    "BC-SK-CJ-ST-XXX-2HS-XXX-1200-720-560-15": 1,
+    "BB-AC-CJ-ST-LMC-LHS-XXX-1050-720-560-15": 1,
+    "BB-SH-CJ-ST-1SX-LHS-XXX-1150-720-560-15": 1,
+    "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15": 2,
+    "BC-SH-CJ-ST-1SX-LHS-XXX-500-720-560-15": 2,
+    "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15": 6,
+    "BC-AC-CJ-ST-BPO-LHS-XXX-300-720-560-15": 1,
+    "BC-SH-CJ-ST-1SX-LHS-XXX-550-720-560-15": 1,
+    "BC-GD-CJ-ST-1BL-1HF-XXX-450-720-560-15": 1,
+    "WC-SH-NHX-GL-3SG-LHS-XXX-550-1085-336-15": 1,
+    "WC-SH-NHX-GL-3SG-RHS-XXX-550-1085-336-15": 1,
+    "WB-SH-NHX-ST-3SG-LHS-XXX-900-1085-336-15": 2,
+    "WC-SH-NHX-ST-3SG-LHS-XXX-450-1085-336-15": 2,
+    "WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15": 2,
+    "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15": 4,
+    "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15": 3,
+    "WC-SH-NHX-ST-3SG-LHS-XXX-550-1085-336-15": 2,
+    "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15": 1,
+    "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15": 1,
+    "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15": 1,
+    "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15": 2,
+    "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15": 2,
+    "TC-SH-TTS-ST-6SX-2HS-XXX-900-2400-560-15": 1
+  },
+  "zones": [
+    "cooking",
+    "washing",
+    "cooling"
+  ],
+  "island": null,
+  "accessories": [
+    {
+      "name": "Cutlery Tray Silverstone",
+      "position": "LB",
+      "qty": 1
+    },
+    {
+      "name": "Spice & Chakla Tray (10 canisters)",
+      "position": "LB",
+      "qty": 1
+    },
+    {
+      "name": "SS Masala / Pulse Canister Tray",
+      "position": "HB",
+      "qty": 1
+    },
+    {
+      "name": "Pot & Pan Holder",
+      "position": "HB",
+      "qty": 1
+    },
+    {
+      "name": "Drawer Divider for Lids & Pans",
+      "position": "HB",
+      "qty": 1
+    },
+    {
+      "name": "Bottle Pullout",
+      "position": "pullout",
+      "qty": 1
+    },
+    {
+      "name": "Tark System",
+      "position": "wallAccessory",
+      "qty": 2
+    },
+    {
+      "name": "Kubos",
+      "position": "wallAccessory",
+      "qty": 2
+    },
+    {
+      "name": "Wastebin Pullout (14×2 / 30 ltr)",
+      "position": "pullout",
+      "qty": 1
+    },
+    {
+      "name": "Detergent Pullout (3 baskets)",
+      "position": "sink",
+      "qty": 1
+    },
+    {
+      "name": "Double Tray",
+      "position": "wallAccessory",
+      "qty": 1
+    }
+  ],
+  "placedAccessories": [],
+  "recommendations": [],
+  "warnings": [],
+  "log": [
+    {
+      "rule": "Adapter",
+      "status": "assumed",
+      "detail": "ceiling 2438mm read as the 8ft system (2500mm design height)"
+    },
+    {
+      "rule": "Adapter",
+      "status": "assumed",
+      "detail": "hob chosen by shape: base \"2HB\", left flank \"DW:2LB+1HB\", right flank \"DW:2LB+1HB\""
+    },
+    {
+      "rule": "Adapter",
+      "status": "assumed",
+      "detail": "cabinet bands: using the 9 you drew (base 3, wall 4, tall 2)"
+    },
+    {
+      "rule": "Adapter",
+      "status": "assumed",
+      "detail": "not applied: the island — not something this engine places"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "hob shape \"2HB\" chosen by the designer — solved at 900mm"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "left of the hob: \"DW:2LB+1HB\" chosen by the designer — solved at 600mm"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "right of the hob: \"DW:2LB+1HB\" chosen by the designer — solved at 600mm"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "wall-width-follows-hob-flank: base flank 600mm -> symmetric wall flanks 550mm each side"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "refrigerator anchors a 1800mm tall block on wall 4"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "1/base: blind shutter starts 600mm from the corner, 40mm beyond the adjacent cabinet front; 0mm concealed corner space needs no filler"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "1/base: blind shutter starts 600mm from the corner, 40mm beyond the adjacent cabinet front; 70mm concealed corner space needs no filler"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "1/wall: blind shutter starts 376mm from the corner, 40mm beyond the adjacent cabinet front; 0mm concealed corner space needs no filler"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "1/wall: blind shutter starts 376mm from the corner, 40mm beyond the adjacent cabinet front; 70mm concealed corner space needs no filler"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "0/base: 50mm filler closes the remaining space at 5045; no catalogue cabinet fits this space"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "0/wall: 30mm filler closes the remaining space at 5065; no catalogue cabinet fits this space"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "4/tall: 113mm filler closes the remaining space at 4840; no catalogue cabinet fits this space"
+    },
+    {
+      "rule": "Engine",
+      "status": "applied",
+      "detail": "4/tall: compared complete cabinet combinations; gap fillers reduced from 263mm to 113mm, recovering 150mm for cabinetry while preserving required panels and clearances"
+    },
+    {
+      "rule": "Planning flow",
+      "status": "applied",
+      "detail": "Catalogue solver"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 1: 44 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 1: 44 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 1: 44 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 1: 44 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 2: 42 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 2: 42 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 2: 43 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 2: 43 cabinets; 13670 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 3: 43 cabinets; 13632 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 3: 43 cabinets; 13632 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 3: 44 cabinets; 13632 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 3: 44 cabinets; 13632 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 4: 44 cabinets; 13689 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 4: 44 cabinets; 13689 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Drawers / corner arrangement 4: 44 cabinets; 13689 L gross storage carcass volume"
+    },
+    {
+      "rule": "Candidate",
+      "status": "applied",
+      "detail": "Shelves / corner arrangement 4: 44 cabinets; 13689 L gross storage carcass volume"
+    },
+    {
+      "rule": "Appliance position adjusted",
+      "status": "applied",
+      "by": "engine",
+      "detail": "hob on W0 moved 62 mm towards the wall start (5757 to 5695 mm) to improve cabinet fit, within the 100 mm allowance."
+    },
+    {
+      "rule": "Appliance position adjusted",
+      "status": "applied",
+      "by": "engine",
+      "detail": "sink on W2 moved 13 mm towards the wall start (2317 to 2304 mm) to improve cabinet fit, within the 100 mm allowance."
+    },
+    {
+      "rule": "Appliance position adjusted",
+      "status": "applied",
+      "by": "engine",
+      "detail": "fridge on W4 moved 2 mm towards the wall end (2288 to 2290 mm) to improve cabinet fit, within the 100 mm allowance."
+    }
+  ],
+  "clashes": [],
+  "verdict": "FEASIBLE",
+  "releaseBlocked": false,
+  "price": {
+    "model": "saleable",
+    "currency": "INR",
+    "pg": "PG1",
+    "finish": "Classic",
+    "rate": 11200,
+    "carcassRateBundled": 6000,
+    "shutterSqft": 366.4,
+    "counterSqft": 84.9,
+    "modules": 44,
+    "breakdown": {
+      "cabinets": 4104203,
+      "counter": 112972,
+      "total": 4217175
+    },
+    "lines": [
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "hob base",
+        "W": 900,
+        "H": 720,
+        "shutterSqft": 6.975,
+        "amount": 78120
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 300,
+        "H": 720,
+        "shutterSqft": 2.325,
+        "amount": 26040
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 450,
+        "H": 720,
+        "shutterSqft": 3.488,
+        "amount": 39060
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 550,
+        "H": 720,
+        "shutterSqft": 4.263,
+        "amount": 47740
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 900,
+        "H": 720,
+        "shutterSqft": 6.975,
+        "amount": 78120
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 550,
+        "H": 1085,
+        "shutterSqft": 6.423,
+        "amount": 71942
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 550,
+        "H": 1085,
+        "shutterSqft": 6.423,
+        "amount": 71942
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 450,
+        "H": 1085,
+        "shutterSqft": 5.255,
+        "amount": 58861
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 850,
+        "H": 1085,
+        "shutterSqft": 9.927,
+        "amount": 111183
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 850,
+        "H": 1085,
+        "shutterSqft": 9.927,
+        "amount": 111183
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "base",
+        "label": "corner (Lemans)",
+        "W": 1050,
+        "H": 720,
+        "shutterSqft": 8.138,
+        "amount": 91140
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 500,
+        "H": 720,
+        "shutterSqft": 3.875,
+        "amount": 43400
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "corner (Lemans)",
+        "W": 1150,
+        "H": 720,
+        "shutterSqft": 8.913,
+        "amount": 99820
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 600,
+        "H": 1085,
+        "shutterSqft": 7.007,
+        "amount": 78482
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 600,
+        "H": 1085,
+        "shutterSqft": 7.007,
+        "amount": 78482
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 500,
+        "H": 720,
+        "shutterSqft": 3.875,
+        "amount": 43400
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "sink base",
+        "W": 1200,
+        "H": 720,
+        "shutterSqft": 9.3,
+        "amount": 104160
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 600,
+        "H": 720,
+        "shutterSqft": 4.65,
+        "amount": 52080
+      },
+      {
+        "kind": "base",
+        "label": "base cabinet",
+        "W": 900,
+        "H": 720,
+        "shutterSqft": 6.975,
+        "amount": 78120
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 450,
+        "H": 1085,
+        "shutterSqft": 5.255,
+        "amount": 58861
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 550,
+        "H": 1085,
+        "shutterSqft": 6.423,
+        "amount": 71942
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 550,
+        "H": 1085,
+        "shutterSqft": 6.423,
+        "amount": 71942
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 600,
+        "H": 1085,
+        "shutterSqft": 7.007,
+        "amount": 78482
+      },
+      {
+        "kind": "wall",
+        "label": "wall cabinet",
+        "W": 900,
+        "H": 1085,
+        "shutterSqft": 10.511,
+        "amount": 117723
+      },
+      {
+        "kind": "tall",
+        "label": "shelves",
+        "W": 450,
+        "H": 2400,
+        "shutterSqft": 11.625,
+        "amount": 130200
+      },
+      {
+        "kind": "tall",
+        "label": "shelves",
+        "W": 600,
+        "H": 2400,
+        "shutterSqft": 15.5,
+        "amount": 173600
+      },
+      {
+        "kind": "tall",
+        "label": "appliance",
+        "W": 600,
+        "H": 2400,
+        "shutterSqft": 15.5,
+        "amount": 173600
+      },
+      {
+        "kind": "tall",
+        "label": "pantry",
+        "W": 600,
+        "H": 2400,
+        "shutterSqft": 15.5,
+        "amount": 173600
+      },
+      {
+        "kind": "tall",
+        "label": "fridge",
+        "W": 600,
+        "H": 2400,
+        "shutterSqft": 15.5,
+        "amount": 173600
+      },
+      {
+        "kind": "tall",
+        "label": "shelves",
+        "W": 450,
+        "H": 2400,
+        "shutterSqft": 11.625,
+        "amount": 130200
+      },
+      {
+        "kind": "tall",
+        "label": "shelves",
+        "W": 600,
+        "H": 2400,
+        "shutterSqft": 15.5,
+        "amount": 173600
+      },
+      {
+        "kind": "tall",
+        "label": "shelves",
+        "W": 900,
+        "H": 2400,
+        "shutterSqft": 23.25,
+        "amount": 260401
+      }
+    ],
+    "note": "Saleable-area price — 366.4 sqft shutter × ₹11200/sqft (PG1 Classic) + counter. Rates from the Caracass & Shutter Code Price Matrix."
+  },
+  "cost": {
+    "currency": "INR",
+    "estimate": true,
+    "assumptionsFlagged": true,
+    "pieces": 44,
+    "counter": {
+      "sqft": 84.9,
+      "amount": 30386
+    },
+    "breakdown": {
+      "material": 351512,
+      "labour": 123029,
+      "total": 474541
+    },
+    "perCategory": {
+      "base": 139763,
+      "wall": 83929,
+      "loft": 0,
+      "tall": 97434,
+      "counter": 30386
+    },
+    "note": "ESTIMATE — material + 35% labour, sized from the plan. Uses assumed raw-material rates (see data/rate-master.json); replace with Magppie/Zoho rates for a firm quote."
+  },
+  "planning": {
+    "mode": "Catalogue solver",
+    "anchorsFixed": false,
+    "zonesFixed": true,
+    "evaluated": 16,
+    "passing": 16,
+    "selected": "Drawers / corner arrangement 4",
+    "selectedChoice": {
+      "name": "Drawers / corner arrangement 4",
+      "preferredCodes": [
+        "BC-DW-CJ-ST-XXX-2HB-XXX-450-720-560-15",
+        "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+        "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+        "BC-DW-CJ-ST-2LB-1HB-XXX-600-720-560-15",
+        "BC-DW-CJ-ST-2HB-1BL-XXX-600-720-560-15",
+        "BC-DW-CJ-ST-2LB-1HB-XXX-900-720-560-15",
+        "BC-DW-CJ-ST-2HB-1BL-XXX-900-720-560-15"
+      ],
+      "lemansCorner": "base:0:1",
+      "cornerLegs": {
+        "base:0:1": "b",
+        "base:1:2": "a",
+        "wall:0:1": "b",
+        "wall:1:2": "a"
+      },
+      "runs": [],
+      "preferStorage": true
+    },
+    "attempts": [
+      {
+        "name": "Drawers / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Shelves / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 2,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Drawers / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Shelves / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Drawers / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 42,
+        "storageCabinets": 38,
+        "drawerCabinets": 9,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Shelves / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 42,
+        "storageCabinets": 38,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Drawers / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 11,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Shelves / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Drawers / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 9,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Shelves / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 2,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Drawers / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 11,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Shelves / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Drawers / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Shelves / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Drawers / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Shelves / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      }
+    ],
+    "alternatives": [
+      {
+        "name": "Drawers / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Shelves / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Drawers / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Shelves / corner arrangement 4",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "a",
+          "wall:0:1": "b",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 238,
+        "grossStorageLitres": 13689,
+        "fillerMm": 643
+      },
+      {
+        "name": "Drawers / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Shelves / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 2,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Drawers / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 10,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Shelves / corner arrangement 1",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "a",
+          "wall:0:1": "a",
+          "wall:1:2": "a"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 274,
+        "grossStorageLitres": 13670,
+        "fillerMm": 679
+      },
+      {
+        "name": "Drawers / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 9,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Shelves / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 2,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Drawers / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 11,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Shelves / corner arrangement 3",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "a",
+          "base:1:2": "b",
+          "wall:0:1": "a",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 44,
+        "storageCabinets": 40,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 389,
+        "grossStorageLitres": 13632,
+        "fillerMm": 779
+      },
+      {
+        "name": "Drawers / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 42,
+        "storageCabinets": 38,
+        "drawerCabinets": 9,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Shelves / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:0:1",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 42,
+        "storageCabinets": 38,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Drawers / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 11,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      },
+      {
+        "name": "Shelves / corner arrangement 2",
+        "source": "Catalogue solver",
+        "problems": [],
+        "unresolved": [],
+        "cornerLegs": {
+          "base:0:1": "b",
+          "base:1:2": "b",
+          "wall:0:1": "b",
+          "wall:1:2": "b"
+        },
+        "lemansCorner": "base:1:2",
+        "searchHobSides": true,
+        "verdict": "FEASIBLE",
+        "cabinets": 43,
+        "storageCabinets": 39,
+        "drawerCabinets": 3,
+        "avoidableFillerMm": 443,
+        "grossStorageLitres": 13670,
+        "fillerMm": 833
+      }
+    ],
+    "metrics": {
+      "name": "Drawers / corner arrangement 4",
+      "source": "Catalogue solver",
+      "problems": [],
+      "unresolved": [],
+      "cornerLegs": {
+        "base:0:1": "b",
+        "base:1:2": "a",
+        "wall:0:1": "b",
+        "wall:1:2": "a"
+      },
+      "lemansCorner": "base:0:1",
+      "searchHobSides": true,
+      "verdict": "FEASIBLE",
+      "cabinets": 44,
+      "storageCabinets": 40,
+      "drawerCabinets": 10,
+      "avoidableFillerMm": 238,
+      "grossStorageLitres": 13689,
+      "fillerMm": 643
+    },
+    "ranking": "Feasibility, physical conflicts, remaining problems, unresolved rules, avoidable filler, gross storage volume, then fewer gap fillers. Complete tall-bank arrangements retain preferred appliances where feasible. Best of evaluated candidates; not a global optimum.",
+    "spans": [
+      {
+        "tier": "base",
+        "wall": "0",
+        "from": 5020,
+        "to": 5695,
+        "length": 675
+      },
+      {
+        "tier": "base",
+        "wall": "0",
+        "from": 6595,
+        "to": 10622,
+        "length": 4027
+      },
+      {
+        "tier": "base",
+        "wall": "1",
+        "from": 0,
+        "to": 3970,
+        "length": 3970
+      },
+      {
+        "tier": "base",
+        "wall": "2",
+        "from": 0,
+        "to": 2304,
+        "length": 2304
+      },
+      {
+        "tier": "base",
+        "wall": "2",
+        "from": 3504,
+        "to": 5629,
+        "length": 2125
+      },
+      {
+        "tier": "wall",
+        "wall": "0",
+        "from": 5040,
+        "to": 10622,
+        "length": 5582
+      },
+      {
+        "tier": "wall",
+        "wall": "1",
+        "from": 0,
+        "to": 3970,
+        "length": 3970
+      },
+      {
+        "tier": "wall",
+        "wall": "2",
+        "from": 0,
+        "to": 2309,
+        "length": 2309
+      },
+      {
+        "tier": "wall",
+        "wall": "2",
+        "from": 3509,
+        "to": 5629,
+        "length": 2120
+      },
+      {
+        "tier": "tall",
+        "wall": "5",
+        "from": 0,
+        "to": 410,
+        "length": 410
+      },
+      {
+        "tier": "tall",
+        "wall": "4",
+        "from": 0,
+        "to": 2290,
+        "length": 2290
+      },
+      {
+        "tier": "tall",
+        "wall": "4",
+        "from": 2890,
+        "to": 4993,
+        "length": 2103
+      }
+    ],
+    "adjustments": [
+      {
+        "kind": "anchor",
+        "index": 0,
+        "item": "hob",
+        "wall": "W0",
+        "from": 5757,
+        "to": 5695,
+        "delta": -62,
+        "description": "hob on W0 moved 62 mm towards the wall start (5757 to 5695 mm) to improve cabinet fit, within the 100 mm allowance."
+      },
+      {
+        "kind": "anchor",
+        "index": 1,
+        "item": "sink",
+        "wall": "W2",
+        "from": 2317,
+        "to": 2304,
+        "delta": -13,
+        "description": "sink on W2 moved 13 mm towards the wall start (2317 to 2304 mm) to improve cabinet fit, within the 100 mm allowance."
+      },
+      {
+        "kind": "anchor",
+        "index": 2,
+        "item": "fridge",
+        "wall": "W4",
+        "from": 2288,
+        "to": 2290,
+        "delta": 2,
+        "description": "fridge on W4 moved 2 mm towards the wall end (2288 to 2290 mm) to improve cabinet fit, within the 100 mm allowance."
+      }
+    ]
+  },
+  "series": {
+    "id": "signature",
+    "name": "Signature",
+    "carcass": "HDHMR"
+  },
+  "anchorAdjustments": [
+    {
+      "kind": "anchor",
+      "index": 0,
+      "item": "hob",
+      "wall": "W0",
+      "from": 5757,
+      "to": 5695,
+      "delta": -62,
+      "description": "hob on W0 moved 62 mm towards the wall start (5757 to 5695 mm) to improve cabinet fit, within the 100 mm allowance."
+    },
+    {
+      "kind": "anchor",
+      "index": 1,
+      "item": "sink",
+      "wall": "W2",
+      "from": 2317,
+      "to": 2304,
+      "delta": -13,
+      "description": "sink on W2 moved 13 mm towards the wall start (2317 to 2304 mm) to improve cabinet fit, within the 100 mm allowance."
+    },
+    {
+      "kind": "anchor",
+      "index": 2,
+      "item": "fridge",
+      "wall": "W4",
+      "from": 2288,
+      "to": 2290,
+      "delta": 2,
+      "description": "fridge on W4 moved 2 mm towards the wall end (2288 to 2290 mm) to improve cabinet fit, within the 100 mm allowance."
+    }
+  ],
+  "fitting": {
+    "version": 1,
+    "evaluated": 0,
+    "limit": 4500,
+    "complete": false,
+    "anchorEvaluated": 180,
+    "found": false
+  }
+}

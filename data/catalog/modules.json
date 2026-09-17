@@ -1,0 +1,904 @@
+[
+  {
+    "sn": 1,
+    "unitType": "Base",
+    "subType": "Drawer HOB",
+    "cabinetName": "BASE HOB 2 DRAWER UNIT",
+    "cabinetType": "BASE HOB DRAWER UNIT (2 HB)",
+    "cabinetTypeWithHeight": "BASE HOB DRAWER UNIT (2 HB) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Profile frame in place of Top panel",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE HOB CABINET + 2 HB DRAWER"
+  },
+  {
+    "sn": 2,
+    "unitType": "Base",
+    "subType": "Drawer HOB",
+    "cabinetName": "BASE HOB 3 DRAWER UNIT",
+    "cabinetType": "BASE HOB DRAWER UNIT (2 LB + 1 HB)",
+    "cabinetTypeWithHeight": "BASE HOB DRAWER UNIT (2 LB + 1 HB) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Profile frame in place of Top panel",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE HOB CABINET + 2 LB + 1 HB DRAWER"
+  },
+  {
+    "sn": 3,
+    "unitType": "Base",
+    "subType": "Drawer Std",
+    "cabinetName": "BASE 2 DRAWER UNIT",
+    "cabinetType": "BASE STD DRAWER UNIT (2 HB)",
+    "cabinetTypeWithHeight": "BASE STD DRAWER UNIT (2 HB) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "STD",
+    "widths": [
+      450,
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 2 HB DRAWER"
+  },
+  {
+    "sn": 4,
+    "unitType": "Base",
+    "subType": "Drawer Std",
+    "cabinetName": "BASE 2 +1 DRAWER UNIT",
+    "cabinetType": "BASE STD DRAWER UNIT (2 HB + 1 B-In)",
+    "cabinetTypeWithHeight": "BASE STD DRAWER UNIT (2 HB + 1 B-In) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "STD",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 2 HB DRAWER + 1 BUILT IN LB"
+  },
+  {
+    "sn": 5,
+    "unitType": "Base",
+    "subType": "Drawer Std",
+    "cabinetName": "BASE 3 DRAWER UNIT",
+    "cabinetType": "BASE STD DRAWER UNIT (2 LB + 1 HB)",
+    "cabinetTypeWithHeight": "BASE STD DRAWER UNIT (2 LB + 1 HB) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "STD",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 2 LB + 1 HB DRAWER"
+  },
+  {
+    "sn": 6,
+    "unitType": "Base",
+    "subType": "Drawer Grain",
+    "cabinetName": "BASE GRAIN DRAWER",
+    "cabinetType": "BASE GRAIN DRAWER UNIT (1 HB + 1 B-In)",
+    "cabinetTypeWithHeight": "BASE GRAIN DRAWER UNIT (1 HB + 1 B-In) 720",
+    "openingStyle": "Drawer",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "STD",
+    "widths": [
+      450,
+      600
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 1 BUILT IN LB + 1 HB DRAWER"
+  },
+  {
+    "sn": 7,
+    "unitType": "Base",
+    "subType": "Drawer Waste Bin",
+    "cabinetName": "BASE PULLOUT",
+    "cabinetType": "BASE STD PO UNIT (Waste Bin)",
+    "cabinetTypeWithHeight": "BASE STD PO UNIT (Waste Bin) 720",
+    "openingStyle": "Drawer w Accessories",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "STD",
+    "widths": [
+      300,
+      600
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 1 PULLOUT SHUTTER + WASTEBIN 30 & 60 LT."
+  },
+  {
+    "sn": 8,
+    "unitType": "Base",
+    "subType": "BPO Pullout",
+    "cabinetName": "BASE PULLOUT",
+    "cabinetType": "BASE STD PO UNIT (BPO)",
+    "cabinetTypeWithHeight": "BASE STD PO UNIT (BPO) 720",
+    "openingStyle": "Accessory acting as a pullout",
+    "glass": "0",
+    "lhrh": "2",
+    "construction": "STD",
+    "widths": [
+      150,
+      300
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 1 PULLOUT SHUTTER + BOTTLE PULLOUT"
+  },
+  {
+    "sn": 9,
+    "unitType": "Base",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "BASE SHUTTER UNIT",
+    "cabinetType": "BASE STD Hinged Shutter UNIT",
+    "cabinetTypeWithHeight": "BASE STD Hinged Shutter UNIT 720",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "3",
+    "construction": "STD",
+    "widths": [
+      450,
+      550,
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + 1 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 10,
+    "unitType": "Base",
+    "subType": "Hinged Sink",
+    "cabinetName": "BASE SINK UNIT",
+    "cabinetType": "BASE SINK UNIT (Hinged Shutter)",
+    "cabinetTypeWithHeight": "BASE SINK UNIT (Hinged Shutter) 720",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Profile frame in place of Top panel",
+    "widths": [
+      600,
+      900,
+      1050,
+      1200
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE SINK CABINET + HINGED SHUTTER"
+  },
+  {
+    "sn": 11,
+    "unitType": "Base",
+    "subType": "No opening + Appliance",
+    "cabinetName": "BASE APPLIANCE UNIT",
+    "cabinetType": "BASE OVEN UNIT (Space for Oven)",
+    "cabinetTypeWithHeight": "BASE OVEN UNIT (Space for Oven) 720",
+    "openingStyle": "NA",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Appliance with fix filler",
+    "widths": [
+      600
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE CABINET + SPACE FOR OVEN + FIXED PANEL"
+  },
+  {
+    "sn": 12,
+    "unitType": "Base",
+    "subType": "Hinged Blind + Shelf",
+    "cabinetName": "BASE BLIND UNIT",
+    "cabinetType": "BASE BLIND UNIT with Shelf",
+    "cabinetTypeWithHeight": "BASE BLIND UNIT with Shelf 720",
+    "openingStyle": "HInged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Blind- 560 depth with fix panel",
+    "widths": [
+      1150
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE BLIND CABINET + 1 SHELF + HINGED SHUTTER 550MM"
+  },
+  {
+    "sn": 13,
+    "unitType": "Base",
+    "subType": "Hinged Blind Low Depth + Shelf",
+    "cabinetName": "BASE BLIND UNIT (LOW DEPTH)",
+    "cabinetType": "BASE BLIND UNIT with Shelf (Low Depth)",
+    "cabinetTypeWithHeight": "BASE BLIND UNIT with Shelf (Low Depth) 720",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Blind- 336 depth with fix panel",
+    "widths": [
+      1150
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "BASE BLIND CABINET + 1 SHELF + HINGED SHUTTER 550MM"
+  },
+  {
+    "sn": 14,
+    "unitType": "Base",
+    "subType": "Hinged Blind + Lemans",
+    "cabinetName": "BASE BLIND UNIT + ACC.",
+    "cabinetType": "BASE BLIND UNIT with Lemans Corner",
+    "cabinetTypeWithHeight": "BASE BLIND UNIT with Lemans Corner 720",
+    "openingStyle": "Hinged + Accessory",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Blind- 560 depth with fix panel",
+    "widths": [
+      1050
+    ],
+    "height": 720,
+    "depth": 560,
+    "description": "BASE BLIND CABINET + LEHMAN'S CORNER + HINGED SHUTTER 550MM"
+  },
+  {
+    "sn": 15,
+    "unitType": "Base",
+    "subType": "Hinged Low Depth + Shelf",
+    "cabinetName": "BASE SHUTTER UNIT (LOW DEPTH)",
+    "cabinetType": "BASE STD Hinged Shutter UNIT (Low Depth)",
+    "cabinetTypeWithHeight": "BASE STD Hinged Shutter UNIT (Low Depth) 720",
+    "openingStyle": "HInged",
+    "glass": "0",
+    "lhrh": "2",
+    "construction": "Low Depth Unit",
+    "widths": [
+      450,
+      600
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "BASE CABINET + 1 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 16,
+    "unitType": "Base",
+    "subType": "Hinged Glass Cube",
+    "cabinetName": "BASE GLASS SHUTTER UNIT (LOW DEPTH)",
+    "cabinetType": "BASE GLASS Shutter UNIT (Low Depth)",
+    "cabinetTypeWithHeight": "BASE GLASS Shutter UNIT (Low Depth) 720",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Special Unit",
+    "widths": [
+      950,
+      1170
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "BASE CABINET + 1 GLASS SHELF + GLASS HINGED SHUTTER (3 SIDE GLASS: ONLY FOR ISLAND)"
+  },
+  {
+    "sn": 17,
+    "unitType": "Wall",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "WALL SHUTTER UNIT",
+    "cabinetType": "WALL STD HINGED SHUTTER UNIT",
+    "cabinetTypeWithHeight": "WALL STD HINGED SHUTTER UNIT 1085",
+    "openingStyle": "HInged",
+    "glass": "8",
+    "lhrh": "3",
+    "construction": "STD",
+    "widths": [
+      450,
+      550,
+      600,
+      850,
+      900
+    ],
+    "height": 1085,
+    "depth": 336,
+    "description": "WALL CABINET + 3 GLASS SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 18,
+    "unitType": "Wall",
+    "subType": "Hinged Dishrack + Shelf",
+    "cabinetName": "WALL DISH RACK",
+    "cabinetType": "WALL DISHRACK UNIT",
+    "cabinetTypeWithHeight": "WALL DISHRACK UNIT 1085",
+    "openingStyle": "Hinged + Accessory",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Profile frame in place of Bottom panel",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 1085,
+    "depth": 336,
+    "description": "WALL CABINET + 2 GLASS SHELF + HINGED SHUTTER+ DISH RACK"
+  },
+  {
+    "sn": 19,
+    "unitType": "Wall",
+    "subType": "Open",
+    "cabinetName": "WALL OPEN UNIT",
+    "cabinetType": "WALL OPEN UNIT",
+    "cabinetTypeWithHeight": "WALL OPEN UNIT 1085",
+    "openingStyle": "NA",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Without Shutter",
+    "widths": [
+      300
+    ],
+    "height": 1085,
+    "depth": 336,
+    "description": "WALL OPEN CABINET + 3 GLASS SHELF"
+  },
+  {
+    "sn": 20,
+    "unitType": "Wall",
+    "subType": "Hinged Blind + Shelf",
+    "cabinetName": "WALL BLIND UNIT",
+    "cabinetType": "WALL BLIND UNIT",
+    "cabinetTypeWithHeight": "WALL BLIND UNIT 1085",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind- 336 depth with fix panel",
+    "widths": [
+      900
+    ],
+    "height": 1085,
+    "depth": 336,
+    "description": "WALL BLIND CABINET + 3 GLASS SHELF + HINGED SHUTTER 450MM"
+  },
+  {
+    "sn": 21,
+    "unitType": "Wall",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "WALL SHUTTER UNIT",
+    "cabinetType": "WALL STD HINGED SHUTTER UNIT",
+    "cabinetTypeWithHeight": "WALL STD HINGED SHUTTER UNIT 720",
+    "openingStyle": "HInged",
+    "glass": "8",
+    "lhrh": "3",
+    "construction": "STD",
+    "widths": [
+      450,
+      550,
+      600,
+      850,
+      900
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "WALL CABINET + 3 GLASS SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 22,
+    "unitType": "Wall",
+    "subType": "Hinged Dishrack",
+    "cabinetName": "WALL DISH RACK",
+    "cabinetType": "WALL DISHRACK UNIT",
+    "cabinetTypeWithHeight": "WALL DISHRACK UNIT 720",
+    "openingStyle": "Hinged + Accessory",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Profile frame in place of Bottom panel",
+    "widths": [
+      600,
+      900
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "WALL CABINET + 2 GLASS SHELF + HINGED SHUTTER+ DISH RACK"
+  },
+  {
+    "sn": 23,
+    "unitType": "Wall",
+    "subType": "Open",
+    "cabinetName": "WALL OPEN UNIT",
+    "cabinetType": "WALL OPEN UNIT",
+    "cabinetTypeWithHeight": "WALL OPEN UNIT 720",
+    "openingStyle": "NA",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Without Shutter",
+    "widths": [
+      300
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "WALL OPEN CABINET + 3 GLASS SHELF"
+  },
+  {
+    "sn": 24,
+    "unitType": "Wall",
+    "subType": "Hinged Blind + Shelf",
+    "cabinetName": "WALL BLIND UNIT",
+    "cabinetType": "WALL BLIND UNIT",
+    "cabinetTypeWithHeight": "WALL BLIND UNIT 720",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind- 336 depth with fix panel",
+    "widths": [
+      900
+    ],
+    "height": 720,
+    "depth": 336,
+    "description": "WALL BLIND CABINET + 3 GLASS SHELF + HINGED SHUTTER 450MM"
+  },
+  {
+    "sn": 25,
+    "unitType": "Loft",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "LOFT SHUTTER UNIT",
+    "cabinetType": "LOFT STD HINGED SHUTTER UNIT",
+    "cabinetTypeWithHeight": "LOFT STD HINGED SHUTTER UNIT 600",
+    "openingStyle": "HInged",
+    "glass": "7",
+    "lhrh": "3",
+    "construction": "STD",
+    "widths": [
+      450,
+      550,
+      600,
+      850
+    ],
+    "height": 600,
+    "depth": 336,
+    "description": "LOFT CABINET + 1 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 26,
+    "unitType": "Loft",
+    "subType": "Hinged Blind + Shelf",
+    "cabinetName": "LOFT BLIND UNIT",
+    "cabinetType": "LOFT STD BLIND SHUTTER UNIT",
+    "cabinetTypeWithHeight": "LOFT STD BLIND SHUTTER UNIT 600",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind- 336 depth with fix panel",
+    "widths": [
+      900
+    ],
+    "height": 600,
+    "depth": 336,
+    "description": "LOFT BLIND CABINET + 1 SHELF + HINGED SHUTTER 450MM"
+  },
+  {
+    "sn": 27,
+    "unitType": "Loft",
+    "subType": "Hinged Full Depth + Shelf",
+    "cabinetName": "LOFT SHUTTER UNIT (FULL DEPTH)",
+    "cabinetType": "LOFT SHUTTER UNIT (FULL DEPTH)",
+    "cabinetTypeWithHeight": "LOFT SHUTTER UNIT (FULL DEPTH) 600",
+    "openingStyle": "HInged",
+    "glass": "6",
+    "lhrh": "3",
+    "construction": "Depth equal to base + fix panel",
+    "widths": [
+      450,
+      500,
+      600
+    ],
+    "height": 600,
+    "depth": 560,
+    "description": "LOFT CABINET + 1 GLASS SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 28,
+    "unitType": "Loft",
+    "subType": "Hinged Full Depth Blind + Shelf",
+    "cabinetName": "LOFT BLIND UNIT (FULL DEPTH)",
+    "cabinetType": "LOFT STD BLIND SHUTTER UNIT (FULL DEPTH)",
+    "cabinetTypeWithHeight": "LOFT STD BLIND SHUTTER UNIT (FULL DEPTH) 600",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind with depth equal to base + fix panel",
+    "widths": [
+      1150
+    ],
+    "height": 600,
+    "depth": 560,
+    "description": "LOFT BLIND CABINET + 1 SHELF + HINGED SHUTTER 550MM (FOR ONLY ABOVE TALL UNIT)"
+  },
+  {
+    "sn": 29,
+    "unitType": "Tall",
+    "subType": "Drawer + Hinged + Appliance",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL APPLIANCE UNIT (3SHELF + 2HB)",
+    "cabinetTypeWithHeight": "TALL APPLIANCE UNIT (3SHELF + 2HB) 2400",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "External Drawers at bottom and shutter above",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 3 SHELF + SPACE FOR OVEN/ MICROWAVE WITH WARMING DRAWER 140MM/ COFFEE MACHINE+ HINGED SHUTTER + 2 HB DRAWER"
+  },
+  {
+    "sn": 30,
+    "unitType": "Tall",
+    "subType": "Drawer + Hinged + Appliance",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL APPLIANCE UNIT (3SHELF + 1HB)",
+    "cabinetTypeWithHeight": "TALL APPLIANCE UNIT (3SHELF + 1HB) 2400",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "External Drawers at bottom and shutter above",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 3 SHELF + SPACE FOR MICROWAVE & OVEN + HINGED SHUTTER + 1 HB DRAWER"
+  },
+  {
+    "sn": 31,
+    "unitType": "Tall",
+    "subType": "Hinged Refrigerator + Shelf",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL REFRIGERATOR UNIT",
+    "cabinetTypeWithHeight": "TALL REFRIGERATOR UNIT 2400",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Full shutter with built-in appliance and partial back",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF + SPACE FOR IN- BUILT REFRIGERATOR"
+  },
+  {
+    "sn": 32,
+    "unitType": "Tall",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD HINGED SHUTTER UNIT",
+    "cabinetTypeWithHeight": "TALL STD HINGED SHUTTER UNIT 2400",
+    "openingStyle": "HInged",
+    "glass": "5",
+    "lhrh": "2",
+    "construction": "STD",
+    "widths": [
+      450,
+      600,
+      900
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 6 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 33,
+    "unitType": "Tall",
+    "subType": "Hinged Tandem + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT + AC",
+    "cabinetType": "TALL PANTRY UNIT (TANDEM)",
+    "cabinetTypeWithHeight": "TALL PANTRY UNIT (TANDEM) 2400",
+    "openingStyle": "Hinged + Accessory",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF+ TANDEM PANTRY + HINGED SHUTTER"
+  },
+  {
+    "sn": 34,
+    "unitType": "Tall",
+    "subType": "Hinged + Built-in Drawers",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD DRAWER UNIT (1SHELF + 2LB + 3HB)",
+    "cabinetTypeWithHeight": "TALL STD DRAWER UNIT (1SHELF + 2LB + 3HB) 2400",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF+ 5 DRAWER (2HB + 3LB) + HINGED SHUTTER"
+  },
+  {
+    "sn": 35,
+    "unitType": "Tall",
+    "subType": "Hinged + Built-in PO Shelves",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD SHELF UNIT (2SHELF + 4PO SHELVES)",
+    "cabinetTypeWithHeight": "TALL STD SHELF UNIT (2SHELF + 4PO SHELVES) 2400",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL CABINET + 2 SHELF+ 4 PULLOUT SHELVES + HINGED SHUTTER"
+  },
+  {
+    "sn": 36,
+    "unitType": "Tall",
+    "subType": "Hinged Blind + L Shelf",
+    "cabinetName": "TALL BLIND UNIT",
+    "cabinetType": "TALL STD BLIND SHUTTER UNIT (L-SHELVES)",
+    "cabinetTypeWithHeight": "TALL STD BLIND SHUTTER UNIT (L-SHELVES) 2400",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind- 560 depth with fix panel",
+    "widths": [
+      1150
+    ],
+    "height": 2400,
+    "depth": 560,
+    "description": "TALL BLIND CABINET + 6 L-SHELF + HINGED SHUTTER 550MM"
+  },
+  {
+    "sn": 37,
+    "unitType": "Tall",
+    "subType": "Hinged Low Depth + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT (LOW DEPTH)",
+    "cabinetType": "TALL HINGED SHUTTER UNIT (Low Depth)",
+    "cabinetTypeWithHeight": "TALL HINGED SHUTTER UNIT (Low Depth) 2400",
+    "openingStyle": "HInged",
+    "glass": "4",
+    "lhrh": "2",
+    "construction": "Low Depth Unit",
+    "widths": [
+      450,
+      600
+    ],
+    "height": 2400,
+    "depth": 336,
+    "description": "TALL CABINET + 6 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 38,
+    "unitType": "Mid",
+    "subType": "No opening + Rolling Shutter",
+    "cabinetName": "MID HT. ROLLING SHUTTER",
+    "cabinetType": "MID HT. ROLLING SHUTTER UNIT",
+    "cabinetTypeWithHeight": "MID HT. ROLLING SHUTTER UNIT 1650",
+    "openingStyle": "NA",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Accessory acting as a shutter",
+    "widths": [
+      600
+    ],
+    "height": 1650,
+    "depth": 336,
+    "description": "WALL MID HT. ROLLING CABINET + 3 SHELF"
+  },
+  {
+    "sn": 39,
+    "unitType": "Tall",
+    "subType": "Drawer + Hinged + Appliance",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL APPLIANCE UNIT (3SHELF + 2HB)",
+    "cabinetTypeWithHeight": "TALL APPLIANCE UNIT (3SHELF + 2HB) 2040",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "External Drawers at bottom and shutter above",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 3 SHELF + SPACE FOR OVEN/ MICROWAVE WITH WARMING DRAWER 140MM/ COFFEE MACHINE+ HINGED SHUTTER + 2 HB DRAWER"
+  },
+  {
+    "sn": 40,
+    "unitType": "Tall",
+    "subType": "Drawer + Hinged + Appliance",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL APPLIANCE UNIT (3SHELF + 1HB)",
+    "cabinetTypeWithHeight": "TALL APPLIANCE UNIT (3SHELF + 1HB) 2040",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "External Drawers at bottom and shutter above",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 3 SHELF + SPACE FOR MICROWAVE & OVEN + HINGED SHUTTER + 1 HB DRAWER"
+  },
+  {
+    "sn": 41,
+    "unitType": "Tall",
+    "subType": "Hinged Refrigerator + Shelf",
+    "cabinetName": "TALL APPLIANCE UNIT",
+    "cabinetType": "TALL REFRIGERATOR UNIT",
+    "cabinetTypeWithHeight": "TALL REFRIGERATOR UNIT 2040",
+    "openingStyle": "Hinged",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "Full shutter with built-in appliance and partial back",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF + SPACE FOR IN- BUILT REFRIGERATOR"
+  },
+  {
+    "sn": 42,
+    "unitType": "Tall",
+    "subType": "Hinged + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD HINGED SHUTTER UNIT",
+    "cabinetTypeWithHeight": "TALL STD HINGED SHUTTER UNIT 2040",
+    "openingStyle": "HInged",
+    "glass": "5",
+    "lhrh": "2",
+    "construction": "STD",
+    "widths": [
+      450,
+      600,
+      900
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 6 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 43,
+    "unitType": "Tall",
+    "subType": "Hinged Tandem + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT + AC",
+    "cabinetType": "TALL PANTRY UNIT (TANDEM)",
+    "cabinetTypeWithHeight": "TALL PANTRY UNIT (TANDEM) 2040",
+    "openingStyle": "Hinged + Accessory",
+    "glass": "0",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF+ TANDEM PANTRY + HINGED SHUTTER"
+  },
+  {
+    "sn": 44,
+    "unitType": "Tall",
+    "subType": "Hinged + Built-in Drawers",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD DRAWER UNIT (1SHELF + 2LB + 3HB)",
+    "cabinetTypeWithHeight": "TALL STD DRAWER UNIT (1SHELF + 2LB + 3HB) 2040",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 1 SHELF+ 5 DRAWER (2HB + 3LB) + HINGED SHUTTER"
+  },
+  {
+    "sn": 45,
+    "unitType": "Tall",
+    "subType": "Hinged + Built-in PO Shelves",
+    "cabinetName": "TALL SHUTTER UNIT",
+    "cabinetType": "TALL STD SHELF UNIT (2SHELF + 4PO SHELVES)",
+    "cabinetTypeWithHeight": "TALL STD SHELF UNIT (2SHELF + 4PO SHELVES) 2040",
+    "openingStyle": "Drawer & Hinged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "STD",
+    "widths": [
+      600
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL CABINET + 2 SHELF+ 4 PULLOUT SHELVES + HINGED SHUTTER"
+  },
+  {
+    "sn": 46,
+    "unitType": "Tall",
+    "subType": "Hinged Blind + L Shelf",
+    "cabinetName": "TALL BLIND UNIT",
+    "cabinetType": "TALL STD BLIND SHUTTER UNIT (L-SHELVES)",
+    "cabinetTypeWithHeight": "TALL STD BLIND SHUTTER UNIT (L-SHELVES) 2040",
+    "openingStyle": "HInged",
+    "glass": "2",
+    "lhrh": "1",
+    "construction": "Blind- 560 depth with fix panel",
+    "widths": [
+      1150
+    ],
+    "height": 2040,
+    "depth": 560,
+    "description": "TALL BLIND CABINET + 6 L-SHELF + HINGED SHUTTER 550MM"
+  },
+  {
+    "sn": 47,
+    "unitType": "Tall",
+    "subType": "Hinged Low Depth + Shelf",
+    "cabinetName": "TALL SHUTTER UNIT (LOW DEPTH)",
+    "cabinetType": "TALL HINGED SHUTTER UNIT (Low Depth)",
+    "cabinetTypeWithHeight": "TALL HINGED SHUTTER UNIT (Low Depth) 2040",
+    "openingStyle": "HInged",
+    "glass": "4",
+    "lhrh": "2",
+    "construction": "Low Depth Unit",
+    "widths": [
+      450,
+      600
+    ],
+    "height": 2040,
+    "depth": 336,
+    "description": "TALL CABINET + 6 SHELF + HINGED SHUTTER"
+  },
+  {
+    "sn": 48,
+    "unitType": "Mid",
+    "subType": "No opening + Rolling Shutter",
+    "cabinetName": "MID HT. ROLLING SHUTTER",
+    "cabinetType": "MID HT. ROLLING SHUTTER UNIT",
+    "cabinetTypeWithHeight": "MID HT. ROLLING SHUTTER UNIT 1290",
+    "openingStyle": "NA",
+    "glass": "0",
+    "lhrh": "NA",
+    "construction": "Accessory acting as a shutter",
+    "widths": [
+      600
+    ],
+    "height": 1290,
+    "depth": 336,
+    "description": "WALL MID HT. ROLLING CABINET + 3 SHELF ,,,,,,42,67,51,,1,4,12,1,4,35,3,16,1,2,5,1,1,246,, ,,,,,,CJ,,LH/ RH,,,,,,,,,,,,,,,0"
+  }
+]

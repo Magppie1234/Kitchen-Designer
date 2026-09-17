@@ -1,0 +1,790 @@
+{
+  "version": 8,
+  "derived_from": [
+    "P1 large island kitchen",
+    "P2 L-shape 3870x4680",
+    "P3 U-shape 3750x4050",
+    "P4 U-shape 4275x3000"
+  ],
+  "status_meaning": {
+    "confirmed": "held in every project where it could apply",
+    "provisional": "held wherever seen, but too few cases to trust",
+    "contested": "projects disagree — designer discretion, or a rule we cannot see yet",
+    "stated": "told to us by the design team — not deduced from drawings, and outranks anything inferred"
+  },
+  "zones": {
+    "canonical": [
+      "cooking",
+      "wet",
+      "cooling",
+      "baking",
+      "storage",
+      "crockery",
+      "appliance"
+    ],
+    "aliases": {
+      "utensils washing zone": "wet",
+      "veggie wash zone": "wet",
+      "wet zone": "wet",
+      "working counter for baking": "baking",
+      "baking zone": "baking",
+      "tall area": "storage",
+      "storage zone": "storage",
+      "m/o unit": "appliance",
+      "appliance counter": "appliance",
+      "cooling zone": "cooling",
+      "crockery zone": "crockery",
+      "cooking zone": "cooking"
+    },
+    "note": "Designers use different words for the same zone across projects. Canonicalise on import."
+  },
+  "rules": [
+    {
+      "id": "base-wall-blind-corner-synchronization",
+      "status": "stated",
+      "hard": true,
+      "statement": "At each kitchen corner, the base blind cabinet (including LeMans) and its wall blind cabinet must be on the same wall. If the base blind cabinet is on wall A, the wall blind cabinet must also be on wall A, never on adjacent wall B. Every base blind corner requires its matching wall blind cabinet. If it cannot fit or the upper cabinet area is missing, report a problem instead of moving it to the adjacent wall.",
+      "note": "Match each physical corner separately. Base and wall cabinets retain their own catalogue widths and depths."
+    },
+    {
+      "id": "run-tiles-exactly",
+      "status": "confirmed",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "statement": "Within each drawn cabinet zone, cabinets, fixed panels, legal fillers and explicitly reserved or concealed spaces cover the usable run exactly. Openings and shared corner footprints remain clear; no physical space is filled twice.",
+      "evidence": [
+        "P2 bottom: 30+1000+20+550+900+450+920 = 3870 (stated 3870)",
+        "P3 bottom: 350+600+1850+600+350 = 3750 (stated 3750)",
+        "P3 top:    650+1070+179+1200+650 = 3749 (stated 3750, 1mm rounding)",
+        "P4 bottom: 70+600+600+900+900+550+20+635 = 4275 (stated 4275)",
+        "P4 left:   1050+900+1050 = 3000 (stated 3000)"
+      ]
+    },
+    {
+      "id": "no-overlap",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Base and wall cabinets may share the same wall span because they occupy different heights. A tall cabinet owns its entire physical footprint from floor to top: no separate base, wall or tall cabinet may occupy that space, on the same wall or around an adjacent corner. Reserved footprint markers are not cabinets. Resolve corner ownership before packing; if no legal arrangement exists, report the conflict by name.",
+      "evidence": [
+        "88 of 88 swept rooms had a blind corner placed under the fridge tower because corners were resolved before the tall band was projected down — the layout was reported REJECTED and still drawn."
+      ],
+      "note": "Reserve tall footprints before base and wall corners and before packing each neighbouring tall run. Every insertion checks same-wall occupancy and final physical volume validation checks all walls."
+    },
+    {
+      "id": "anchored-position-inherited",
+      "status": "confirmed",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "statement": "Historical evidence showed several service items retained from drawings. The current engine has exactly three fixed-position anchors: sink, hob and refrigerator.",
+      "evidence": [
+        "P1: architect's hob, fridge and dw positions all retained",
+        "P3: architect's hob (bottom), sink (right wall) and fridge (top right) all retained",
+        "P4: architect's refrigerator (top left), hob+OTG (top), sink bowl and dishwasher (bottom left) all retained"
+      ],
+      "note": "Superseded by anchors-are-designer-input. Dishwasher is solver-placed and optional. Kept only as historical evidence."
+    },
+    {
+      "id": "unanchored-position-resolved",
+      "status": "confirmed",
+      "hard": false,
+      "seen_in": [
+        "P2"
+      ],
+      "statement": "Items with no service constraint — tall units, storage — are placed by the designer and may be moved off the architect's suggestion.",
+      "evidence": [
+        "P2: architect labelled TALL UNITS on the bottom wall; designer put the tall run on the left and gave the bottom wall to the wet zone"
+      ]
+    },
+    {
+      "id": "room-dimensions-are-an-input",
+      "status": "confirmed",
+      "hard": true,
+      "seen_in": [
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "statement": "Do not convert the architect's stated size. Finished dimensions come from site measurement and are always smaller, by an amount that is not derivable.",
+      "evidence": [
+        "P2: 12'-9\" = 3886mm, drawing says 3870 (-16). 15'-6\" = 4724mm, drawing says 4680 (-44)",
+        "P3: 12'-6\" = 3810mm, drawing says 3750 (-60). 13'-6\" = 4115mm, drawing says 4050 (-65)",
+        "P4: 14'-3\" = 4343mm, drawing says 4275 (-68). 10'-0\" = 3048mm, drawing says 3000 (-48)"
+      ],
+      "note": "Deduction ranges -16 to -68 across four projects. Not a constant, not derivable."
+    },
+    {
+      "id": "no-dead-corners",
+      "status": "confirmed",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "statement": "Provide a usable corner cabinet. Up to 100mm of concealed space behind a blind corner cabinet is allowed when it improves shutter alignment or cabinet fit; this space stays empty and needs no filler. A BASE corner takes a blind unit — BB-SH 1150, or BB-AC-LMC LeMans 1050. A TALL corner takes a tall blind (TB 1150) and never a LeMans. Wall and loft blind are 900; full-depth loft blind (LBF) is 1050.",
+      "evidence": [
+        "P1 base blind corner",
+        "P2 base blind cabinet",
+        "P3 two base blind cabinets",
+        "P4 base blind cabinet + wall blind shutter"
+      ],
+      "note": "LeMans is a base-only fitting. Widths confirmed: LeMans 1050, blind 1150 — choosing between them shifts the run by 100mm, so the corner choice feeds back into the packing constraint.",
+      "deferred": "L-corner units (BLC / WLC / TLC) are a planned third strategy, not in scope yet. Their codes are 10 fields instead of 11 and do not parse; fix when they are introduced."
+    },
+    {
+      "id": "lehmans-corner-on-blind",
+      "status": "provisional",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "contradicted_by": [
+        "P2"
+      ],
+      "statement": "A base corner uses the LeMans unit BB-AC-...-LMC-... at 1050 wide. It is a distinct catalogue product, not a fitting added to the 1150 blind unit.",
+      "open_question": "Width is settled at 1050. What is not settled is WHEN LeMans is used instead of the 1150 blind — 3 of 4 projects used it, P2 did not.",
+      "note": "Now 3 of 4 projects. P2 remains the only corner without it — and since LeMans is 1050 and plain blind is 1150, P2's corner should be checkable against its own run arithmetic.",
+      "catalog": [
+        "BB-AC-CJ-ST-LMC-LHS-XXX-1050-720-560-15",
+        "BB-AC-CJ-ST-LMC-RHS-XXX-1050-720-560-15",
+        "BB-AC-TTS-ST-LMC-LHS-XXX-1050-720-560-15",
+        "BB-AC-TTS-ST-LMC-RHS-XXX-1050-720-560-15"
+      ]
+    },
+    {
+      "id": "bottle-pullout-flanks-hob",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P3",
+        "P4"
+      ],
+      "statement": "At least one bottle pullout is required. It may sit immediately beside the hob or immediately beyond either cabinet flanking the hob. Use a catalogue width of 150 or 300 according to the available space.",
+      "evidence": [
+        "P3: 600 | 150 BPO | 900 hob | 150 BPO | 600  (both sides)",
+        "P4: 600 | 600 hob | 300 BPO                  (right side only)"
+      ],
+      "catalog": [
+        "BC-AC-CJ-ST-BPO-LHS-XXX-150-720-560-15",
+        "BC-AC-CJ-ST-BPO-RHS-XXX-150-720-560-15"
+      ],
+      "note": "Do not force the bottle pullout between the hob and a designer-selected flanking cabinet. At least one must occupy an allowed position."
+    },
+    {
+      "id": "runs-labelled-sequentially",
+      "status": "confirmed",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "statement": "Each run is labelled AA, BB, CC, DD in order. Islands get their own sequence.",
+      "note": "Prefix word is not standardised: P1 used WALL-AA\", P2 used ELEVATION-AA, P3 used bare AA."
+    },
+    {
+      "id": "glass-vs-solid-wall-shutters",
+      "status": "provisional",
+      "hard": false,
+      "seen_in": [
+        "P2",
+        "P4"
+      ],
+      "statement": "Partly explained. The 'glass in the middle' seen in P2 and P4 is the chimney rule — those glass units flank the chimney. What still has no rule is P3, where the hob was on a third wall and the left wall came out all glass while the right came out all solid.",
+      "open_question": "Designer discretion, client choice, or a rule not visible in plan view?",
+      "evidence": [
+        "P2 right: solid, glass, glass, solid  (solid at both ends)",
+        "P3: left wall all glass, right wall all solid",
+        "P4 bottom: dishrack, glass, glass, glass, solid  (solid at the corner end)"
+      ],
+      "hypothesis": "Glass beside the chimney is settled. Glass elsewhere is still designer discretion or an unseen rule."
+    },
+    {
+      "id": "design-height-by-user-choice",
+      "status": "confirmed",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P4"
+      ],
+      "statement": "The user chooses 7ft (2140mm design height) or 8ft (2500mm design height); a 100mm top filler closes the tall stack.",
+      "evidence": [
+        "P1 titleblock: 'Height Considered: 2500mm + Top Filler'",
+        "P4 titleblock: 'Height Considered: 2500mm'",
+        "855 counter + 560 backsplash + 1085 wall = 2500 = 2400 tall + 100 filler"
+      ]
+    },
+    {
+      "id": "accessory-sized-to-host",
+      "status": "confirmed",
+      "hard": true,
+      "seen_in": [
+        "P3",
+        "P4"
+      ],
+      "statement": "An internal accessory takes the width of the cabinet holding it.",
+      "evidence": [
+        "P3: 900 hob base -> 'Cutlery Tray Silverstone 900 mm'",
+        "P4: 600 hob base -> 'Cutlery Tray Silverstone 600 mm'",
+        "P4: 900 base     -> '2-Onion & Potato Basket 900 mm'"
+      ]
+    },
+    {
+      "id": "waste-bin-with-sink",
+      "status": "provisional",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P4"
+      ],
+      "statement": "The sink base carries a pull-out waste bin, 14 litre x 2.",
+      "evidence": [
+        "P1: 'space for waste bin 14 LTR x 2 & detergent holder'",
+        "P4: 'Plastic Pull Out Waste bin 14x2 ltr'"
+      ]
+    },
+    {
+      "id": "handle-by-zone-group",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Base units are CJ or TTS, the client's choice. Wall, loft and mid units have no handle (NHX). Tall units are always TTS and can never be CJ.",
+      "note": "Handle is a project-level input, applied as a filter before layout runs; the solver never decides it. The legend's phrase 'tall cabinets STONE shutters' is not an exclusion — stone is the default material and glass is optional, so it simply describes the normal case.",
+      "consequence": "STD is the pre-rename value, not a separate handle. It resolves to the group's ordinary handle — TTS for base and tall, NHX for wall and loft — so the ~25 rows still carrying it are correct as they stand. No bulk edit needed."
+    },
+    {
+      "id": "panel-vs-filler",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Visible panels are exactly 25mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead. Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
+      "note": "The 30mm minimum applies to ordinary gap fillers. Wall fillers at concealed tall sides are exactly 40mm. Automatic corner fillers remain 40-100mm; manually specified corner fillers may be up to 150mm.",
+      "reconciles": [
+        "panel (outdated): P1 27, P2 20/30, P3 20, P4 20/30",
+        "filler: P1 60/75/90, P2 60/90, P3 90/100, P4 50/64/70/90/100 — all within 40-100"
+      ]
+    },
+    {
+      "id": "catalog-is-the-closed-world",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Only codes present in the updated cabinet sheet may be used. Modules exist for that list and nothing else.",
+      "note": "The engine's variable domain is the sheet. It may never invent a width. Odd widths in the sample drawings (1000, 920, 1070, 179) are outside it and are not a target to reproduce."
+    },
+    {
+      "id": "low-depth-is-336",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Any low-depth cabinet is 336mm deep. No exceptions.",
+      "note": "Applies to the BCL, BBL and TCL zones. Enforced on import — the TCL-SH-TTS-ST-HK rows carrying 560 are data errors."
+    },
+    {
+      "id": "maximise-storage",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Maximise usable cabinet storage across each complete run and minimise avoidable filler after satisfying all hard constraints. Compare combinations of catalogue widths, not a greedy largest-cabinet-first arrangement. Replacing a 900mm cabinet with 600mm plus 450mm is better when it uses 150mm of otherwise wasted filler and all clearances remain valid.",
+      "note": "Compare both sides of the refrigerator together, including the pantry and oven bank. Test the bank on either side, preserve included appliance functions, and use permitted anchor adjustments up to 100mm from the original positions. Required 25mm panels and 40mm wall fillers are not wasted space. Prefer less movement when storage and filler are equal."
+    },
+    {
+      "id": "hob-largest-that-fits",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P3",
+        "P4"
+      ],
+      "statement": "The hob base is 900 where it fits, otherwise 600. Take the largest possible.",
+      "catalog": [
+        "BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+        "BC-HO-CJ-ST-XXX-2HB-XXX-600-720-560-15"
+      ],
+      "evidence": [
+        "P3 used 900",
+        "P4 used 600"
+      ]
+    },
+    {
+      "id": "hob-shape-is-designer-choice",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The designer may choose the hob base's SHAPE and the SHAPE of the cabinet flanking it on either side. A shape is a catalogue internal configuration — \"2LB+1HB\", \"1BL+1HF\", \"BPO\" — never a width or a height. When a shape is chosen it is a hard constraint: the engine places that family and that configuration and solves only the width, taking the largest the run will take. If no width of the chosen shape fits, that is a hard failure reported against the choice — the engine never substitutes a different shape. A side left unchosen is solved as before.",
+      "overrides": {
+        "hob-largest-that-fits": "still picks the largest width, but only among units of the chosen shape",
+        "bottle-pullout-flanks-hob": "Preserve the chosen flank and place the required bottle pullout immediately beyond an eligible flank when needed.",
+        "grain-trolley-required": "A selected flank does not remove the grain trolley requirement; place the trolley elsewhere if needed."
+      },
+      "evidence": [
+        "Requested by the design team: pick the shape, let the engine size it."
+      ],
+      "note": "Chosen hob-side shapes are preserved. The required grain trolley is placed elsewhere when necessary, and the required bottle pullout may sit beyond a chosen flank."
+    },
+    {
+      "id": "symmetry-around-hob",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "P3",
+        "P4"
+      ],
+      "statement": "Prefer equal-width cabinets flanking the hob — 900/900, 600/600 or 450/450, largest pair that fits. A preference, not a constraint: a grain drawer or bottle pullout on one side is equally acceptable.",
+      "evidence": [
+        "P3: 600 | 150 BPO | 900 hob | 150 BPO | 600 — symmetric",
+        "P4: 600 | 600 hob | 300 BPO — asymmetric and valid, the pullout satisfies the rule"
+      ]
+    },
+    {
+      "id": "sink-needs-base-sink-unit",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "statement": "A sink always sits on a base sink unit. The pairing is mandatory.",
+      "catalog": [
+        "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15"
+      ]
+    },
+    {
+      "id": "preferred-models",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Every kitchen includes a hob, chimney, sink, refrigerator, at least one bottle pullout and at least one grain trolley. The grain trolley may be elsewhere in the kitchen; the bottle pullout may be beside a hob-flanking cabinet. A tandem pantry and microwave/oven cabinet are preferred when they fit.",
+      "catalog": [
+        "BC-HO-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+        "BC-AC-CJ-ST-BPO-LHS-XXX-150-720-560-15",
+        "BC-GD-CJ-ST-1BL-1HF-XXX-600-720-560-15",
+        "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15",
+        "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15",
+        "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15",
+        "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15"
+      ],
+      "note": "Only hob, sink and refrigerator are appliance anchors. Dish-rack and vegetable-basket preferences and requirements were cancelled by the user.",
+      "preferred": [
+        {
+          "item": "hob",
+          "qty": 1,
+          "sku": "BC-HO"
+        },
+        {
+          "item": "chimney",
+          "qty": 1,
+          "sku": null,
+          "note": "client appliance, no cabinet code"
+        },
+        {
+          "item": "bottle pullout",
+          "qty": 1,
+          "sku": "BC-AC-...-BPO",
+          "required": true
+        },
+        {
+          "item": "grain trolley",
+          "qty": "1-2",
+          "sku": "BC-GD",
+          "required": true,
+          "note": "at least one, two at most — flour and rice"
+        },
+        {
+          "item": "tall appliance unit",
+          "qty": 1,
+          "sku": "TC-MO",
+          "required": false,
+          "note": "preferred beside the refrigerator; houses microwave and oven"
+        },
+        {
+          "item": "tandem pantry",
+          "qty": 1,
+          "sku": "TC-AC-...-TPT",
+          "required": false,
+          "note": "preferred beside the refrigerator"
+        },
+        {
+          "item": "sink",
+          "qty": 1,
+          "sku": "BC-SK"
+        },
+        {
+          "item": "refrigerator",
+          "qty": 1,
+          "sku": "TC-REF",
+          "note": "Hard requirement — confirmed. Must be present in every kitchen."
+        }
+      ]
+    },
+    {
+      "id": "corner-filler-minimum-40",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Every used base corner carries one filler of at least 40mm on one adjacent run.",
+      "note": "The automatic solver chooses 40-100mm so the run can close. Manual fillers may be 40-150mm. What follows the filler is stated by blind-corner-snap."
+    },
+    {
+      "id": "blind-corner-snap",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "At a blind or LeMans corner, keep the required filler of at least 40mm on the adjacent wall, followed by an ordinary cabinet. The blind cabinet opening shutter starts 40mm beyond that adjacent cabinet front face, measured along the wall carrying the blind cabinet from the inside corner. For a 600mm adjacent projection, the shutter starts at 640mm. This is the shutter position, not the start of the whole cabinet body. Allow 0-100mm of concealed space behind the blind cabinet instead of requiring it to touch the corner wall. Leave this hidden space empty; use fillers for visible leftover gaps.",
+      "evidence": [
+        "P6: the run beside the blind corner began with a bottle pullout flush to the corner — no filler, nothing said."
+      ],
+      "overrides": {
+        "no-dead-corners": "Up to 100mm of concealed corner space is allowed behind the blind cabinet.",
+        "fill-small-remaining-spaces": "Fill visible residual spaces; do not fill concealed corner space."
+      },
+      "note": "Applies separately to base and upper corners using the actual adjacent cabinet front projection, including any depth offset. Base and upper blind cabinets remain on the same wall. Cabinet catalogue body dimensions stay unchanged. Track the opening shutter separately from the concealed blind section; all clearance, opening and collision checks remain in force."
+    },
+    {
+      "id": "run-end-treatment",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel. Reserve corner footprints before treating run ends.",
+      "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm."
+    },
+    {
+      "id": "chimney-over-hob",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "statement": "The chimney sits directly above the hob.",
+      "note": "The chimney has no cabinet code — it is a client appliance that occupies wall-tier space with no SKU, so it displaces wall units rather than being one."
+    },
+    {
+      "id": "glass-flanks-chimney",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "P2",
+        "P4"
+      ],
+      "statement": "Prefer glass wall units on both sides of the chimney. If both cannot fit, keep the chimney valid and report the unmet preference.",
+      "evidence": [
+        "P4 top run: Wall Glass Shutter | hob+chimney | Wall Glass Shutter",
+        "P2 cooking wall: solid, glass, glass, solid — the two glass units flank the chimney"
+      ]
+    },
+    {
+      "id": "at-least-one-lemans",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "statement": "When an eligible base corner exists and it fits, prefer at least one 1050mm LeMans corner. Otherwise use a 1150mm blind corner. Straight kitchens have no corner requirement.",
+      "catalog": [
+        "BB-AC-CJ-ST-LMC-LHS-XXX-1050-720-560-15"
+      ],
+      "note": "P2's corner label read as a plain blind rather than a LeMans, but that came off a compressed image and the rule is stated — treating it as my misreading, not an exception."
+    },
+    {
+      "id": "hob-sink-min-350",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Hob and sink are at least 350mm apart, measured along the countertop path including around adjacent corners.",
+      "note": "A hard minimum edge-to-edge clearance. Non-adjacent walls are handled as separate runs."
+    },
+    {
+      "id": "sink-never-at-blind-corner",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "A sink is never placed in a blind corner."
+    },
+    {
+      "id": "wall-width-follows-hob-flank",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P4"
+      ],
+      "statement": "Wall cabinets beside the chimney must be symmetric. Map eligible base flank widths using 900 to 850, 600 to 550 and 450 to 450mm; when base flanks differ, use the larger mapped width for both wall cabinets. Choose the largest base-flank widths that also allow this upper pair to fit, preserving designer-selected shapes. Adjust the hob position by up to 100mm on its wall when this improves fit; report every movement. If no legal combination fits, report failure.",
+      "note": "Width is solved across both tiers, never from base space alone. Both mapped upper cabinets must fit their zones, openings, corners and tall footprints.",
+      "evidence": [
+        "900 | 600 hob | 900 = 2400 base, and 850 | 700 chimney | 850 = 2400 wall — the tiers close on the same total",
+        "P4 wall tier reads 550 either side, which is exactly 600 flank minus 50",
+        "The catalog stocks 850 and 550 wall units and no other odd widths — those two sizes exist BECAUSE of this rule"
+      ],
+      "flank_to_wall": {
+        "450": 450,
+        "600": 550,
+        "900": 850
+      }
+    },
+    {
+      "id": "chimney-width",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The chimney is always wider than the hob, by params.chimney_wider_than_hob_by (100mm). A 600 hob takes a 700 chimney; a 900 hob takes a 1000.",
+      "note": "The overhang is split evenly, so the chimney reaches 50mm past the hob on each side."
+    },
+    {
+      "id": "dishwasher-beside-sink",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P4"
+      ],
+      "statement": "A dishwasher is optional. When included, it sits immediately left or right of the sink.",
+      "evidence": [
+        "P1 utility: dishwasher directly beside the sink run",
+        "P4: 'Space for Dishwasher' immediately right of the base sink cabinet"
+      ],
+      "note": "Presence is a preference; adjacency is a hard conditional rule once included. Dishwasher is not an anchor."
+    },
+    {
+      "id": "anchors-are-designer-input",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The designer provides the starting positions of the hob, sink and refrigerator. Each may move along its own wall by up to 100mm from that starting position to improve cabinet fit and reduce wasted space, even when the original layout already fits. All movements must be reported.",
+      "note": "Keep appliance widths and walls, openings, separation rules and cabinet areas valid. Never accumulate adjustments beyond 100mm from the designer-provided starting position."
+    },
+    {
+      "id": "anchors-never-in-front-of-door",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Hob, sink and refrigerator are never placed in front of a door.",
+      "note": "Because the designer places these by hand, this is an INPUT VALIDATION rule — reject the placement with an error, do not silently move it."
+    },
+    {
+      "id": "window-rules-by-anchor",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "A sink may sit in front of a window. A hob or refrigerator never may.",
+      "note": "Also input validation, same as the door rule."
+    },
+    {
+      "id": "zones-drawn-per-tier",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The designer draws the area where cabinets go, snapped to the wall edges, and draws it SEPARATELY for each tier — base, wall and tall. The engine fills within those zones and never outside them.",
+      "note": "Supersedes the missing wall-selection and zone-assignment rules: which walls carry runs, and which zone sits where, are both given. It also makes aisle width implicit — the drawn zones define the walkway."
+    },
+    {
+      "id": "kitchen-height-options",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P4"
+      ],
+      "statement": "Two kitchen heights are offered, 7ft and 8ft. The choice sets both the wall-unit and tall-unit height for the whole kitchen.",
+      "evidence": [
+        "8ft: 855 counter + 560 backsplash + 1085 wall = 2500 = 2400 tall + 100 filler",
+        "7ft: 855 counter + 560 backsplash + 725  wall = 2140 = 2040 tall + 100 filler"
+      ],
+      "note": "This is what decides wall 725 vs 1085 — it was never a per-run choice. Both catalog wall heights and both tall heights pair up exactly, one pair per option."
+    },
+    {
+      "id": "handing-is-free",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "LHS/RHS applies to single-shutter units. Either may be used — handing is unconstrained for now.",
+      "note": "Unblocks code emission: the engine picks a hand arbitrarily. Revisit if door-swing or adjacency turns out to matter."
+    },
+    {
+      "id": "grain-trolley-required",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "At least one grain trolley is required in every kitchen. Its position is flexible: it may be after two or three cabinets from the hob, or elsewhere in the kitchen. It does not have to touch the hob. Prefer a second when space permits.",
+      "catalog": [
+        "BC-GD-CJ-ST-1BL-1HF-XXX-600-720-560-15"
+      ],
+      "note": "Presence is mandatory; immediate adjacency to the hob is not. Designer-selected hob flanks do not remove this requirement."
+    },
+    {
+      "id": "tandem-pantry-near-fridge",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "P1",
+        "P2"
+      ],
+      "statement": "The tandem pantry is preferred and, when included, is placed beside the refrigerator.",
+      "catalog": [
+        "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15"
+      ]
+    },
+    {
+      "id": "talls-cluster-at-fridge",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Preferred tall models form one contiguous block beside the fixed refrigerator when space permits.",
+      "note": "The refrigerator is the only tall anchor. Tandem pantry and oven unit remain preferred; no countertop-adjacency requirement applies to the microwave/oven cabinet."
+    },
+    {
+      "id": "low-depth-where-a-column-is",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Where a structural column intrudes into a run, low-depth cabinets (336) must be used, and the countertop steps in with them. This is why the low-depth zones exist — BCL, BBL and TCL.",
+      "note": "Two consequences. (1) Depth is NOT constant along a run: 560 normally, 336 at a column, so the engine carries depth per segment, not per run. (2) The countertop follows that stepped profile, so its area is the sum of per-segment length x depth — never overall length x 560. Column positions come in with the room like doors and windows; P1's architect drawing marks them as C2."
+    },
+    {
+      "id": "fridge-clear-of-hob-and-sink",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "The refrigerator should be clear of both the hob and the sink, and the work triangle between the three should stay manageable.",
+      "note": "Soft, and deliberately without a number — no threshold was given, unlike hob-sink which is 350. Since the designer places all three anchors by hand, this reads as guidance for them rather than a solver constraint. Give it a millimetre value only if it ever needs enforcing."
+    },
+    {
+      "id": "fill-small-remaining-spaces",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Fit catalogue cabinets first and close remaining visible spaces with separate gap fillers of at least 30mm. If a remainder is smaller than 30mm, change packing or adjust anchors within their authorized tolerance; do not create a thinner filler or widen a panel. Required wall fillers are 40mm and corner fillers at least 40mm. Reserved cabinet footprints, openings and concealed blind-corner space remain empty.",
+      "note": "Ordinary gap fillers remain smaller than the narrowest eligible cabinet. Concealed space up to 100mm behind blind corners is exempt; moving a blind cabinet must not leave a visible filler below 30mm."
+    },
+    {
+      "id": "zone-boundary-tolerance",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Where two tiers meet on the same wall, the boundary the designer drew may slide by up to params.zone_boundary_tolerance (100mm) if that lets both tiers close. A little more tall and a little less base makes no practical difference.",
+      "note": "Applied only as a repair when a layout otherwise fails, one boundary at a time, and never far enough to push an anchor out of its host zone. The move is reported as a note so the designer sees what was adjusted."
+    },
+    {
+      "id": "anchor-tolerance",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "The hob, sink and refrigerator may each be repositioned by up to params.anchor_tolerance (100mm) along their own wall to improve the cabinet fit and reduce wasted space. This is allowed even if the original layout already fits. Compare valid arrangements by unused closure space and cabinet storage, using smaller movement to break ties. Report each original and new position.",
+      "evidence": [
+        "Sweep: 25 rooms that failed as drawn closed with a 25–75mm slide of the fridge; none needed more than 75mm."
+      ],
+      "note": "Several anchors may move in one layout, but each stays within 100mm of its original designer position. All input and placement checks still apply. Ordinary anchor-only adjustments within this allowance are authorized; changes to cabinet areas use the separate zone-review flow.",
+      "overrides": {
+        "anchors-are-designer-input": "The designer's position is the starting point. Movements within 100mm may improve either a failing layout or an already fitting layout."
+      }
+    },
+    {
+      "id": "wall-base-run-end-alignment",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Where a base and wall zone share a run end, their finished runs must reach that same boundary. A packing failure must not silently leave one tier shorter.",
+      "note": "Align the overall run ends. Individual door seams and the independent corner footprints are not required to match. Deliberately separate wall zones beside windows remain separate."
+    }
+  ],
+  "open_questions": [
+    "Resolved: corrected cabinet codes are authoritative when their embedded dimensions disagree with spreadsheet dimension columns."
+  ],
+  "params": {
+    "_note": "Every number in these rules is a tunable default, not a constant. Change it here.",
+    "panel_width": 25,
+    "tall_visible_panel_width": 25,
+    "filler_min": 40,
+    "filler_max": 100,
+    "manual_filler_max": 150,
+    "corner_filler_min": 40,
+    "counter_height": 850,
+    "backsplash": 565,
+    "low_depth": 336,
+    "chimney_wider_than_hob_by": 100,
+    "hob_sink_min_gap": 350,
+    "hob_widths": [
+      600,
+      900
+    ],
+    "hob_flank_widths": [
+      900,
+      600,
+      450
+    ],
+    "countertop_return": 25,
+    "heights": {
+      "7ft": {
+        "design_height": 2140,
+        "wall": 725,
+        "tall": 2040,
+        "top_filler": 100
+      },
+      "8ft": {
+        "design_height": 2500,
+        "wall": 1085,
+        "tall": 2400,
+        "top_filler": 100
+      }
+    },
+    "_counter_height": "720 carcass + 100 legs + 30 top (spec DV-049). Was 855 by subtraction.",
+    "_backsplash": "wall-unit gap above counter; 450-600 allowed, 565 default (spec DV-154). Was 560.",
+    "zone_boundary_tolerance": 100,
+    "anchor_tolerance": 100,
+    "_anchor_tolerance": "Each appliance may move at most 100mm from its original designer position, including to improve an already fitting design. Report every movement; keep all safety and geometry checks.",
+    "blind_shutter_clearance": 40,
+    "blind_corner_dead_space_max": 100,
+    "gap_filler_min": 30,
+    "wall_filler_width": 40
+  },
+  "out_of_scope": [
+    "Dado (1780 / 2600) — explicitly not needed for now.",
+    "L-corner units (BLC / WLC / TLC) — planned later; their codes are 10 fields and do not parse.",
+    "Islands — only P1 had one, no rules gathered.",
+    "Costing and pricing — the sheet carries sqft, panel and shutter counts, but no pricing rules have been given.",
+    "Minimum viable run length — not needed, because the designer places all three anchors."
+  ],
+  "refuted": [
+    {
+      "id": "dish-rack-above-sink",
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "was": "The wall dish rack sits directly above the sink.",
+      "verdict": "REFUTED by the design team — there is no such thing as a dish rack over a sink.",
+      "lesson": "It looked confirmed at 3 of 4 projects. A dish rack does appear near the sink in those drawings, but proximity in a plan is not a placement rule. Recorded here so it is not re-derived from the same evidence."
+    }
+  ],
+  "cancelled": [
+    {
+      "id": "countertop-beside-tall-appliance",
+      "reason": "User cancelled point 24: countertop beside microwave/oven cabinet."
+    },
+    {
+      "id": "dish-rack-and-vegetable-basket",
+      "reason": "User cancelled point 35: no automatic preference, placement requirement or release block for these accessories."
+    },
+    {
+      "id": "fillers-only-at-corners",
+      "reason": "User now requires fillers wherever a small space cannot accept a cabinet, including both sides of the sink."
+    }
+  ]
+}

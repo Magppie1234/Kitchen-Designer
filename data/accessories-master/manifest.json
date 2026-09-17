@@ -1,0 +1,153 @@
+{
+  "source": "Accessories List with Zone and Wall Details.xlsx",
+  "extractedSheets": [
+    {
+      "index": 1,
+      "name": "Kitchen Accessories",
+      "state": "visible",
+      "sourceFile": "sheet1.xml",
+      "csv": "csv/01_Kitchen Accessories.csv",
+      "rows": 52,
+      "nonEmptyRows": 42,
+      "cols": 24
+    },
+    {
+      "index": 2,
+      "name": "Copy of Kitchen Modules",
+      "state": "hidden",
+      "sourceFile": "sheet2.xml",
+      "csv": "csv/02_Copy of Kitchen Modules.csv",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 3,
+      "name": "Shutters",
+      "state": "hidden",
+      "sourceFile": "sheet3.xml",
+      "csv": "csv/03_Shutters.csv",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 4,
+      "name": "Shutter Parts Detail",
+      "state": "hidden",
+      "sourceFile": "sheet4.xml",
+      "csv": "csv/04_Shutter Parts Detail.csv",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    },
+    {
+      "index": 5,
+      "name": "Copy of Cabinet price",
+      "state": "hidden",
+      "sourceFile": "sheet5.xml",
+      "csv": "csv/05_Copy of Cabinet price.csv",
+      "rows": 90,
+      "nonEmptyRows": 89,
+      "cols": 39
+    },
+    {
+      "index": 6,
+      "name": "Copy of Kitchen Modules (1)",
+      "state": "hidden",
+      "sourceFile": "sheet6.xml",
+      "csv": "csv/06_Copy of Kitchen Modules (1).csv",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 7,
+      "name": "Shutters (1)",
+      "state": "hidden",
+      "sourceFile": "sheet7.xml",
+      "csv": "csv/07_Shutters (1).csv",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 8,
+      "name": "Shutter Parts Detail (1)",
+      "state": "hidden",
+      "sourceFile": "sheet8.xml",
+      "csv": "csv/08_Shutter Parts Detail (1).csv",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    },
+    {
+      "index": 9,
+      "name": "Copy of Cabinet price (1)",
+      "state": "hidden",
+      "sourceFile": "sheet9.xml",
+      "csv": "csv/09_Copy of Cabinet price (1).csv",
+      "rows": 90,
+      "nonEmptyRows": 89,
+      "cols": 39
+    },
+    {
+      "index": 10,
+      "name": "Copy of Kitchen Modules (2)",
+      "state": "hidden",
+      "sourceFile": "sheet10.xml",
+      "csv": "csv/10_Copy of Kitchen Modules (2).csv",
+      "rows": 37,
+      "nonEmptyRows": 37,
+      "cols": 35
+    },
+    {
+      "index": 11,
+      "name": "Shutters (2)",
+      "state": "hidden",
+      "sourceFile": "sheet11.xml",
+      "csv": "csv/11_Shutters (2).csv",
+      "rows": 21,
+      "nonEmptyRows": 21,
+      "cols": 26
+    },
+    {
+      "index": 12,
+      "name": "Shutter Parts Detail (2)",
+      "state": "hidden",
+      "sourceFile": "sheet12.xml",
+      "csv": "csv/12_Shutter Parts Detail (2).csv",
+      "rows": 52,
+      "nonEmptyRows": 41,
+      "cols": 26
+    }
+  ],
+  "imageRowMap": {
+    "2": "image12.jpg",
+    "3": "image23.png",
+    "4": "image17.jpg",
+    "5": "image10.jpg",
+    "6": "image21.jpg",
+    "7": "image19.jpg",
+    "8": "image11.jpg",
+    "9": "image1.jpg",
+    "10": "image5.jpg",
+    "12": "image2.jpg",
+    "13": "image20.jpg",
+    "16": "image24.jpg",
+    "17": "image9.jpg",
+    "18": "image4.jpg",
+    "19": "image25.jpg",
+    "20": "image18.jpg",
+    "21": "image14.jpg",
+    "23": "image8.jpg",
+    "25": "image22.jpg",
+    "27": "image13.png",
+    "30": "image7.png",
+    "31": "image6.jpg",
+    "32": "image15.jpg",
+    "33": "image3.jpg",
+    "36": "image16.jpg"
+  },
+  "mediaImages": 25
+}

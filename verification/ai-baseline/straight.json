@@ -1,0 +1,2114 @@
+{
+  "name": "straight",
+  "input": {
+    "project": "Straight 12000",
+    "_confidence": "Room size, wall lengths and which wall each anchor sits on are READ off your drawing. Positions marked ~ are my estimates from a compressed image and need checking against the source file.",
+    "height": "8ft",
+    "handle": "CJ",
+    "walls": [
+      {
+        "id": "AA",
+        "length": 12000,
+        "dir": "E"
+      },
+      {
+        "id": "BB",
+        "length": 3000,
+        "dir": "S"
+      },
+      {
+        "id": "CC",
+        "length": 12000,
+        "dir": "W"
+      },
+      {
+        "id": "DD",
+        "length": 3000,
+        "dir": "N"
+      }
+    ],
+    "openings": [],
+    "columns": [],
+    "anchors": [
+      {
+        "item": "sink",
+        "wall": "AA",
+        "at": 1100,
+        "width": 900
+      },
+      {
+        "item": "hob",
+        "wall": "AA",
+        "at": 4500,
+        "width": 900
+      },
+      {
+        "item": "fridge",
+        "wall": "AA",
+        "at": 9550,
+        "width": 600
+      }
+    ],
+    "zones": {
+      "base": [
+        {
+          "wall": "AA",
+          "from": 0,
+          "to": 9000
+        }
+      ],
+      "wall": [
+        {
+          "wall": "AA",
+          "from": 0,
+          "to": 9000
+        }
+      ],
+      "tall": [
+        {
+          "wall": "AA",
+          "from": 9000,
+          "to": 12000
+        }
+      ]
+    }
+  },
+  "fitted": {
+    "input": {
+      "project": "Straight 12000",
+      "_confidence": "Room size, wall lengths and which wall each anchor sits on are READ off your drawing. Positions marked ~ are my estimates from a compressed image and need checking against the source file.",
+      "height": "8ft",
+      "handle": "CJ",
+      "walls": [
+        {
+          "id": "AA",
+          "length": 12000,
+          "dir": "E"
+        },
+        {
+          "id": "BB",
+          "length": 3000,
+          "dir": "S"
+        },
+        {
+          "id": "CC",
+          "length": 12000,
+          "dir": "W"
+        },
+        {
+          "id": "DD",
+          "length": 3000,
+          "dir": "N"
+        }
+      ],
+      "openings": [],
+      "columns": [],
+      "anchors": [
+        {
+          "item": "sink",
+          "wall": "AA",
+          "at": 1100,
+          "width": 900
+        },
+        {
+          "item": "hob",
+          "wall": "AA",
+          "at": 4500,
+          "width": 900
+        },
+        {
+          "item": "fridge",
+          "wall": "AA",
+          "at": 9550,
+          "width": 600
+        }
+      ],
+      "zones": {
+        "base": [
+          {
+            "wall": "AA",
+            "from": 0,
+            "to": 9000
+          }
+        ],
+        "wall": [
+          {
+            "wall": "AA",
+            "from": 0,
+            "to": 9000
+          }
+        ],
+        "tall": [
+          {
+            "wall": "AA",
+            "from": 9000,
+            "to": 12000
+          }
+        ]
+      }
+    },
+    "result": {
+      "placed": {
+        "base": [
+          {
+            "wall": "AA",
+            "at": 1100,
+            "width": 900,
+            "role": "sink",
+            "code": "BC-SK-CJ-ST-XXX-2HS-XXX-900-720-560-15",
+            "depth": 560,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 2000,
+            "width": 600,
+            "role": "dishwasher",
+            "code": null,
+            "depth": 560,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 4500,
+            "width": 900,
+            "role": "hob",
+            "code": "BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+            "depth": 560,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 3900,
+            "width": 600,
+            "role": "grain trolley",
+            "code": "BC-GD-CJ-ST-1BL-1HF-XXX-600-720-560-15",
+            "depth": 560,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 5400,
+            "width": 300,
+            "role": "bottle pullout",
+            "code": "BC-AC-CJ-ST-BPO-RHS-XXX-300-720-560-15",
+            "depth": 560,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 9550,
+            "width": 600,
+            "role": "refrigerator (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 10150,
+            "width": 600,
+            "role": "tandem pantry (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 10750,
+            "width": 600,
+            "role": "microwave + oven (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9000,
+            "width": 20,
+            "role": "panel (tall visible) (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9020,
+            "width": 450,
+            "role": "tall shelf (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9470,
+            "width": 80,
+            "role": "gap filler (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 11350,
+            "width": 600,
+            "role": "tall shelf (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 11950,
+            "width": 50,
+            "role": "panel (widened) (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 0,
+            "width": 50,
+            "role": "countertop return (widened)",
+            "depth": 560,
+            "code": null,
+            "trim": true,
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 50,
+            "width": 450,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-450-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 500,
+            "width": 600,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 2600,
+            "width": 150,
+            "depth": 560,
+            "role": "bottle pullout",
+            "code": "BC-AC-CJ-ST-BPO-LHS-XXX-150-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 2750,
+            "width": 550,
+            "depth": 560,
+            "role": "shutter",
+            "code": "BC-SH-CJ-ST-1SX-LHS-XXX-550-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 3300,
+            "width": 600,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 5700,
+            "width": 600,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 6300,
+            "width": 900,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 7200,
+            "width": 900,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 8100,
+            "width": 900,
+            "depth": 560,
+            "role": "drawers",
+            "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+            "height": 720,
+            "z": 100,
+            "offset": 0
+          }
+        ],
+        "wall": [
+          {
+            "wall": "AA",
+            "at": 4450,
+            "width": 1000,
+            "role": "chimney",
+            "code": null,
+            "depth": 336,
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 3900,
+            "width": 550,
+            "role": "glass (chimney flank)",
+            "code": "WC-SH-NHX-GL-3SG-LHS-XXX-550-1085-336-15",
+            "depth": 336,
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 5450,
+            "width": 550,
+            "role": "glass (chimney flank)",
+            "code": "WC-SH-NHX-GL-3SG-RHS-XXX-550-1085-336-15",
+            "depth": 336,
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 9550,
+            "width": 600,
+            "role": "refrigerator (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 10150,
+            "width": 600,
+            "role": "tandem pantry (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 10750,
+            "width": 600,
+            "role": "microwave + oven (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9000,
+            "width": 20,
+            "role": "panel (tall visible) (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9020,
+            "width": 450,
+            "role": "tall shelf (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 9470,
+            "width": 80,
+            "role": "gap filler (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 11350,
+            "width": 600,
+            "role": "tall shelf (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 11950,
+            "width": 50,
+            "role": "panel (widened) (tall above)",
+            "code": null,
+            "blocker": true
+          },
+          {
+            "wall": "AA",
+            "at": 0,
+            "width": 50,
+            "role": "panel (widened)",
+            "depth": 336,
+            "code": null,
+            "trim": true,
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 50,
+            "width": 550,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-LHS-XXX-550-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 600,
+            "width": 600,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 1200,
+            "width": 900,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 2100,
+            "width": 900,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 3000,
+            "width": 900,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 6000,
+            "width": 600,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 6600,
+            "width": 600,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 7200,
+            "width": 900,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 8100,
+            "width": 900,
+            "depth": 336,
+            "role": "shutter",
+            "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+            "height": 1085,
+            "z": 1415,
+            "offset": 0
+          }
+        ],
+        "tall": [
+          {
+            "wall": "AA",
+            "at": 9550,
+            "width": 600,
+            "role": "refrigerator",
+            "code": "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15",
+            "depth": 560,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 10150,
+            "width": 600,
+            "role": "tandem pantry",
+            "code": "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15",
+            "depth": 560,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 10750,
+            "width": 600,
+            "role": "microwave + oven",
+            "code": "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15",
+            "depth": 560,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 9000,
+            "width": 20,
+            "role": "panel (tall visible)",
+            "code": null,
+            "trim": true,
+            "tallVisiblePanel": true,
+            "depth": 560,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 9020,
+            "width": 450,
+            "depth": 560,
+            "role": "tall shelf",
+            "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 9470,
+            "width": 80,
+            "role": "gap filler",
+            "depth": 560,
+            "code": null,
+            "trim": true,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 11350,
+            "width": 600,
+            "depth": 560,
+            "role": "tall shelf",
+            "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          },
+          {
+            "wall": "AA",
+            "at": 11950,
+            "width": 50,
+            "role": "panel (widened)",
+            "depth": 560,
+            "code": null,
+            "trim": true,
+            "height": 2400,
+            "z": 0,
+            "offset": 0
+          }
+        ]
+      },
+      "notes": [
+        "wall-width-follows-hob-flank: base flank 600mm -> symmetric wall flanks 550mm each side",
+        "refrigerator anchors a 1800mm tall block on wall AA",
+        "AA: base/tall junction at 9000 uses one 20mm tall visible panel; no countertop dropdown",
+        "AA/tall: 80mm filler closes the remaining space at 9470; no catalogue cabinet fits this space"
+      ],
+      "unresolved": [],
+      "problems": [],
+      "warnings": [],
+      "planning": {
+        "mode": "Catalogue solver",
+        "anchorsFixed": true,
+        "zonesFixed": true,
+        "evaluated": 2,
+        "passing": 2,
+        "selected": "Drawers / corner arrangement 1",
+        "context": {
+          "anchors": [
+            {
+              "item": "sink",
+              "wall": "AA",
+              "at": 1100,
+              "width": 900
+            },
+            {
+              "item": "hob",
+              "wall": "AA",
+              "at": 4500,
+              "width": 900
+            },
+            {
+              "item": "fridge",
+              "wall": "AA",
+              "at": 9550,
+              "width": 600
+            }
+          ],
+          "zones": {
+            "base": [
+              {
+                "wall": "AA",
+                "from": 0,
+                "to": 9000
+              }
+            ],
+            "wall": [
+              {
+                "wall": "AA",
+                "from": 0,
+                "to": 9000
+              }
+            ],
+            "tall": [
+              {
+                "wall": "AA",
+                "from": 9000,
+                "to": 12000
+              }
+            ]
+          },
+          "walls": [
+            {
+              "id": "AA",
+              "length": 12000,
+              "dir": "E"
+            },
+            {
+              "id": "BB",
+              "length": 3000,
+              "dir": "S"
+            },
+            {
+              "id": "CC",
+              "length": 12000,
+              "dir": "W"
+            },
+            {
+              "id": "DD",
+              "length": 3000,
+              "dir": "N"
+            }
+          ],
+          "spans": [
+            {
+              "tier": "base",
+              "wall": "AA",
+              "from": 0,
+              "to": 1100,
+              "length": 1100
+            },
+            {
+              "tier": "base",
+              "wall": "AA",
+              "from": 2000,
+              "to": 4500,
+              "length": 2500
+            },
+            {
+              "tier": "base",
+              "wall": "AA",
+              "from": 5400,
+              "to": 9000,
+              "length": 3600
+            },
+            {
+              "tier": "wall",
+              "wall": "AA",
+              "from": 0,
+              "to": 9000,
+              "length": 9000
+            },
+            {
+              "tier": "tall",
+              "wall": "AA",
+              "from": 9000,
+              "to": 9550,
+              "length": 550
+            },
+            {
+              "tier": "tall",
+              "wall": "AA",
+              "from": 10150,
+              "to": 12000,
+              "length": 1850
+            }
+          ],
+          "spanNote": "Available before derived hood/flanks and shared corner reservations; exact packing follows.",
+          "corners": [],
+          "catalog": [
+            {
+              "code": "BC-DW-CJ-ST-XXX-2HB-XXX-450-720-560-15",
+              "width": 450,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2HB"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2HB"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2HB"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-2LB-1HB-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2LB",
+                "1HB"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-2HB-1BL-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2HB",
+                "1BL"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-2LB-1HB-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2LB",
+                "1HB"
+              ]
+            },
+            {
+              "code": "BC-DW-CJ-ST-2HB-1BL-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "DW",
+              "zone": "BC",
+              "spec": [
+                "2HB",
+                "1BL"
+              ]
+            },
+            {
+              "code": "BC-HO-CJ-ST-XXX-2HB-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "HO",
+              "zone": "BC",
+              "spec": [
+                "2HB"
+              ]
+            },
+            {
+              "code": "BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "HO",
+              "zone": "BC",
+              "spec": [
+                "2HB"
+              ]
+            },
+            {
+              "code": "BC-HO-CJ-ST-2LB-1HB-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "HO",
+              "zone": "BC",
+              "spec": [
+                "2LB",
+                "1HB"
+              ]
+            },
+            {
+              "code": "BC-HO-CJ-ST-2LB-1HB-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "HO",
+              "zone": "BC",
+              "spec": [
+                "2LB",
+                "1HB"
+              ]
+            },
+            {
+              "code": "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "SK",
+              "zone": "BC",
+              "spec": []
+            },
+            {
+              "code": "BC-SK-CJ-ST-XXX-RHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "SK",
+              "zone": "BC",
+              "spec": []
+            },
+            {
+              "code": "BC-SK-CJ-ST-XXX-2HS-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "SK",
+              "zone": "BC",
+              "spec": [
+                "2HS"
+              ]
+            },
+            {
+              "code": "BC-SK-CJ-ST-XXX-2HS-XXX-1050-720-560-15",
+              "width": 1050,
+              "height": 720,
+              "depth": 560,
+              "family": "SK",
+              "zone": "BC",
+              "spec": [
+                "2HS"
+              ]
+            },
+            {
+              "code": "BC-SK-CJ-ST-XXX-2HS-XXX-1200-720-560-15",
+              "width": 1200,
+              "height": 720,
+              "depth": 560,
+              "family": "SK",
+              "zone": "BC",
+              "spec": [
+                "2HS"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-LHS-XXX-450-720-560-15",
+              "width": 450,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-RHS-XXX-450-720-560-15",
+              "width": 450,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-LHS-XXX-500-720-560-15",
+              "width": 500,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-RHS-XXX-500-720-560-15",
+              "width": 500,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-LHS-XXX-550-720-560-15",
+              "width": 550,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-RHS-XXX-550-720-560-15",
+              "width": 550,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-LHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-RHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BC-SH-CJ-ST-1SX-2HS-XXX-900-720-560-15",
+              "width": 900,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BC",
+              "spec": [
+                "1SX",
+                "2HS"
+              ]
+            },
+            {
+              "code": "BC-GD-CJ-ST-1BL-1HF-XXX-450-720-560-15",
+              "width": 450,
+              "height": 720,
+              "depth": 560,
+              "family": "GD",
+              "zone": "BC",
+              "spec": [
+                "1BL",
+                "1HF"
+              ]
+            },
+            {
+              "code": "BC-GD-CJ-ST-1BL-1HF-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "GD",
+              "zone": "BC",
+              "spec": [
+                "1BL",
+                "1HF"
+              ]
+            },
+            {
+              "code": "BC-AP-CJ-ST-OVN-1FP-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "AP",
+              "zone": "BC",
+              "spec": [
+                "OVN",
+                "1FP"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-BPO-LHS-XXX-150-720-560-15",
+              "width": 150,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "BPO"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-BPO-RHS-XXX-150-720-560-15",
+              "width": 150,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "BPO"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-BPO-LHS-XXX-300-720-560-15",
+              "width": 300,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "BPO"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-BPO-RHS-XXX-300-720-560-15",
+              "width": 300,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "BPO"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-WBP-1HF-XXX-300-720-560-15",
+              "width": 300,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "WBP",
+                "1HF"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-WBP-1HF-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "WBP",
+                "1HF"
+              ]
+            },
+            {
+              "code": "BCL-SH-CJ-ST-1SX-LHS-XXX-450-720-336-15",
+              "width": 450,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BCL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BCL-SH-CJ-ST-1SX-RHS-XXX-450-720-336-15",
+              "width": 450,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BCL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BCL-SH-CJ-ST-1SX-LHS-XXX-600-720-336-15",
+              "width": 600,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BCL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BCL-SH-CJ-ST-1SX-RHS-XXX-600-720-336-15",
+              "width": 600,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BCL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BB-AC-CJ-ST-LMC-LHS-XXX-1050-720-560-15",
+              "width": 1050,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BB",
+              "spec": [
+                "LMC"
+              ]
+            },
+            {
+              "code": "BB-AC-CJ-ST-LMC-RHS-XXX-1050-720-560-15",
+              "width": 1050,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BB",
+              "spec": [
+                "LMC"
+              ]
+            },
+            {
+              "code": "BB-SH-CJ-ST-1SX-LHS-XXX-1150-720-560-15",
+              "width": 1150,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BB",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BB-SH-CJ-ST-1SX-RHS-XXX-1150-720-560-15",
+              "width": 1150,
+              "height": 720,
+              "depth": 560,
+              "family": "SH",
+              "zone": "BB",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BBL-SH-CJ-ST-1SX-LHS-XXX-1150-720-336-15",
+              "width": 1150,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BBL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "BBL-SH-CJ-ST-1SX-RHS-XXX-1150-720-336-15",
+              "width": 1150,
+              "height": 720,
+              "depth": 336,
+              "family": "SH",
+              "zone": "BBL",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-LHS-XXX-450-1085-336-15",
+              "width": 450,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-RHS-XXX-450-1085-336-15",
+              "width": 450,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-LHS-XXX-500-1085-336-15",
+              "width": 500,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-RHS-XXX-500-1085-336-15",
+              "width": 500,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-LHS-XXX-550-1085-336-15",
+              "width": 550,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-RHS-XXX-550-1085-336-15",
+              "width": 550,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-LHS-XXX-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-RHS-XXX-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-2HS-XXX-850-1085-336-15",
+              "width": 850,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG",
+                "2HS"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-GL-3SG-2HS-XXX-900-1085-336-15",
+              "width": 900,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG",
+                "2HS"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-LHS-XXX-450-1085-336-15",
+              "width": 450,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-RHS-XXX-450-1085-336-15",
+              "width": 450,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-LHS-XXX-500-1085-336-15",
+              "width": 500,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-RHS-XXX-500-1085-336-15",
+              "width": 500,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-LHS-XXX-550-1085-336-15",
+              "width": 550,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-RHS-XXX-550-1085-336-15",
+              "width": 550,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-LHS-XXX-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-RHS-XXX-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15",
+              "width": 850,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG",
+                "2HS"
+              ]
+            },
+            {
+              "code": "WC-SH-NHX-ST-3SG-2HS-XXX-900-1085-336-15",
+              "width": 900,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WC",
+              "spec": [
+                "3SG",
+                "2HS"
+              ]
+            },
+            {
+              "code": "WC-OP-NHX-ST-3SG-XXX-XXX-300-1085-336-15",
+              "width": 300,
+              "height": 1085,
+              "depth": 336,
+              "family": "OP",
+              "zone": "WC",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WC-AC-NHX-ST-2SG-LHS-DSH-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "AC",
+              "zone": "WC",
+              "spec": [
+                "2SG",
+                "DSH"
+              ]
+            },
+            {
+              "code": "WC-AC-NHX-ST-2SG-RHS-DSH-600-1085-336-15",
+              "width": 600,
+              "height": 1085,
+              "depth": 336,
+              "family": "AC",
+              "zone": "WC",
+              "spec": [
+                "2SG",
+                "DSH"
+              ]
+            },
+            {
+              "code": "WC-AC-NHX-ST-2SG-2HS-DSH-900-1085-336-15",
+              "width": 900,
+              "height": 1085,
+              "depth": 336,
+              "family": "AC",
+              "zone": "WC",
+              "spec": [
+                "2SG",
+                "2HS",
+                "DSH"
+              ]
+            },
+            {
+              "code": "WB-SH-NHX-ST-3SG-LHS-XXX-900-1085-336-15",
+              "width": 900,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WB",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "WB-SH-NHX-ST-3SG-RHS-XXX-900-1085-336-15",
+              "width": 900,
+              "height": 1085,
+              "depth": 336,
+              "family": "SH",
+              "zone": "WB",
+              "spec": [
+                "3SG"
+              ]
+            },
+            {
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-450-2400-560-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TC-SH-TTS-ST-6SX-RHS-XXX-450-2400-560-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TC-SH-TTS-ST-6SX-LHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TC-SH-TTS-ST-6SX-RHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TC-SH-TTS-ST-6SX-2HS-XXX-900-2400-560-15",
+              "width": 900,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SX",
+                "2HS"
+              ]
+            },
+            {
+              "code": "TC-SH-STD-GL-6SG-LHS-XXX-450-2400-560-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TC-SH-STD-GL-6SG-RHS-XXX-450-2400-560-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TC-SH-STD-GL-6SG-LHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TC-SH-STD-GL-6SG-RHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TC-SH-STD-GL-6SG-2HS-XXX-900-2400-560-15",
+              "width": 900,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TC",
+              "spec": [
+                "6SG",
+                "2HS"
+              ]
+            },
+            {
+              "code": "TC-MO-TTS-ST-3SX-1HB-LHS-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "MO",
+              "zone": "TC",
+              "spec": [
+                "3SX",
+                "1HB"
+              ]
+            },
+            {
+              "code": "TC-MO-TTS-ST-3SX-1HB-RHS-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "MO",
+              "zone": "TC",
+              "spec": [
+                "3SX",
+                "1HB"
+              ]
+            },
+            {
+              "code": "TC-CF-TTS-ST-3SX-2HB-LHS-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "CF",
+              "zone": "TC",
+              "spec": [
+                "3SX",
+                "2HB"
+              ]
+            },
+            {
+              "code": "TC-MW-TTS-ST-3SX-2HB-LHS-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "MW",
+              "zone": "TC",
+              "spec": [
+                "3SX",
+                "2HB"
+              ]
+            },
+            {
+              "code": "TC-OV-TTS-ST-3SX-2HB-LHS-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "OV",
+              "zone": "TC",
+              "spec": [
+                "3SX",
+                "2HB"
+              ]
+            },
+            {
+              "code": "TC-AC-TTS-ST-1SX-LHS-TPT-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "AC",
+              "zone": "TC",
+              "spec": [
+                "1SX",
+                "TPT"
+              ]
+            },
+            {
+              "code": "TC-AC-TTS-ST-1SX-RHS-TPT-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "AC",
+              "zone": "TC",
+              "spec": [
+                "1SX",
+                "TPT"
+              ]
+            },
+            {
+              "code": "TC-DW-TTS-ST-1SX-LHS-5BD-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "DW",
+              "zone": "TC",
+              "spec": [
+                "1SX",
+                "5BD"
+              ]
+            },
+            {
+              "code": "TC-DW-TTS-ST-1SX-RHS-5BD-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "DW",
+              "zone": "TC",
+              "spec": [
+                "1SX",
+                "5BD"
+              ]
+            },
+            {
+              "code": "TC-PO-TTS-ST-2SX-LHS-4PO-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "PO",
+              "zone": "TC",
+              "spec": [
+                "2SX",
+                "4PO"
+              ]
+            },
+            {
+              "code": "TC-PO-TTS-ST-2SX-RHS-4PO-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "PO",
+              "zone": "TC",
+              "spec": [
+                "2SX",
+                "4PO"
+              ]
+            },
+            {
+              "code": "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "REF",
+              "zone": "TC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "TC-REF-TTS-ST-1SX-RHS-XXX-600-2400-560-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 560,
+              "family": "REF",
+              "zone": "TC",
+              "spec": [
+                "1SX"
+              ]
+            },
+            {
+              "code": "TB-SH-TTS-ST-6SX-LHS-XXX-1150-2400-560-15",
+              "width": 1150,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TB",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TB-SH-TTS-ST-6SX-RHS-XXX-1150-2400-560-15",
+              "width": 1150,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TB",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TCL-SH-TTS-ST-6SX-LHS-XXX-450-2400-336-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TCL-SH-TTS-ST-6SX-RHS-XXX-450-2400-336-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TCL-SH-TTS-ST-6SX-LHS-XXX-600-2400-336-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TCL-SH-TTS-ST-6SX-RHS-XXX-600-2400-336-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "TCL-SH-STD-GL-6SG-LHS-XXX-450-2400-336-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TCL-SH-STD-GL-6SG-RHS-XXX-450-2400-336-15",
+              "width": 450,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TCL-SH-STD-GL-6SG-LHS-XXX-600-2400-336-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TCL-SH-STD-GL-6SG-RHS-XXX-600-2400-336-15",
+              "width": 600,
+              "height": 2400,
+              "depth": 336,
+              "family": "SH",
+              "zone": "TCL",
+              "spec": [
+                "6SG"
+              ]
+            },
+            {
+              "code": "TLC-SH-STD-ST-6SX-XXX-XXX-1150-2400-560-15",
+              "width": 1150,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TLC",
+              "spec": [
+                "6SX"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-TR-LHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "TR"
+              ]
+            },
+            {
+              "code": "BC-AC-CJ-ST-TR-RHS-XXX-600-720-560-15",
+              "width": 600,
+              "height": 720,
+              "depth": 560,
+              "family": "AC",
+              "zone": "BC",
+              "spec": [
+                "TR"
+              ]
+            },
+            {
+              "code": "TLC-SH-TTS-ST-6SX-XXX-XXX-1050-2400-560-15",
+              "width": 1050,
+              "height": 2400,
+              "depth": 560,
+              "family": "SH",
+              "zone": "TLC",
+              "spec": [
+                "6SX"
+              ]
+            }
+          ]
+        },
+        "attempts": [
+          {
+            "name": "Drawers / corner arrangement 1",
+            "source": "Catalogue solver",
+            "problems": [],
+            "unresolved": [],
+            "cornerLegs": {},
+            "searchHobSides": true,
+            "verdict": "FEASIBLE",
+            "cabinets": 29,
+            "storageCabinets": 25,
+            "grossStorageLitres": 7757,
+            "fillerMm": 250
+          },
+          {
+            "name": "Shelves / corner arrangement 1",
+            "source": "Catalogue solver",
+            "problems": [],
+            "unresolved": [],
+            "cornerLegs": {},
+            "searchHobSides": true,
+            "verdict": "FEASIBLE",
+            "cabinets": 29,
+            "storageCabinets": 25,
+            "grossStorageLitres": 7757,
+            "fillerMm": 250
+          }
+        ],
+        "alternatives": [
+          {
+            "name": "Drawers / corner arrangement 1",
+            "source": "Catalogue solver",
+            "problems": [],
+            "unresolved": [],
+            "cornerLegs": {},
+            "searchHobSides": true,
+            "verdict": "FEASIBLE",
+            "cabinets": 29,
+            "storageCabinets": 25,
+            "grossStorageLitres": 7757,
+            "fillerMm": 250
+          },
+          {
+            "name": "Shelves / corner arrangement 1",
+            "source": "Catalogue solver",
+            "problems": [],
+            "unresolved": [],
+            "cornerLegs": {},
+            "searchHobSides": true,
+            "verdict": "FEASIBLE",
+            "cabinets": 29,
+            "storageCabinets": 25,
+            "grossStorageLitres": 7757,
+            "fillerMm": 250
+          }
+        ],
+        "metrics": {
+          "name": "Drawers / corner arrangement 1",
+          "source": "Catalogue solver",
+          "problems": [],
+          "unresolved": [],
+          "cornerLegs": {},
+          "searchHobSides": true,
+          "verdict": "FEASIBLE",
+          "cabinets": 29,
+          "storageCabinets": 25,
+          "grossStorageLitres": 7757,
+          "fillerMm": 250
+        },
+        "ranking": "Hard conflicts, unresolved rules, then gross storage carcass volume and filler length. Best of evaluated candidates; not a global optimum."
+      }
+    },
+    "proposal": null,
+    "search": {
+      "version": 1,
+      "evaluated": 0,
+      "limit": 4500,
+      "complete": false,
+      "anchorEvaluated": 100
+    }
+  },
+  "metrics": {
+    "cabinets": 29,
+    "storageCabinets": 25,
+    "grossStorageLitres": 7757,
+    "fillerMm": 250
+  },
+  "elapsedMs": 3040
+}

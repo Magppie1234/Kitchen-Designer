@@ -1,0 +1,48 @@
+{
+  "note": "Series master — admin-owned configuration, seeded here because the Design App has no Admin UI. A room picks exactly one series (kitchen rooms.series_id); the generator, cabinet library and pricing must only offer SKUs whose code matches that series' catalog. Adding a fourth series is a data change only — code must never enumerate series; the picker lists them in FILE ORDER (ascending price ladder). startingRatePerSqft is the displayed 'from ₹/sqft' anchor per series; the TRANSACTIONAL rate matrix is still data/price-matrix.json (PG × Classic/Modern) until series-specific rate cards are supplied — flagged, not silently rewired. finishGroups fixes the finish group per series; finishLabel is the DESIGNER-FACING name for it (PG codes and carcass material names never appear in the UI). PLACEHOLDER: Gold currently shares the full catalog until the Gold pricing sheet (Excel) arrives; when it does, replace gold.catalog with {\"skuCodes\": [...]} — the reader in lib/ supports both forms. carcass comes with the series and is never a designer choice. handleTypes lists the handle families available in that series (the catalog's _CJ/_EH model variants); a series with one entry skips the handle step entirely.",
+  "series": [
+    {
+      "id": "gold",
+      "name": "Gold",
+      "tier": "Essential",
+      "startingRatePerSqft": 5990,
+      "positioning": "The accessible entry — a curated set of cabinets and options.",
+      "optionsBlurb": "Limited, curated options",
+      "catalog": "full",
+      "catalogPlaceholder": true,
+      "carcass": "HDHMR",
+      "handleTypes": ["CJ", "EH"],
+      "finishGroups": ["PG2"],
+      "finishLabel": "Matte options only",
+      "defaultFinish": { "pg": "PG2", "finish": "Modern" }
+    },
+    {
+      "id": "elite",
+      "name": "Elite",
+      "tier": "Expanded",
+      "startingRatePerSqft": 7990,
+      "positioning": "A broader collection — more cabinets, finishes and configurations.",
+      "optionsBlurb": "Expanded options",
+      "catalog": "full",
+      "carcass": "HDHMR",
+      "handleTypes": ["CJ", "EH"],
+      "finishGroups": ["PG1"],
+      "finishLabel": "Limited vein finish options",
+      "defaultFinish": { "pg": "PG1", "finish": "Classic" }
+    },
+    {
+      "id": "signature",
+      "name": "Signature",
+      "tier": "Complete",
+      "startingRatePerSqft": 9990,
+      "positioning": "The flagship — the complete Magppie collection, nothing held back.",
+      "optionsBlurb": "Everything — the full collection",
+      "catalog": "full",
+      "carcass": "HDHMR",
+      "handleTypes": ["CJ", "EH"],
+      "finishGroups": ["PG1"],
+      "finishLabel": "All vein options",
+      "defaultFinish": { "pg": "PG1", "finish": "Classic" }
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "project": "UI",
+  "height": "8ft",
+  "ceiling": 3100,
+  "inputProblems": [],
+  "dishwasher": true,
+  "handle": "CJ",
+  "walls": [
+    {
+      "id": "0",
+      "length": 3600,
+      "dir": "E"
+    },
+    {
+      "id": "1",
+      "length": 3600,
+      "dir": "S"
+    },
+    {
+      "id": "2",
+      "length": 3600,
+      "dir": "W"
+    },
+    {
+      "id": "3",
+      "length": 3600,
+      "dir": "N"
+    }
+  ],
+  "openings": [
+    {
+      "type": "door",
+      "variant": "single",
+      "wall": "0",
+      "off": 1800,
+      "width": 1000,
+      "required": true,
+      "at": 1300
+    },
+    {
+      "type": "window",
+      "variant": "sliding",
+      "wall": "2",
+      "off": 1800,
+      "width": 1200,
+      "sill": 900,
+      "winH": 1200,
+      "at": 1200
+    }
+  ],
+  "columns": [],
+  "anchors": [
+    {
+      "item": "hob",
+      "wall": "1",
+      "at": 1350,
+      "width": 900,
+      "center": 1800,
+      "design": "2HB"
+    },
+    {
+      "item": "sink",
+      "wall": "2",
+      "at": 1193,
+      "width": 1200
+    },
+    {
+      "item": "fridge",
+      "wall": "3",
+      "at": 2950,
+      "width": 600
+    }
+  ],
+  "structures": [],
+  "zones": {
+    "base": [
+      {
+        "wall": "1",
+        "from": 0,
+        "to": 3600
+      },
+      {
+        "wall": "2",
+        "from": 0,
+        "to": 3600
+      },
+      {
+        "wall": "3",
+        "from": 0,
+        "to": 1280
+      }
+    ],
+    "wall": [
+      {
+        "wall": "1",
+        "from": 0,
+        "to": 3600
+      },
+      {
+        "wall": "3",
+        "from": 0,
+        "to": 1280
+      },
+      {
+        "wall": "2",
+        "from": 2400,
+        "to": 3600
+      },
+      {
+        "wall": "2",
+        "from": 0,
+        "to": 1200
+      }
+    ],
+    "tall": [
+      {
+        "wall": "0",
+        "from": 0,
+        "to": 330
+      },
+      {
+        "wall": "3",
+        "from": 1280,
+        "to": 3600
+      }
+    ]
+  },
+  "lockAnchors": true,
+  "lockZones": true,
+  "planningChoice": {
+    "preferredCodes": [],
+    "preferStorage": true,
+    "cornerLegs": {
+      "base:1:2": "a",
+      "base:2:3": "a",
+      "wall:1:2": "a",
+      "wall:2:3": "a"
+    },
+    "lemansCorner": "base:1:2"
+  }
+}

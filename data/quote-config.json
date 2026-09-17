@@ -1,0 +1,14 @@
+{
+  "note": "Quotation & sharing config — the constants that lived hardcoded in the client's quoteMath() and the share defaults. Values verbatim from the code they replaced, except backsplash: it now prices at the CONFIGURED surface rate from price-matrix.json (material 551 + install 300 ₹/sqft) instead of the unexplained flat ₹1850/sqft — flagged in the chunk report. Currency INR.",
+  "accessoryFlatRate": 2500,
+  "accessoryFlatRateNote": "PLACEHOLDER — real per-accessory prices exist in data/accessories-master but are not yet mapped to the zone-pack names; every accessory bills flat until that mapping is confirmed.",
+  "siteVisitCount": 4,
+  "siteVisitRate": 3000,
+  "loadingUnloading": 22000,
+  "transportation": 25000,
+  "wellnessDiscount": 50000,
+  "gstRate": 0.18,
+  "wallPanelBandMm": 600,
+  "shareExpiryDays": 14,
+  "shareIncludesEstimate": true
+}

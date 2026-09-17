@@ -1,0 +1,426 @@
+[
+    {
+        "name":  "u",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  54,
+                       "grossStorageLitres":  5959,
+                       "fillerMm":  294
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  54,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  29394
+    },
+    {
+        "name":  "l",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  22,
+                       "storageCabinets":  18,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  74,
+                       "grossStorageLitres":  5597,
+                       "fillerMm":  304
+                   },
+        "after":  {
+                      "cabinets":  22,
+                      "storageCabinets":  18,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  74,
+                      "grossStorageLitres":  5597,
+                      "fillerMm":  304
+                  },
+        "previousProblems":  [
+
+                             ],
+        "currentProblems":  [
+
+                            ],
+        "regression":  false,
+        "elapsedMs":  4988
+    },
+    {
+        "name":  "seven",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  54,
+                       "grossStorageLitres":  5064,
+                       "fillerMm":  294
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  54,
+                      "grossStorageLitres":  5064,
+                      "fillerMm":  294
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  25048
+    },
+    {
+        "name":  "straight",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  29,
+                       "storageCabinets":  25,
+                       "drawerCabinets":  7,
+                       "avoidableFillerMm":  155,
+                       "grossStorageLitres":  7757,
+                       "fillerMm":  250
+                   },
+        "after":  {
+                      "cabinets":  29,
+                      "storageCabinets":  25,
+                      "drawerCabinets":  7,
+                      "avoidableFillerMm":  155,
+                      "grossStorageLitres":  7757,
+                      "fillerMm":  250
+                  },
+        "previousProblems":  [
+
+                             ],
+        "currentProblems":  [
+
+                            ],
+        "regression":  false,
+        "elapsedMs":  4661
+    },
+    {
+        "name":  "concave",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  54,
+                       "grossStorageLitres":  5959,
+                       "fillerMm":  294
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  54,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  22640
+    },
+    {
+        "name":  "reflected",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  54,
+                       "grossStorageLitres":  5959,
+                       "fillerMm":  294
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  54,
+                      "grossStorageLitres":  5959,
+                      "fillerMm":  294
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  24884
+    },
+    {
+        "name":  "u-hob--75",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  24,
+                       "storageCabinets":  20,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  404,
+                       "grossStorageLitres":  5826,
+                       "fillerMm":  644
+                   },
+        "after":  {
+                      "cabinets":  24,
+                      "storageCabinets":  20,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  404,
+                      "grossStorageLitres":  5826,
+                      "fillerMm":  644
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  13773
+    },
+    {
+        "name":  "u-sink--75",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  2,
+                       "avoidableFillerMm":  79,
+                       "grossStorageLitres":  5939,
+                       "fillerMm":  319
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  2,
+                      "avoidableFillerMm":  79,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  12991
+    },
+    {
+        "name":  "u-hob--25",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  254,
+                       "grossStorageLitres":  5881,
+                       "fillerMm":  494
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  254,
+                      "grossStorageLitres":  5881,
+                      "fillerMm":  494
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  12333
+    },
+    {
+        "name":  "u-sink--25",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  2,
+                       "avoidableFillerMm":  79,
+                       "grossStorageLitres":  5939,
+                       "fillerMm":  319
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  2,
+                      "avoidableFillerMm":  79,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  12364
+    },
+    {
+        "name":  "u-hob-25",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  229,
+                       "grossStorageLitres":  5899,
+                       "fillerMm":  444
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  229,
+                      "grossStorageLitres":  5899,
+                      "fillerMm":  444
+                  },
+        "previousProblems":  [
+                                 "corner on BB at 3000: the 100mm corner filler must be followed by a cabinet, not \"gap filler\"",
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner on BB at 3000: the 100mm corner filler must be followed by a cabinet, not \"gap filler\"",
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  19098
+    },
+    {
+        "name":  "u-sink-25",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  79,
+                       "grossStorageLitres":  5939,
+                       "fillerMm":  319
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  1,
+                      "avoidableFillerMm":  79,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  11919
+    },
+    {
+        "name":  "u-hob-75",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  1,
+                       "avoidableFillerMm":  254,
+                       "grossStorageLitres":  5883,
+                       "fillerMm":  494
+                   },
+        "after":  {
+                      "cabinets":  22,
+                      "storageCabinets":  18,
+                      "drawerCabinets":  2,
+                      "avoidableFillerMm":  229,
+                      "grossStorageLitres":  5826,
+                      "fillerMm":  469
+                  },
+        "previousProblems":  [
+                                 "corner on BB at 3000: the 100mm corner filler must be followed by a cabinet, not \"gap filler\"",
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner on BB at 3000: the 100mm corner filler must be followed by a cabinet, not \"gap filler\"",
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  17792
+    },
+    {
+        "name":  "u-sink-75",
+        "repetition":  1,
+        "live":  false,
+        "model":  null,
+        "before":  {
+                       "cabinets":  23,
+                       "storageCabinets":  19,
+                       "drawerCabinets":  2,
+                       "avoidableFillerMm":  79,
+                       "grossStorageLitres":  5939,
+                       "fillerMm":  319
+                   },
+        "after":  {
+                      "cabinets":  23,
+                      "storageCabinets":  19,
+                      "drawerCabinets":  2,
+                      "avoidableFillerMm":  79,
+                      "grossStorageLitres":  5939,
+                      "fillerMm":  319
+                  },
+        "previousProblems":  [
+                                 "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                             ],
+        "currentProblems":  [
+                                "corner BB/CC: base blind cabinet is on wall CC, but its matching wall blind cabinet is missing. Make room for a 900mm wall blind cabinet on wall CC; it cannot move to the adjacent wall."
+                            ],
+        "regression":  false,
+        "elapsedMs":  11531
+    }
+]

@@ -1,0 +1,14 @@
+{
+  "note": "Remark checklist (Stage 10.3) — the reasons a designer can attach to a manual refinement decision. More than one can apply. Admin-owned configuration; add/remove rows freely, code never enumerates these.",
+  "remarks": [
+    "Client preference",
+    "Site constraint",
+    "Budget optimisation",
+    "Ergonomics / workflow",
+    "Aesthetic balance",
+    "Appliance requirement",
+    "Storage requirement",
+    "Services / utilities routing",
+    "Other"
+  ]
+}
