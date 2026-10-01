@@ -12,7 +12,7 @@ window.MAGPPIE_FINISHES = {
     "finishCol": "FINISH",
     "imageCol": "PHOTOS (embedded)",
     "countertopNote": "Countertop finish per design parsed from the same sheet's APPLICATION column ('Shutters: X mm / Countertop: Y mm'). No separate countertop photo exists in the source Excel, so the design's own shutter photo is reused (same slab/décor pattern, different sheen). Designs with no countertop line of their own fall back to the group's first paired design (flagged countertop.fallback=true) -- CONFIRM this default with the team.",
-    "backsplashRule": "Backsplash has no entry of its own anywhere in the sheet, and price-matrix.json prices Backsplash at the identical Rs.551/sqft material rate as Countertop -> backsplash is cut from the same slab, so backsplash finish = resolved countertop finish (no separate selection)."
+    "backsplashRule": "Backsplash has no entry of its own anywhere in the sheet, and rates.json prices Backsplash at the identical Rs.551/sqft material rate as Countertop -> backsplash is cut from the same slab, so backsplash finish = resolved countertop finish (no separate selection)."
   },
   "pg1": [
     {

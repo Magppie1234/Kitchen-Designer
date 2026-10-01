@@ -1,3 +1,4 @@
+import '../ui/island-rules.js';
 import '../ui/geometry.js';
 // lib/shareApi.js — client share links (Stage 9.4/9.6), one handler for both servers.
 //
@@ -64,12 +65,7 @@ export function livePlanSvg(state, width = 820, margin = 34) {
     }
   }
   const isl = plan.island;
-  if (isl && isl.working) {
-    const tot = isl.total || 1800, d = 900;
-    const p = T([cx - tot / 2, cy - d / 2]);
-    svg += `<rect x="${p[0]}" y="${p[1]}" width="${Math.round(tot * s)}" height="${Math.round(d * s)}" fill="${KCOL.cabinet}" stroke="#2b2b2b" stroke-width="1.2"/>`
-      + `<text x="${T([cx, cy])[0]}" y="${T([cx, cy])[1]}" font-size="10" fill="#3a342c" text-anchor="middle">ISLAND ${tot}mm</text>`;
-  }
+  if(isl?.rules)svg+=IslandRules.svg(isl,isl.rules,{sc:s,X:x=>T([x,0])[0],Y:y=>T([0,y])[1]});
   return svg + '</svg>';
 }
 export function liveElevSvg(state, width = 820) {
@@ -130,7 +126,7 @@ ${plan2d ? `<div class="card"><h2>Floor plan</h2>${plan2d}</div>` : ''}
 ${elevs ? `<div class="card"><h2>Elevations</h2>${elevs}</div>` : ''}
 ${acc.length ? `<div class="card"><h2>Accessories</h2><table>${acc.map((a) => `<tr><td>${esc(a.name)}</td><td>×${a.qty || 1}</td></tr>`).join('')}</table></div>` : ''}
 ${sh.includeEstimate && price ? `<div class="card"><h2>Estimate</h2>
-<table><tr><td>Cabinets (${price.shutterSqft} sqft shutter · ${esc(series?.finishLabel || price.finish)})</td><td style="text-align:right">${inr(price.breakdown.cabinets)}</td></tr>
+<table><tr><td>Cabinets (${price.carcassSqft ?? 0} sqft carcass × ₹${price.rate ?? '—'}/sqft · ${esc(series?.name || '')})</td><td style="text-align:right">${inr(price.breakdown.cabinets)}</td></tr>
 <tr><td>Countertop (${price.counterSqft} sqft)</td><td style="text-align:right">${inr(price.breakdown.counter)}</td></tr>
 <tr><td class="total">Estimate</td><td class="total" style="text-align:right">${inr(price.breakdown.total)}</td></tr></table>
 <div class="meta" style="margin-top:8px">Indicative estimate before services, taxes and site specifics — the formal quotation follows.</div></div>` : ''}

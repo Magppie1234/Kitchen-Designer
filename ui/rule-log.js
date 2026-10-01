@@ -78,9 +78,9 @@
       action = 'Check nearby appliances, doors and windows. Make more room at this corner and generate again.';
     } else if (/wall-width-follows-hob-flank/.test(text)) {
       const width = text.match(/(?:matching|symmetric) (\d+)mm/)?.[1];
-      title = group === 'problems' ? 'The cabinets beside the chimney do not match' : 'Matching cabinets beside the chimney';
-      problem = group === 'problems' ? `The chimney needs an equal-width cabinet on each side${width ? ', '+width+' mm each' : ''}, sized to suit the base cabinets below. The required pair is missing or does not fit.` : plain(text.replace(/^wall-width-follows-hob-flank:\s*/, '').replace(/symmetric/g,'matching'));
-      action = group === 'problems' ? 'Make room on both sides of the chimney, or change the hob-side base cabinets and generate again.' : '';
+      title = group === 'warnings' ? 'Preferred matching cabinets beside the chimney did not fit' : 'Matching cabinets beside the chimney';
+      problem = group === 'warnings' ? `Equal-width cabinets are strongly preferred beside the chimney${width ? ', '+width+' mm each' : ''}, but the chimney layout remains valid when that pair cannot fit.` : plain(text.replace(/^wall-width-follows-hob-flank:\s*/, '').replace(/symmetric/g,'matching'));
+      action = group === 'warnings' ? 'If the symmetry is important for this design, make room on both sides of the chimney or change the hob-side base cabinets, then generate again.' : '';
     } else if (cancelledAccessory) {
       title = 'This accessory rule has been removed';
       problem = 'Dish racks and vegetable baskets are no longer required or automatically recommended. This message belongs to an older design check.';

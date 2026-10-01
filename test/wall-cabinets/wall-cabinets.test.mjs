@@ -2,19 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {layout,wallFlankProblems} from '../../engine.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {layout,wallFlankWarnings} from '../../core/engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 const cat=loadCatalog().ok;
-test('wall symmetry follows the actual base flank, survives solid substitution and rejects mismatches',()=>{
+test('wall symmetry follows the actual base flank, survives solid substitution and warns on mismatches',()=>{
   const j=runEndFixture(),r=layout(j,cat);
-  assert.deepEqual(r.problems,[]);assert.deepEqual(wallFlankProblems(r.placed),[]);
+  assert.deepEqual(r.problems,[]);assert.deepEqual(wallFlankWarnings(r.placed),[]);
   const hood=r.placed.wall.find(p=>p.role==='chimney');
   const pair=r.placed.wall.filter(p=>p.code&&(p.at+p.width===hood.at||p.at===hood.at+hood.width));
   assert.deepEqual(pair.map(p=>p.width),[550,550],'900 hob with 600 base flank gives 550 wall flanks');
-  const solid=layout(j,cat.filter(c=>c.material!=='GL'));assert.deepEqual(wallFlankProblems(solid.placed),[]);
+  const solid=layout(j,cat.filter(c=>c.material!=='GL'));assert.deepEqual(wallFlankWarnings(solid.placed),[]);
   const bad=structuredClone(r.placed);bad.wall.find(p=>p.at===pair[0].at).width-=50;
-  assert.ok(wallFlankProblems(bad).some(p=>p.includes('wall-width-follows-hob-flank')));
+  assert.ok(wallFlankWarnings(bad).some(p=>p.includes('wall-width-follows-hob-flank')));
 });
 test('wall-only view shows actual upper units, hood, fillers and tall cabinets with editable wall references',()=>{
   const html=readFileSync('ui/builder.html','utf8'),start=html.indexOf('function draw2dLegacy()'),end=html.indexOf('function renderLegend()',start);

@@ -16,8 +16,9 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { shutterRates, carcassRate, surfaceRates, installRates, quoteConfig } from './pricingConfig.js';
+import { surfaceRates, installRates, quoteConfig, accessoryPrices } from './pricingConfig.js';
 import { RULES } from './rules.js';
+import { loadCatalog } from '../core/loadCatalog.mjs';
 
 let remarksCache = null;
 function remarksList() {
@@ -82,7 +83,14 @@ export function offCatalogWarnings(bom, series) {
     .map((code) => `SKU ${code} is not in the ${series.name} series catalogue.`);
 }
 
-// GET /api/config -> { series, rates, surfaces, install, carcassRate, currency }.
+// What the Quote tab needs from the workbook: each code's Carcass Net Sqft and the shutter
+// profiles (Design columns, each tagged Modern/Classic by the workbook's band row).
+function workbookConfig() {
+  const { ok, designs } = loadCatalog();
+  return { cabinets: Object.fromEntries(ok.map((c) => [c.code, { carcassSqft: c.carcassSqft, profiles: c.profiles }])), profiles: designs };
+}
+
+// GET /api/config -> { series, surfaces, install, currency, ... }.
 // Plain Node req/res primitives so the same function runs under both servers.
 export async function handleConfig(req, res) {
   const json = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
@@ -92,17 +100,17 @@ export async function handleConfig(req, res) {
       series: allSeries().map((s) => ({
         id: s.id, name: s.name, tier: s.tier, startingRatePerSqft: s.startingRatePerSqft,
         positioning: s.positioning, optionsBlurb: s.optionsBlurb,
-        finishGroups: s.finishGroups || null, finishLabel: s.finishLabel || null,
+        finishGroups: s.finishGroups || null, finishLabel: s.finishLabel || null, finishStyle: s.finishStyle || null,
         carcass: s.carcass, handleTypes: s.handleTypes,
         defaultFinish: s.defaultFinish, catalogPlaceholder: !!s.catalogPlaceholder,
       })),
-      rates: shutterRates(),
-      carcassRate: carcassRate(),
       surfaces: surfaceRates(),
       install: installRates(),
       rules: RULES,
       quote: quoteConfig(),
+      accessoryPrices: accessoryPrices(),
       remarks: remarksList(),
+      ...workbookConfig(),
       currency: 'INR',
     });
   } catch (e) {

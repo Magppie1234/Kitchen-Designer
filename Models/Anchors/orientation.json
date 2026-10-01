@@ -1,0 +1,6 @@
+{
+  "_note": "Which way each appliance file faces as authored. The renderer turns it so its front faces the room (+z is the front of every cabinet model). Values: +z, -z, +x, -x. A file not listed is taken as +z; a sink not listed is turned so its faucet is at the back.",
+  "Hob_900": "-z",
+  "sink double bowl": "-z",
+  "sink and faucet_veggie": "+x"
+}

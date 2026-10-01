@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fill,layout,geometryProblems} from '../../engine.mjs';
-import {fitKitchen} from '../../fitting.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {fill,layout,geometryProblems} from '../../core/engine.mjs';
+import {fitKitchen} from '../../core/fitting.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {measuredVolumes,collisions} from '../../verification/fixtures.mjs';
 const catalog=loadCatalog().ok;
 const fixture=()=>JSON.parse(readFileSync('verification/tall-storage-input.json'));

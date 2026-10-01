@@ -2,7 +2,7 @@
 // Every code below is copied verbatim from the corrected column of the cabinet sheet.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseCode, validate } from '../../catalog.mjs';
+import { parseCode, validate } from '../../core/catalog.mjs';
 
 // --- the grammar holds across every zone -----------------------------------
 const GOOD = [
@@ -28,6 +28,12 @@ const GOOD = [
   'LOF-SH-NHX-ST-1SX-LHS-XXX-450-600-560-15',
   'LBF-SH-STD-ST-1SX-LHS-XXX-1050-600-560-15',  // loft blind, full depth
   'MD-RS-NHX-ST-3SG-1SX-XXX-600-1650-336-15',
+  // confirmed correct by the design team:
+  'BLC-SH-CJ-ST-1SX-XXX-1050-720-560-15',           // 10 fields — P3 absent
+  'WLC-SH-NHX-ST-3SG-XXX-900-1085-336-15',
+  'BC-DW-CJ-ST-1HB-XXX-900-520-560-15',
+  'BC-OP-XX-XX-XXX-XXX-XXX-1800-300-336-15',        // open unit — no handle, no shutter
+  'BC-AP-NHX-ST-OVN-1FP-XXX-600-720-560-15',        // appliance brings its own door
 ];
 assert.equal(validate(GOOD).bad.length, 0, 'every known-good code must parse');
 
@@ -56,7 +62,7 @@ assert.equal(parseCode('LBF-SH-STD-ST-1SX-LHS-XXX-1050-600-560-15').handle, 'NHX
 // --- the stated handle rule, enforced per zone group ------------------------
 for (const c of GOOD.map(parseCode)) {
   if (c.handle === 'CJ')  assert.equal(c.group, 'base', `CJ on a ${c.group} unit: ${c.code}`);
-  if (c.handle === 'NHX') assert.equal(c.group, 'wall', `NHX on a ${c.group} unit: ${c.code}`);
+  if (c.handle === 'NHX' && c.family !== 'AP') assert.equal(c.group, 'wall', `NHX on a ${c.group} unit: ${c.code}`);
   if (c.group === 'tall') assert.equal(c.handle, 'TTS', `tall unit is not TTS: ${c.code}`);
 }
 assert.throws(() => parseCode('TC-SH-CJ-ST-6SX-LHS-XXX-600-2400-560-15'), /must be TTS/);
@@ -66,16 +72,13 @@ const BAD = [
   'TC- CF-TTS-ST-3SX-2HB-LHS-600-2400-560-15',      // stray space
   'TC-MW--TTS-ST-1SX-2HB-LHS-600-2040-560-15',      // double dash
   'MDW-SH-NHX-GL-3SG-RHS-XXX-450-1290-336-16',      // thickness 16, everything else is 15
-  'BLC-SH-CJ-ST-1SX-XXX-1050-720-560-15',           // only 10 fields
-  'WLC-SH-NHX-ST-3SG-XXX-900-1085-336-15',          // only 10 fields
-  'BC-DW-CJ-ST-1HB-XXX-900-520-560-15',             // only 10 fields
   'BS-STD-GL-STD-1SG-XXX-XXX-720-336-15-',          // truncated, width lost
-  'BC-OP-XX-XX-XXX-XXX-XXX-1800-300-336-15',        // handle and material are literal "XX"
+  'BC-SH-NHX-ST-XXX-XXX-XXX-600-720-560-15',        // NHX on base is only for appliance (AP) units
   'TCL-SH-TTS-ST-HK-LHS-XXX-600-2400-560-15',       // zoned low-depth but carries 560
 ];
 const { ok, bad } = validate(BAD);
 assert.equal(ok.length, 0, 'no malformed code may slip through');
-assert.equal(bad.length, 9);
+assert.equal(bad.length, 6);
 
 console.log('catalog: all checks pass\n');
 for (const b of bad) console.log(`  rejected  ${b.code}\n            -> ${b.error}`);

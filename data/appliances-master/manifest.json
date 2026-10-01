@@ -11,15 +11,6 @@
       "cols": 15
     },
     {
-      "index": 2,
-      "name": "Copy of Kitchen Modules",
-      "state": "hidden",
-      "sourceFile": "sheet2.xml",
-      "rows": 37,
-      "nonEmptyRows": 37,
-      "cols": 35
-    },
-    {
       "index": 3,
       "name": "Shutters",
       "state": "hidden",
@@ -38,24 +29,6 @@
       "cols": 26
     },
     {
-      "index": 5,
-      "name": "Copy of Cabinet price",
-      "state": "hidden",
-      "sourceFile": "sheet5.xml",
-      "rows": 90,
-      "nonEmptyRows": 89,
-      "cols": 39
-    },
-    {
-      "index": 6,
-      "name": "Copy of Kitchen Modules (1)",
-      "state": "hidden",
-      "sourceFile": "sheet6.xml",
-      "rows": 37,
-      "nonEmptyRows": 37,
-      "cols": 35
-    },
-    {
       "index": 7,
       "name": "Shutters (1)",
       "state": "hidden",
@@ -72,24 +45,6 @@
       "rows": 52,
       "nonEmptyRows": 41,
       "cols": 26
-    },
-    {
-      "index": 9,
-      "name": "Copy of Cabinet price (1)",
-      "state": "hidden",
-      "sourceFile": "sheet9.xml",
-      "rows": 90,
-      "nonEmptyRows": 89,
-      "cols": 39
-    },
-    {
-      "index": 10,
-      "name": "Copy of Kitchen Modules (2)",
-      "state": "hidden",
-      "sourceFile": "sheet10.xml",
-      "rows": 37,
-      "nonEmptyRows": 37,
-      "cols": 35
     },
     {
       "index": 11,

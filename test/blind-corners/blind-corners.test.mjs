@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {blindCornerProblems,layout,gate} from '../../engine.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
-import {cornerArrangements} from '../../planner.mjs';
+import {blindCornerProblems,layout,gate} from '../../core/engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
+import {cornerArrangements} from '../../core/planner.mjs';
 const walls=[{id:'A',dir:'E',length:4000},{id:'B',dir:'S',length:4000},{id:'C',dir:'W',length:4000},{id:'D',dir:'N',length:4000}];
 const base=(wall,at,role='blind corner')=>({wall,at,width:1150,role});
 const upper=(wall,at)=>({wall,at,width:900,role:'wall blind corner'});

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fitKitchen} from '../../fitting.mjs';
-import {layout,geometryProblems,reserveTallReturns,wallBaseEndProblems,blindCornerProblems,gate} from '../../engine.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {fitKitchen} from '../../core/fitting.mjs';
+import {layout,geometryProblems,reserveTallReturns,wallBaseEndProblems,blindCornerProblems,gate} from '../../core/engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {toPlan} from '../../server.mjs';
 const cat=loadCatalog().ok;
 const fixture=()=>JSON.parse(readFileSync('verification/alignment-3600.json')).input;
@@ -13,7 +13,7 @@ test('3600 room is rechecked under synchronized corners without changing origina
   assert.equal(JSON.stringify(j),before);assert.equal(r.proposal,null);
   assert.equal(gate(r.result).verdict,'FEASIBLE');
   assert.ok(!blindCornerProblems(j,r.result.placed).some(p=>/but wall blind cabinet is on/.test(p)));
-  const plan=toPlan(r.result,j,[]);assert.equal(plan.validationVersion,9);
+  const plan=toPlan(r.result,j,[]);assert.equal(plan.validationVersion,10);
   const disabled=await fitKitchen(j,cat,{proposals:false});assert.equal(disabled.proposal,null);
 });
 

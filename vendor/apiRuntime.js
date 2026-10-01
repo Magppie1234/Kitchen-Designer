@@ -1,16 +1,10 @@
-// lib/apiRuntime.js — the request-shaping helpers the serverless functions in api/ share.
-//
-// These are lifted verbatim from scripts/builder-server.mjs (the local dev server) so that a
-// deployed function and `npm run builder` compute the same answer from the same request. The
-// dev server keeps its own copies — it is the reference implementation and stays untouched; if
-// a rule changes there, mirror it here (the same hand-sync note api/kitchen-detect.js carries).
-//
-// Nothing here is Vercel-specific except readRawBody/readJsonBody/applyCors, which adapt the
-// Node req/res the platform hands us to the shapes the pure lib/ modules expect.
+// vendor/apiRuntime.js — request helpers for server.mjs and the vendor API handlers:
+// a default room (loadRoom), door/window placement on walls (resolveOpenings), and reading
+// the browser's JSON request body with a size limit (readJsonBody).
 import { readFileSync, existsSync } from 'node:fs';
 
 // ---------------------------------------------------------------------------
-// Room construction (builder-server.mjs §loadRoom/rectRoom/Lroom/roomFrom)
+// Room construction
 // ---------------------------------------------------------------------------
 
 const seg = (a, b) => ({ a, b, length: Math.hypot(b[0] - a[0], b[1] - a[1]), thickness: 115 });
@@ -57,19 +51,6 @@ export function loadRoom(spec) {
   return rectRoom(5400, 4700, 'SAMPLE KITCHEN (synthetic 5400×4700)', true);
 }
 
-// Build the working room from the request: prefer the user's ACTUAL drawn/dragged walls
-// (so the result matches the editor exactly), else fall back to a synthetic rect/L by dims.
-export function roomFrom(opts = {}) {
-  const walls = opts.walls;
-  if (Array.isArray(walls) && walls.length >= 3) {
-    const norm = walls.map((w) => ({ a: w.a, b: w.b, length: w.length || Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]), thickness: w.thickness || 230 }));
-    const xs = norm.flatMap((w) => [w.a[0], w.b[0]]), ys = norm.flatMap((w) => [w.a[1], w.b[1]]);
-    const bbox = { w: Math.round(Math.max(...xs) - Math.min(...xs)), h: Math.round(Math.max(...ys) - Math.min(...ys)) };
-    return { detected: { label: 'DRAWN ROOM' }, room: { bbox, strategy: 'drawn', walls: norm }, openings: [], fixtures: [], warnings: [] };
-  }
-  return loadRoom(opts.dims);
-}
-
 // Convert UI openings {type, wall:'Wi', off, width} -> extractKitchen shape
 // {type, wallIndex, center:[x,y], width} using the room's wall geometry.
 export function resolveOpenings(room, userOpenings) {
@@ -83,42 +64,9 @@ export function resolveOpenings(room, userOpenings) {
   }).filter(Boolean);
 }
 
-// Convert a real DXF/DWG extractKitchen() result -> the same {room:{corners_mm},
-// openings,structures,confidence,warnings} shape lib/visionExtract.js produces, so the
-// client's existing applyVisionExtract() can render either source as an editable draft.
-export function dwgExtractToDraft(ex) {
-  const walls = ex.room.walls;
-  const corners_mm = walls.map((w) => w.a);
-  const distAlongWall = (w, p) => {
-    const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], len = Math.hypot(dx, dy) || 1;
-    return ((p[0] - w.a[0]) * dx + (p[1] - w.a[1]) * dy) / len;
-  };
-  const openings = (ex.openings || []).map((o) => {
-    const w = walls[o.wallIndex]; if (!w) return null;
-    return { wallIndex: o.wallIndex, type: o.type, distanceFromStart_mm: Math.round(distAlongWall(w, o.center)), width_mm: o.width };
-  }).filter(Boolean);
-  return {
-    room: { corners_mm },
-    openings,
-    structures: [],
-    confidence: (ex.warnings || []).length ? 'medium' : 'high',
-    warnings: ex.warnings || [],
-  };
-}
-
 // ---------------------------------------------------------------------------
-// Platform adapters
+// Request body
 // ---------------------------------------------------------------------------
-
-// Same CORS surface the dev server sets, so a page served from anywhere (including a file://
-// document pointed at the deployment with ?api=) keeps working exactly as it does locally.
-export function applyCors(req, res, extraHeaders = '') {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', `content-type${extraHeaders ? ', ' + extraHeaders : ''}`);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
-  return false;
-}
 
 // Collect the request body as a Buffer. @vercel/node may have already consumed and parsed the
 // stream into req.body (it does that whenever bodyParser is left on), so handle both cases —
@@ -151,8 +99,3 @@ export async function readJsonBody(req, maxBytes = Infinity) {
   return JSON.parse(raw || '{}');
 }
 
-// Uniform error envelope — same {error} shape every existing route already returns.
-export function fail(res, err) {
-  const status = err && err.status ? err.status : 500;
-  return res.status(status).json({ error: String((err && err.message) || err) });
-}
