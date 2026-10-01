@@ -28,7 +28,7 @@ test('failed alternatives and unresolved decisions are kept out of current place
 });
 test('design checks modal renders problems first, escapes messages, and hides technical alternatives',()=>{
   const html=readFileSync('ui/builder.html','utf8'),modal={style:{},innerHTML:''};
-  const ctx=vm.createContext({KitchenRuleLog:globalThis.KitchenRuleLog,S:{plan:{validationVersion:9,log:[
+  const ctx=vm.createContext({KitchenRuleLog:globalThis.KitchenRuleLog,S:{plan:{validationVersion:10,log:[
     {rule:'Candidate',status:'skipped',detail:'discarded <script>bad()</script>'},
     {rule:'Hard constraint',status:'conflict',detail:'0/base: 250mm gap at 1000'},
     {rule:'Unresolved',status:'assumed',detail:'dish rack required but not placed: no placement rule exists'}]}},

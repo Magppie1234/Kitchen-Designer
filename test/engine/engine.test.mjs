@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fill, gate, layout, requiredStorageProblems } from '../../engine.mjs';
-import { check } from '../../checkInput.mjs';
-import { loadCatalog } from '../../loadCatalog.mjs';
-import { RULE_PARAMS } from '../../config.mjs';
+import { fill, gate, layout, requiredStorageProblems } from '../../core/engine.mjs';
+import { check } from '../../core/checkInput.mjs';
+import { loadCatalog } from '../../core/loadCatalog.mjs';
+import { RULE_PARAMS } from '../../core/config.mjs';
 import {fixtures} from '../../verification/fixtures.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 
@@ -19,6 +19,11 @@ assert.deepEqual(fill(950, [900], 25, 100), { cabinets: [900], slack: 50 });
 assert.ok(fill(950, [900]).error, 'an explicit zero filler allowance still requires exact packing');
 
 const result = layout(input, catalog);
+assert.equal(result.placed.base.some((p) => p.role === 'dishwasher'), false,
+  'a dishwasher is not inferred when the design did not explicitly select one');
+const requestedDishwasher = layout({ ...structuredClone(input), dishwasher: true }, catalog);
+assert.ok(requestedDishwasher.placed.base.some((p) => p.role === 'dishwasher'),
+  'an explicitly selected dishwasher is placed beside the sink');
 for (const tier of ['base', 'wall', 'tall']) for (const p of result.placed[tier]) {
   const wall = input.walls.find((w) => w.id === p.wall);
   assert.ok(p.at >= 0 && p.at + p.width <= wall.length, `${tier} ${p.role} escaped ${p.wall}`);
@@ -60,7 +65,7 @@ assert.ok(check(aroundCorner).some((p) => /along the countertop/.test(p)), 'adja
 
 const badAnchor = structuredClone(input);
 badAnchor.anchors.push({ item: 'dishwasher', wall: 'AA', at: 0, width: 600 });
-assert.ok(check(badAnchor).some((p) => /only hob, sink and fridge/.test(p)));
+assert.ok(check(badAnchor).some((p) => /only hob, sink, veggie and fridge/.test(p)));
 
 const overlappingTallZone = structuredClone(input);
 overlappingTallZone.zones.tall = [{ wall: input.zones.base[0].wall, from: input.zones.base[0].from + 100, to: input.zones.base[0].from + 700 }];
@@ -118,10 +123,11 @@ assert.ok(flanked.out.placed.base.some(p=>p.role==='grain trolley')||flanked.out
   'grain trolley must be relocated or reported missing, never waived by flank choices');
 assert.ok(!flanked.out.warnings.some(w=>/displaced/.test(w)));
 
-// one side only -> the other is still the engine's, and the loss is reported
+// one side only -> the other is still the engine's; required grain storage may be
+// relocated when the selected flank occupies its former immediate-neighbour bay.
 const half = withHob((h) => { h.flanks = { right: 'AC:TR' }; });
 assert.ok(roleOn(half.out, 'BB', 'tray unit'), 'the named side is honoured');
-assert.ok(roleOn(half.out, 'BB', 'grain trolley'), 'the unnamed side stays with the engine');
+assert.ok(half.out.placed.base.some((p) => p.role === 'grain trolley'), 'the engine keeps required grain storage');
 assert.ok(!half.out.warnings.some(w=>/lost its place beside the hob/.test(w)));
 
 // a shape the catalogue cannot supply is a HARD failure naming the choice — never a swap
@@ -143,7 +149,7 @@ assert.ok(check(onSink).some((p) => /only the hob takes a design/.test(p)));
 console.log('hob shape: designer choice is placed, sized by the engine, and hard when it cannot fit');
 
 // --- no-overlap invariant, blind-corner snapping, anchor tolerance -------------
-import { overlapProblems } from '../../engine.mjs';
+import { overlapProblems } from '../../core/engine.mjs';
 
 // An independent scan, NOT the engine's own overlapProblems(), so the test cannot pass by
 // the engine agreeing with itself.

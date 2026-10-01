@@ -1,5 +1,5 @@
 import {readFileSync} from 'node:fs';
-import {outline} from '../checkInput.mjs';
+import {outline} from '../core/checkInput.mjs';
 const read=name=>JSON.parse(readFileSync(new URL('../data/'+name+'.json',import.meta.url)));
 export function fixtures(){
   const u=read('default-kitchen');

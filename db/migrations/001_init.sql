@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   name       TEXT NOT NULL,
   -- room category id, matches the app's ROOM_TYPES ids (rk-show, rk-utility, ...)
   category   TEXT NOT NULL DEFAULT 'rk-show',
-  -- series id from data/series.json (gold | signature | elite); NULL until Stage 2 is done
+  -- series id from data/series.json (elite-modern | elite-classic | signature-modern | signature-classic); NULL until Stage 2 is done
   series_id  TEXT,
   -- the live per-room design state (the app's ROOM_STATE_KEYS snapshot); autosave target,
   -- overwritten in place — recovery only, never a revision

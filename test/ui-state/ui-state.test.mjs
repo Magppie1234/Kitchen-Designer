@@ -9,12 +9,22 @@ test('all classic browser scripts parse',()=>{
   for(const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g))if(!/type=|src=/.test(m[1]))new vm.Script(m[2]);
 });
 
+test('workflow stages stay unlocked after navigating backward',()=>{
+  const S={unlockedStages:[0,1,2,3],plan:null,reResult:null,anchors:[],steps:{},walls:[]};
+  const ctx=vm.createContext({S,STAGE_META:[{},{},{},{},{}],STAGE_FOR:{dashboard:0,layout:1,editor:2,result:3,quote:4},STAGE_TARGET:['dashboard','layout','editor','result','quote']});
+  ctx.go=screen=>{ctx.visited=screen;};
+  vm.runInContext(between('function stageUnlocks','/* ---------- app state ----------'),ctx);
+  ctx.goStage(2);assert.equal(ctx.visited,'editor');
+  assert.ok(ctx.stageUnlocked(3),'Review remains unlocked after returning to Design');
+  ctx.goStage(3);assert.equal(ctx.visited,'result');
+  assert.ok(!ctx.stageUnlocked(4),'Quote is still locked until it is actually reached');
+});
+
 test('design summary distinguishes conflicts, unresolved rules and edited results',()=>{
   const ctx=vm.createContext({esc:String});
-  vm.runInContext(between('function designSummaryHtml','function renderDesignSummary'),ctx);
-  const plan={validationVersion:9,planning:{metrics:{cabinets:12},evaluated:8,passing:3},releaseBlocked:true,log:[]};
-  assert.match(ctx.designSummaryHtml(plan),/12 catalogue cabinets placed/);
-  assert.match(ctx.designSummaryHtml(plan),/Unresolved rules/);
+  vm.runInContext(between('function correctionsHtml','function fittingFingerprint')+between('function designSummaryHtml','function renderDesignSummary'),ctx);
+  const plan={validationVersion:10,planning:{metrics:{cabinets:12},evaluated:8,passing:3},releaseBlocked:true,log:[]};
+  assert.doesNotMatch(ctx.designSummaryHtml(plan),/catalogue cabinets placed|combinations checked/);
   plan.log=[{status:'conflict'}];
   assert.match(ctx.designSummaryHtml(plan),/1 placement issues remain/);
   assert.doesNotMatch(ctx.designSummaryHtml(plan),/checks passed/);
@@ -27,7 +37,7 @@ function fitReview(){
   const S={walls:[],anchors:[{type:'sink',wall:'W0',off:1398,src:'designer'}],zones:[{wall:'W0',tier:'base',s:0,e:1855}],options:{},openings:[],structures:[],hob:{},sink:{},fridge:{}};
   const ctx=vm.createContext({S,structuredClone,showToast:s=>ctx.message=s,dsRevision:()=>{},scheduleAutosave:()=>{},mountResult:()=>{}});
   vm.runInContext(between('function fittingFingerprint','function mountResult'),ctx);
-  const original={verdict:'REJECTED',fitting:{proposal:{plan:{validationVersion:9,verdict:'UNRESOLVED',releaseBlocked:true,planning:{metrics:{cabinets:24}},log:[]},
+  const original={verdict:'REJECTED',fitting:{proposal:{plan:{validationVersion:10,verdict:'UNRESOLVED',releaseBlocked:true,planning:{metrics:{cabinets:24}},log:[]},
     target:{anchors:[{type:'sink',wall:'W0',off:1380}],zones:[{id:'fit-base-0',wall:'W0',tier:'base',s:0,e:1855}]},changes:[{description:'sink 18 mm left'}]}}};
   S.plan=ctx.withFittingReview(original,ctx.fittingFingerprint(S));return ctx;
 }
@@ -46,7 +56,7 @@ test('stale or edited proposals cannot be accepted or silently applied',()=>{
   const edited=fitReview();edited.S.plan.log.push({rule:'Edited layout validation'});edited.acceptFittedProposal();assert.equal(edited.S.anchors[0].off,1398);assert.match(edited.message,/edited/);
 });
 function editor(list){
-  const S={plan:{runs:[],tiers:{W0:{wall:list,loft:[]}}},selModRef:{run:'W0',tier:'wall',idx:0},libData:{entries:[]}};
+  const S={plan:{runs:[],tiers:{W0:{wall:list,loft:[]}}},selModRef:{run:'W0',tier:'wall',idx:0},libData:{entries:[]},editing:true};   // edits run only after Start editing
   const ctx=vm.createContext({S,showToast:msg=>ctx.message=msg,afterEdit:()=>ctx.recalcPositions()});
   vm.runInContext(between('function editableList','// merge consecutive')+between('function normalizeList','function highlightSelection')+between('function editReplacePick','/*__RELOCATE_CORE_START__*/'),ctx);
   return ctx;
@@ -90,12 +100,12 @@ test('wall replacement consumes only adjacent filler and retains geometry',()=>{
   d.editReplacePick('too wide',650,725,false);assert.match(d.message,/Does not fit/);assert.equal(d.S.plan.tiers.W0.wall[0].width,600);
 });
 function generator(){
-  const S={walls:[{a:[0,0],b:[4000,0]}],anchors:[{type:'hob',wall:'W0',off:1000}],openings:[],structures:[],zones:[],options:{lookName:'test',handles:{}},steps:{acc:[]},hob:{sides:{}},sink:{},fridge:{}};
-  const owner={id:'a',seriesId:'signature',design:S};const pending=[],failures=[],requests=[];
+  const S={walls:[{a:[0,0],b:[4000,0]}],anchors:[{type:'hob',wall:'W0',off:1000}],openings:[],structures:[],zones:[],options:{lookName:'test',handles:{}},handle:'C & J',steps:{acc:[]},hob:{sides:{}},sink:{},fridge:{}};
+  const owner={id:'a',seriesId:'signature-classic',design:S};const pending=[],failures=[],requests=[];
   const ctx=vm.createContext({S,currentRoom:owner,API:'',structuredClone,Date,JSON,failures,pending,requests,
     activeRoom:()=>ctx.currentRoom,fetch:(url,options)=>{requests.push(JSON.parse(options.body));return new Promise(resolve=>pending.push(resolve));},alert:()=>{throw Error("Native build alerts must not be used");},
-    setTimeout:()=>{},sinkWidth:()=>900,fxWidthMm:()=>600,coerceFinishToSeries:()=>false});
-  for(const n of ['ensureHobDefaults','ensureSinkDefaults','ensureFridgeDefaults','reconcileZones','ensureHobSides','runRuleEngine','go','syncKeepsFromPlan','dsRevision','scheduleAutosave','showToast'])ctx[n]=()=>{};
+    setTimeout:()=>{},sinkWidth:()=>900,fxWidthMm:()=>600,coerceFinishToSeries:()=>false,seriesById:id=>id?{id}:null});
+  for(const n of ['ensureHobDefaults','ensureSinkDefaults','ensureFridgeDefaults','reconcileZones','ensureHobSides','runRuleEngine','go','syncKeepsFromPlan','dsRevision','scheduleAutosave','showToast','selectHandleType'])ctx[n]=()=>{};
   ctx.renderChrome=()=>{};ctx.openRuleLog=()=>ctx.failures.push(ctx.S.generationFailure.log.map(e=>e.detail).join('\n'));
   vm.runInContext(between('function showGenerationFailure(','function openRuleLog('),ctx);
   vm.runInContext(between('async function generate(','function mountResult'),ctx);
@@ -103,19 +113,17 @@ function generator(){
 }
 const response=(tag,ok=true)=>({ok,status:ok?200:500,json:async()=>ok?{tag,runs:[],price:{},log:[]}:{error:'server failed'}});
 
-test('AI improvement is an explicit per-request option and never persists into ordinary generation',async()=>{
+test('generation sends pictured hob shapes without obsolete fixed-width side presets',async()=>{
   const {ctx,pending}=generator();
-  let work=ctx.generate({aiImprove:true});pending[0](response('ai'));await work;
-  assert.equal(ctx.requests[0].options.aiImprove,true);assert.equal(ctx.S.options.aiImprove,undefined);
-  work=ctx.generate();pending[1](response('local'));await work;
-  assert.equal(ctx.requests[1].options.aiImprove,false);
+  ctx.S.hob.shape='2HB';ctx.S.hob.flankShape={left:'DW:2LB+1HB',right:'DW:2LB+1HB'};
+  ctx.S.options.hobSides={left:{mode:'cabinet',cabinet:{code:'BC2EH',w:600}}};
+  const work=ctx.generate();pending[0](response('pictured'));await work;
+  const options=ctx.requests[0].options;
+  assert.equal(options.hobDesign,'2HB');
+  assert.deepEqual(plain(options.hobFlanks),{left:'DW:2LB+1HB',right:'DW:2LB+1HB'});
+  assert.equal(options.hobSides,undefined);
 });
 
-test('selecting a series retains the requested AI generation mode',async()=>{
-  const {ctx,owner}=generator();owner.seriesId=null;let opened=false;ctx.openSeriesModal=()=>{opened=true;};
-  await ctx.generate({aiImprove:true});
-  assert.equal(opened,true);assert.equal(ctx.S._seriesNext,'aiImprove');assert.equal(ctx.requests.length,0);
-});
 test('generation response belongs to its originating room',async()=>{
   const {ctx,owner,pending}=generator(),p=ctx.generate();
   ctx.currentRoom={id:'b',design:{}};ctx.S={...structuredClone(ctx.S),plan:{tag:'other'}};
@@ -128,40 +136,26 @@ test('generation discards changed inputs, out-of-order requests and HTTP errors'
   ({ctx,pending}=generator());p=ctx.generate();pending[0](response('bad',false));await p;assert.equal(ctx.S.plan,undefined);assert.match(ctx.failures[0],/server failed/);
 });
 
-test('a rejected physical collision never replaces the displayed plan',async()=>{
+test('a corrected layout always replaces the displayed plan and moves the appliances to match',async()=>{
   const {ctx,pending}=generator();ctx.S.plan={tag:'previous'};
   const work=ctx.generate();
-  pending[0]({ok:true,status:200,json:async()=>({runs:[{key:'W0',segments:[]}],price:{},verdict:'REJECTED',
-    log:[{status:'conflict',detail:'physical overlap: 4/tall "tall shelf" and 5/tall "gap filler"'}]})});
+  pending[0]({ok:true,status:200,json:async()=>({tag:'corrected',runs:[{key:'W0',segments:[]}],price:{},verdict:'PASS',log:[],
+    corrections:[{kind:'appliance',item:'hob',description:'Hob moved from wall W0 to wall W2, centred at 1450 mm.'}],
+    corrected:{anchors:[{type:'hob',wall:'W2',off:1450}],zones:null}})});
   await work;
-  assert.equal(ctx.S.plan.tag,'previous');assert.match(ctx.failures[0],/physical overlap/);
-  assert.ok(ctx.S.generationFailure.log.length);
-  const retry=ctx.generate();pending[1](response('repaired'));await retry;
-  assert.equal(ctx.S.plan.tag,'repaired');assert.equal(ctx.S.generationFailure,null);
+  assert.equal(ctx.S.plan.tag,'corrected');assert.equal(ctx.failures.length,0);assert.equal(ctx.S.generationFailure,null);
+  assert.deepEqual({wall:ctx.S.anchors[0].wall,off:ctx.S.anchors[0].off},{wall:'W2',off:1450});
 });
-
 test('an error from stale input does not replace current generation checks',async()=>{
   const {ctx,pending}=generator(),p=ctx.generate();ctx.S.anchors[0].off=2000;
   pending[0](response('old failure',false));await p;
   assert.equal(ctx.failures.length,0);assert.equal(ctx.S.generationFailure,undefined);
 });
-test('an unresolved corner cannot replace a usable plan with a partial rejected layout',async()=>{
+test('only a missing designer input is still reported instead of a plan',async()=>{
   const {ctx,pending}=generator();ctx.S.plan={tag:'previous'};
-  const p=ctx.generate();pending[0]({ok:true,json:async()=>({runs:[{key:'W0',segments:[]}],price:{},verdict:'REJECTED',
-    log:[{rule:'Hard constraint',status:'conflict',detail:'corner 2/3/base: no corner unit and 560mm return plus filler fit clear of anchors/openings'}]})});
-  await p;assert.equal(ctx.S.plan.tag,'previous');assert.match(ctx.failures[0],/corner 2\/3/);
-});
-
-test('AI comparison preserves zone review, survives acceptance, and escapes model labels',()=>{
-  const ctx=fitReview();
-  ctx.esc=s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;');
-  vm.runInContext(between('function aiSummaryHtml','function renderDesignSummary'),ctx);
-  ctx.S.plan.aiOriginal={validationVersion:9,verdict:'UNRESOLVED',releaseBlocked:true,planning:{metrics:{}},log:[]};
-  ctx.toggleAIComparison();assert.ok(ctx.S.plan.review);assert.equal(ctx.S.plan.releaseBlocked,true);
-  ctx.acceptFittedProposal();assert.equal(ctx.S.plan.review,undefined);
-  ctx.toggleAIComparison();assert.equal(ctx.S.plan.review,undefined);assert.equal(ctx.S.plan.releaseBlocked,true,'original unresolved rule status is retained');
-  const html=ctx.aiSummaryHtml({planning:{ai:{status:'improved',before:{avoidableFillerMm:'<img>',grossStorageLitres:1,drawerCabinets:1},after:{avoidableFillerMm:0,grossStorageLitres:2,drawerCabinets:2}}}});
-  assert.doesNotMatch(html,/<img>/);assert.match(html,/&lt;img&gt;/);
+  const p=ctx.generate();pending[0]({ok:true,json:async()=>({runs:[],price:{},verdict:'REJECTED',inputRejected:true,
+    inputIssues:['Choose a Handle Type in Design → Extras before generating.'],log:[]})});
+  await p;assert.equal(ctx.S.plan.tag,'previous');assert.match(ctx.failures[0],/Handle Type/);
 });
 
 test('an empty rejected build stays in the editor, explains the issue and preserves the previous plan',async()=>{

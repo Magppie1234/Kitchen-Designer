@@ -28,3 +28,16 @@ test('reflected rooms, open walls, narrow fillers and openings produce finite ge
   assert.equal(openings,1);assert.doesNotMatch(svg,/NaN|Infinity/);
   assert.match(svg,/planFiller/);assert.match(svg,/>40<\/text>/);
 });
+
+test('plan distinguishes the veggie sink and shows both 50mm fridge clearances',()=>{
+  const s=structuredClone(state);
+  s.plan.runs[0].segments=[{kind:'anchor',label:'veggie sink',veggie:true,x0:40,width:600},
+    {kind:'tallBank',x0:2000,width:1000,units:[{type:'fridge',width:1000,applianceWidth:900,sideClearance:50}]}];
+  s.plan.tiers.W0.wall=[];
+  const svg=DetailedPlan.render(s,tf);
+  assert.match(svg,/Veggie sink cabinet/);assert.match(svg,/900 mm fridge/);
+  assert.match(svg,/1000 mm opening/);assert.match(svg,/50 mm clearance each side/);
+  assert.equal((svg.match(/data-fridge-clearance="true"/g)||[]).length,2);
+  assert.match(svg,/x="200"[^>]*width="5"/);
+  assert.match(svg,/x="295"[^>]*width="5"/);
+});

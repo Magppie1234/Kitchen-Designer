@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadCatalog} from '../../loadCatalog.mjs';
-import {planKitchen, planningContext, cornerArrangements} from '../../planner.mjs';
-import {geometryProblems, overlapProblems, gate} from '../../engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
+import {planKitchen, planningContext, cornerArrangements} from '../../core/planner.mjs';
+import {geometryProblems, overlapProblems, gate} from '../../core/engine.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 
 const catalog=loadCatalog().ok;
@@ -42,22 +42,6 @@ test('exact-fit fixture keeps its appliance positions',async()=>{
   assert.equal(gate(r).verdict,'FEASIBLE','cancelled accessory rules no longer block a valid design');
 });
 
-test('LLM receives exact failure feedback; invented codes and input changes cannot enter the engine',async()=>{
-  let calls=0;
-  const r=await planKitchen(adjusted(),catalog,{propose:async payload=>{
-    calls++;
-    if(calls===1)return {proposals:[{name:'invented',preferredCodes:['FAKE-750']},{name:'move',preferredCodes:[],anchors:[]}]};
-    assert.ok(payload.feedback.some(f=>f.problems.some(p=>p.includes('unknown'))));
-    assert.ok(payload.feedback.some(f=>f.problems.some(p=>p.includes('immutable'))));
-    return {proposals:[{name:'repaired',preferredCodes:[],cornerLegs:{},preferStorage:true}]};
-  }});
-  assert.equal(calls,2);assert.deepEqual(r.problems,[]);
-  assert.ok(Object.values(r.placed).flat().filter(p=>p.code).every(p=>catalog.some(c=>c.code===p.code)));
-});
-
-test('provider failures are bounded and local packing still completes',async()=>{
-  let calls=0;const r=await planKitchen(adjusted(),catalog,{maxRounds:99,propose:async()=>{calls++;throw Error('offline');}});
-  assert.equal(calls,3);assert.deepEqual(r.problems,[]);
-  assert.ok(r.planning.attempts.some(a=>a.problems.includes('offline')));
+test('planning context spans are positive and consistent',()=>{
   assert.ok(planningContext(adjusted(),catalog).spans.every(s=>s.length===s.to-s.from&&s.length>0));
 });

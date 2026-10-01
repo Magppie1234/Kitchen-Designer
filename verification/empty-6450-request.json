@@ -211,6 +211,7 @@
     },
     "roomMode": "enclosed",
     "openWalls": [],
-    "sinkWidth": 900
+    "sinkWidth": 900,
+    "handles": "CJ"
   }
 }

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {arrangeBlindFronts,blindShutterProblems,blindCornerProblems,layout,geometryProblems,overlapProblems} from '../../engine.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {arrangeBlindFronts,blindShutterProblems,blindCornerProblems,layout,geometryProblems,overlapProblems} from '../../core/engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {toPlan} from '../../server.mjs';
 import {enumerateModules} from '../../vendor/costEstimate.js';
 import {livePlanSvg,liveElevSvg} from '../../vendor/shareApi.js';
@@ -50,7 +50,7 @@ test('saved kitchen moves residuals into concealed corners and keeps both tiers 
     assert.equal(catalog.find(c=>c.code===p.code).width,p.width);
   }
   const output=plan.runs.find(r=>r.key==='W2').segments;
-  assert.equal(plan.validationVersion,9);
+  assert.equal(plan.validationVersion,10);
   assert.ok(output.filter(p=>p.hiddenCorner).every(p=>p.kind==='gap'&&p.code===null));
   assert.ok(output.filter(p=>p.kind==='corner').every(p=>p.shutter&&p.corner));
   assert.ok(!plan.tiers.W2.wall.some(p=>p.label==='concealed corner space'));

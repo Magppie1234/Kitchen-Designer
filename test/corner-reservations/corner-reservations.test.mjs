@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {loadCatalog} from '../../loadCatalog.mjs';
-import {layout,geometryProblems,overlapProblems,gate} from '../../engine.mjs';
-import {fitKitchen} from '../../fitting.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
+import {layout,geometryProblems,overlapProblems,gate} from '../../core/engine.mjs';
+import {fitKitchen} from '../../core/fitting.mjs';
 const original=()=>JSON.parse(readFileSync('verification/corner-log-input.json','utf8'));
 const cat=loadCatalog().ok;
 const quick=j=>layout({...j,lockAnchors:true,lockZones:true},cat,{fast:true});

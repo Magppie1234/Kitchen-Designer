@@ -10,8 +10,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { toEngineInput, toPlan } from '../../server.mjs';
-import { loadCatalog } from '../../loadCatalog.mjs';
-import { layout } from '../../engine.mjs';
+import { loadCatalog } from '../../core/loadCatalog.mjs';
+import { layout } from '../../core/engine.mjs';
 
 const W = 4500, H = 3000;
 const walls = [
@@ -22,6 +22,7 @@ const walls = [
 ];
 const options = {
   walls, ceiling: 2500,
+  handles: { base: 'CJ', wall: 'NHX', tall: 'TTS', loft: 'NHX' },
   openings: [{ type: 'door', wall: 'W3', off: 1500, width: 1000 }],
 };
 const anchors = [
@@ -83,7 +84,7 @@ test('toEngineInput: the designer\'s drawn cabinet bands are the zones, not an a
 test('toEngineInput: designer choices the engine cannot read are named, not silently dropped', () => {
   const { notes } = toEngineInput(anchors, { ...options, kubos: true, keeps: [{ wall: 'W0' }], islandType: 'storage' });
   const ignored = notes.filter((n) => n.startsWith('not applied:'));
-  assert.equal(ignored.length, 3, `expected 3 ignored choices, got: ${JSON.stringify(ignored)}`);
+  assert.equal(ignored.length, 2, `expected 2 ignored choices, got: ${JSON.stringify(ignored)}`);
   assert.ok(ignored.some((n) => /KUBOS/.test(n)) && ignored.some((n) => /[Pp]inned/.test(n)));
 });
 
@@ -140,4 +141,19 @@ test('corner occupancy reservations never become cabinets, thumbnails or saleabl
     assert.deepEqual(plan.bom,{});
     assert.equal(plan.price.breakdown.total,0);
   }
+});
+
+test('solid chimney flanks are wall cabinets; only the chimney itself is a chimney',()=>{
+  const {input}=toEngineInput([],options), wall=input.walls[0].id, code='WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15';
+  const placed=[{at:0,width:850,role:'solid (chimney flank)',code},{at:850,width:1000,role:'chimney',code:null},
+    {at:1850,width:850,role:'glass (chimney flank)',code}].map(p=>({...p,wall}));
+  const plan=toPlan({placed:{base:[],wall:placed,tall:[]},notes:[],problems:[],unresolved:[],warnings:[]},input,[],{pg:'PG1',finish:'Classic'});
+  assert.deepEqual(plan.tiers.W0.wall.map(u=>u.kind),['wallSolid','chimney','wallGlass']);
+});
+
+test('toEngineInput requires a chosen handle and preserves its catalogue code', () => {
+  const missing = toEngineInput(anchors, { ...options, handles: null }).input;
+  assert.ok(missing.inputProblems.some((p) => /Handle Type/.test(p)));
+  assert.equal(toEngineInput(anchors, { ...options, handles: { base: 'EH' } }).input.handle, 'TTS');
+  assert.equal(toEngineInput(anchors, options).input.handle, 'CJ');
 });

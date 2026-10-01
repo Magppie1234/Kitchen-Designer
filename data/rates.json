@@ -1,0 +1,9 @@
+{
+  "note": "Billing rates (₹ per sqft), confirmed by the designer 2026-09-30. Cabinet material is NOT here: it is the series rate shown in the UI (data/series.json startingRatePerSqft) × the cabinet's Carcass Net Sqft (data/workbook.json). Add columns or rows freely; lib/pricingConfig.js reads rows by 'item'.",
+  "columns": ["item", "basis", "materialPerSqft", "installPerSqft"],
+  "rows": [
+    { "item": "Cabinets",   "basis": "carcass net sqft",   "materialPerSqft": null, "installPerSqft": 280 },
+    { "item": "Countertop", "basis": "countertop sqft",    "materialPerSqft": 551,  "installPerSqft": 780 },
+    { "item": "Backsplash", "basis": "backsplash (dado) sqft", "materialPerSqft": 551, "installPerSqft": 300 }
+  ]
+}

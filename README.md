@@ -36,13 +36,12 @@ Keep the `verification/` fixtures: several automated tests read them.
 ## Project files
 
 - `ui/`: designer interface, plan viewers, assets and cabinet models.
-- `engine.mjs`, `planner.mjs`, `fitting.mjs`: placement and layout planning.
+- `core/engine.mjs`, `core/planner.mjs`, `core/fitting.mjs`: placement and layout planning.
 - `server.mjs`: local HTTP server and engine adapter.
 - `rules.json`, `cabinets.csv`, `data/`: rules, catalogue and pricing data.
 - `vendor/`: supporting application modules and design storage.
 - `db/migrations/`: database schema migrations.
 - `test/`, `verification/`: regression tests, fixtures and verification scripts.
-- `AI-PLANNER.md`: optional AI configuration and behavior.
 
 Saved projects and layout versions live in the local `db/design.sqlite` database,
 which is created automatically. Set `DESIGN_DB` to use a different database path.

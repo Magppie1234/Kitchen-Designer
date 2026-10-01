@@ -30,11 +30,13 @@
       :seg.kind==='chimney'?'Chimney'
       :seg.kind==='filler'||seg.kind==='inset'?(seg.label||'Filler')
       :seg.kind==='panel'?'Visible panel'
-      :seg.label==='hob'?'Hob cabinet':seg.label==='sink'?'Sink cabinet'
+      :seg.label==='hob'?'Hob cabinet':seg.label==='sink'?'Sink cabinet':seg.veggie?'Veggie sink cabinet'
       :seg.label==='fridge'?'Fridge tower':seg.label==='oven'?'Oven / microwave'
       :seg.label==='pantry'?'Tandem pantry':seg.label==='crockery'?'Crockery cabinet'
       :`${prefix} cabinet`;
     if(seg.kind==='tallBank')name=({fridge:'Fridge tower',pantry:'Tandem pantry',appliance:'Oven / microwave',shelves:'Tall shelf cabinet',glass:'Tall glass cabinet'})[seg.units?.[0]?.type]||seg.label||name;
+    const fridge=seg.units?.find(u=>u.type==='fridge'&&u.applianceWidth);
+    if(fridge)return [`${fridge.applianceWidth} mm fridge`,'50 mm clearance each side',`${seg.width} mm opening`];
     const specs=p.slice(4,7).map(s=>{
       const m=/^(\d+)(SX|SG|HB|LB|HS|BL)$/.exec(s); if(!m)return null;
       const what={SX:'shelf',SG:'glass shelf',HB:'deep drawer',LB:'shallow drawer',HS:'shutter',BL:'internal drawer'}[m[2]];
@@ -69,12 +71,15 @@
         const width=seg.width*t.sc,dep=(seg.depth??(tier==='wall'?336:560))*t.sc,offset=(seg.offset||0)*t.sc;
         const xp=x*t.sc,yp=sign>0?offset:-dep-offset;
         const hatch=['panel','filler','inset'].includes(seg.kind);
+        const fridge=seg.units?.find(u=>u.type==='fridge'&&u.applianceWidth);
+        const clearance=(fridge?.sideClearance||0)*t.sc;
         const upperOverlay=tier==='wall'&&mode==='overlay';
         const m={tier,label:description(seg,tier).join(' · '),W:seg.width,H:seg.height??(tier==='wall'?725:tier==='tall'?2400:720),D:dep/t.sc,code:seg.code||null,run:key,segTier,seg:index};
         const id=push(m);
         g+=`<g class="plan-cabinet" data-tier="${tier}" font-weight="400"><rect class="mod" data-mod="${id}" x="${xp}" y="${yp}" width="${width}" height="${dep}" fill="${upperOverlay?'none':hatch?'url(#planFiller)':tier==='tall'?'#e1ded7':'#f7f6f2'}" stroke="${tier==='wall'?blue:ink}" stroke-width=".75" vector-effect="non-scaling-stroke" ${upperOverlay?'stroke-dasharray="3 2"':''}><title>${esc(m.label)} · ${seg.width} × ${m.H} × ${m.D} mm\n${esc(seg.code||'Custom finishing piece')}</title></rect>`;
         // Door/front line, kept inside the actual cabinet footprint.
-        if(!hatch&&!upperOverlay){g+=line(xp+1,sign>0?yp+dep-2:yp+2,xp+width-1,sign>0?yp+dep-2:yp+2,`stroke="${ink}" stroke-width=".55" vector-effect="non-scaling-stroke"`);}
+        if(clearance)for(const x of [xp,xp+width-clearance])g+=rect(x,yp,clearance,dep,'data-fridge-clearance="true" fill="white" stroke="#938b7c" stroke-width=".5" stroke-dasharray="2 2" pointer-events="none"');
+        if(!hatch&&!upperOverlay){g+=line(xp+clearance+1,sign>0?yp+dep-2:yp+2,xp+width-clearance-1,sign>0?yp+dep-2:yp+2,`stroke="${ink}" stroke-width=".55" vector-effect="non-scaling-stroke"`);}
         if(seg.shutter)g+=line(seg.shutter.x0*t.sc,sign*(dep+offset),seg.shutter.x1*t.sc,sign*(dep+offset),'stroke="#75654b" stroke-width=".85" vector-effect="non-scaling-stroke" data-blind-shutter="true"');
         if(!hatch&&width>15){
           const lines=description(seg,tier),flipped=angle>90||angle<-90;
@@ -89,7 +94,7 @@
           notes.push(`<g pointer-events="none" transform="rotate(${flipped?180:0} ${labelX} ${cy})" fill="${ink}">${visibleLines.map((l,j)=>`<text x="${labelX}" y="${cy+(j-(visibleLines.length-1)/2)*(fs+1)+fs*.32}" text-anchor="middle" font-size="${fs}">${esc(l)}</text>`).join('')}</g>`);
         }
         // Hob and sink symbols have priority over the cabinet description.
-        if(tier==='base'&&['hob','sink'].includes(seg.label)&&width>20){
+        if(tier==='base'&&['hob','sink','veggie sink'].includes(seg.label)&&width>20){
           const cx=xp+width/2,cy=sign>0?yp+dep*(mode==='overlay'?.65:.28):yp+dep*(mode==='overlay'?.35:.72);
           if(seg.label==='hob')for(const dx of [-5,5])g+=`<circle cx="${cx+dx}" cy="${cy}" r="3.2" fill="none" stroke="#555" stroke-width=".55"/>`;
           else g+=rect(cx-8,cy-4,16,8,'rx="2" fill="none" stroke="#555" stroke-width=".55"');
@@ -130,11 +135,8 @@
     for(const o of (plan.openings||state.openings||[])){const w=walls[+o.wall.slice(1)];if(w)s+=openingSymbol(w,o,t);}
     const xs=walls.flatMap(w=>[w.a[0],w.b[0]]),ys=walls.flatMap(w=>[w.a[1],w.b[1]]);
     const cx=t.X((Math.min(...xs)+Math.max(...xs))/2),cy=t.Y((Math.min(...ys)+Math.max(...ys))/2);
-    if(plan.island?.working?.length){
-      const island=plan.island,d=900*t.sc,total=island.total||island.working.reduce((n,m)=>n+m.width,0);let x=cx-total*t.sc/2;
-      for(const seg of island.working){const w=seg.width*t.sc;
-        s+=rect(x,cy-d/2,w,d,`fill="#f5f4ef" stroke="${ink}" stroke-width=".6"`);x+=w;}
-      s+=`<text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="6" fill="${ink}">ISLAND</text>`;
+    if(plan.island?.rules&&root.IslandRules){
+      s+=root.IslandRules.svg(plan.island,plan.island.rules,t,{interactive:true,invalid:!!plan.island.problems?.length});
     }else{
       const label=(state.roomName&&state.roomName!=='Unnamed'?state.roomName:'KITCHEN').toUpperCase(),tw=Math.max(44,label.length*4.1+8);
       s+=rect(cx-tw/2,cy-7,tw,12,`fill="#ffffffbb" stroke="${red}" stroke-width=".6"`)+`<text x="${cx}" y="${cy+1.5}" text-anchor="middle" fill="${ink}" font-size="6.5">${esc(label)}</text>`;

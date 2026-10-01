@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {layout,geometryProblems,overlapProblems,runEndProblems,tallSideAgainstWall} from '../../engine.mjs';
-import {check} from '../../checkInput.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {layout,geometryProblems,overlapProblems,runEndProblems,tallSideAgainstWall} from '../../core/engine.mjs';
+import {check} from '../../core/checkInput.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 import {measuredVolumes,collisions} from '../../verification/fixtures.mjs';
-import {fitKitchen} from '../../fitting.mjs';
+import {fitKitchen} from '../../core/fitting.mjs';
 const cat=loadCatalog().ok;
 
 test('saved W4/W5 collision: reserve the short return before filling it, independent of zone order',()=>{

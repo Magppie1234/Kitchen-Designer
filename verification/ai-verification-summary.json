@@ -1,9 +1,0 @@
-{
-  "cases": 20,
-  "newValidityRegressions": 0,
-  "improvedFillerCases": [
-    "u-hob-75"
-  ],
-  "liveRequests": 0,
-  "summaryFile": "verification/ai-evaluations/1789552470403/summary.json"
-}

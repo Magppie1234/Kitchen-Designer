@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {layout,baseTallInterfaces,runEndProblems,gate} from '../../engine.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
-import {RULE_PARAMS} from '../../config.mjs';
+import {layout,baseTallInterfaces,runEndProblems,gate} from '../../core/engine.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
+import {RULE_PARAMS} from '../../core/config.mjs';
 import {toPlan} from '../../server.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 const catalog=loadCatalog().ok;
@@ -30,7 +30,14 @@ test('touching base zones are continuous; a separated tall zone leaves the base 
  const separate=runEndFixture();separate.zones.tall[0].from+=1;
  assert.deepEqual(baseTallInterfaces(separate),[]);
  const out=layout(separate,catalog);
- assert.ok(out.placed.base.some(p=>/^countertop return/.test(p.role)&&p.at+p.width===9000));
+ // Free end: dropdown sits on the last cabinet; leftover wall stays open, never a sliver.
+ for(const tier of ['base','wall']){
+  const open=out.placed[tier].find(p=>p.role==='open wall'&&p.at+p.width===9000);
+  const end=open?open.at:9000;
+  assert.ok(!open||open.width>=RULE_PARAMS.open_wall_min);
+  assert.ok(out.placed[tier].some(p=>p.trim&&/^(countertop return|panel)/.test(p.role)&&p.at+p.width===end));
+  assert.ok(!out.placed[tier].some(p=>p.role==='gap filler'&&p.at+p.width===end-25));
+ }
 });
 
 test('fixed panel width cannot be inflated and a dropdown at the junction is rejected',()=>{

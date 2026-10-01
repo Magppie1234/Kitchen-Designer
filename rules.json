@@ -85,7 +85,7 @@
         "P3",
         "P4"
       ],
-      "statement": "Historical evidence showed several service items retained from drawings. The current engine has exactly three fixed-position anchors: sink, hob and refrigerator.",
+      "statement": "Historical evidence showed several service items retained from drawings. The engine requires main sink, hob and refrigerator anchors and supports an optional independently placed veggie sink.",
       "evidence": [
         "P1: architect's hob, fridge and dw positions all retained",
         "P3: architect's hob (bottom), sink (right wall) and fridge (top right) all retained",
@@ -140,7 +140,7 @@
         "P4 base blind cabinet + wall blind shutter"
       ],
       "note": "LeMans is a base-only fitting. Widths confirmed: LeMans 1050, blind 1150 — choosing between them shifts the run by 100mm, so the corner choice feeds back into the packing constraint.",
-      "deferred": "L-corner units (BLC / WLC / TLC) are a planned third strategy, not in scope yet. Their codes are 10 fields instead of 11 and do not parse; fix when they are introduced."
+      "deferred": "L-corner units (BLC / WLC / TLC) are a planned third strategy, not in scope yet. Their codes are 10 fields (no P3); the catalogue parses them but layout never places them yet."
     },
     {
       "id": "lehmans-corner-on-blind",
@@ -378,7 +378,7 @@
         "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15",
         "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15"
       ],
-      "note": "Only hob, sink and refrigerator are appliance anchors. Dish-rack and vegetable-basket preferences and requirements were cancelled by the user.",
+      "note": "Hob, main sink and refrigerator are required appliance anchors; the optional veggie sink is a separate anchor. Dish-rack and vegetable-basket preferences and requirements were cancelled by the user.",
       "preferred": [
         {
           "item": "hob",
@@ -459,7 +459,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel. Reserve corner footprints before treating run ends.",
+      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel. Reserve corner footprints before treating run ends.",
       "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm."
     },
     {
@@ -521,12 +521,12 @@
     {
       "id": "wall-width-follows-hob-flank",
       "status": "stated",
-      "hard": true,
+      "hard": false,
       "seen_in": [
         "P4"
       ],
-      "statement": "Wall cabinets beside the chimney must be symmetric. Map eligible base flank widths using 900 to 850, 600 to 550 and 450 to 450mm; when base flanks differ, use the larger mapped width for both wall cabinets. Choose the largest base-flank widths that also allow this upper pair to fit, preserving designer-selected shapes. Adjust the hob position by up to 100mm on its wall when this improves fit; report every movement. If no legal combination fits, report failure.",
-      "note": "Width is solved across both tiers, never from base space alone. Both mapped upper cabinets must fit their zones, openings, corners and tall footprints.",
+      "statement": "Strongly prefer symmetric wall cabinets beside the chimney. Map eligible base flank widths using 900 to 850, 600 to 550 and 450 to 450mm; when base flanks differ, use the larger mapped width for both wall cabinets. Choose the largest base-flank widths that also allow this upper pair to fit, preserving designer-selected shapes. Adjust the hob position by up to 100mm on its wall when this improves fit; report every movement. If no legal combination fits, retain the valid chimney layout and report that the preference could not be met.",
+      "note": "Width is solved across both tiers whenever the preferred pair fits their zones, openings, corners and tall footprints. The chimney itself remains mandatory; its matching wall-cabinet pair does not.",
       "evidence": [
         "900 | 600 hob | 900 = 2400 base, and 850 | 700 chimney | 850 = 2400 wall — the tiers close on the same total",
         "P4 wall tier reads 550 either side, which is exactly 600 flank minus 50",
@@ -545,6 +545,22 @@
       "seen_in": [],
       "statement": "The chimney is always wider than the hob, by params.chimney_wider_than_hob_by (100mm). A 600 hob takes a 700 chimney; a 900 hob takes a 1000.",
       "note": "The overhang is split evenly, so the chimney reaches 50mm past the hob on each side."
+    },
+    {
+      "id": "chimney-panel",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Every wall-run chimney gets a chimney panel aligned with the wall cabinets beside it: its top level with their tops and its face on the same plane as their shutters, covering the chimney above the hood. Width follows the hob: a 600 hob takes CP-700, a 900 hob takes CP-1000 (hob + params.chimney_wider_than_hob_by, the chimney width). Height follows the kitchen height, params.chimney_panel_height: 7ft takes 450, 8ft takes 600. Codes: CP-700-450-15, CP-700-600-15, CP-1000-450-15, CP-1000-600-15 (Panels sheet).",
+      "note": "The panel is the chimney's own cover, the one item exempt from chimney-front-clearance. Shown in 3D and the walkthrough; not yet in the BOQ or quote (pricing to be decided). An island chimney hung from a beam gets no panel."
+    },
+    {
+      "id": "chimney-front-clearance",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Whenever a wall-tier unit or a beam is over the hob, the chimney model is placed above the hob. Nothing may be placed in front of it: no cabinet, panel, accessory or appliance may enter the chimney's own envelope or the params.chimney_front_clearance (600mm) directly in front of it, from the chimney's underside to the ceiling, across the chimney's full width.",
+      "note": "Enforced by the 3D renderer: the zone is reserved before anything else is placed and an intruding unit is left out of the scene and reported. Nothing is placed on or over the chimney either: its wall-tier slot gets no backsplash or filler. The one exception is the chimney's own panel (chimney-panel). An island hob's chimney hangs from a beam and is kept clear on both faces."
     },
     {
       "id": "dishwasher-beside-sink",
@@ -570,11 +586,25 @@
       "note": "Keep appliance widths and walls, openings, separation rules and cabinet areas valid. Never accumulate adjustments beyond 100mm from the designer-provided starting position."
     },
     {
+      "id": "veggie-sink-independent",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The optional 600mm veggie sink is separate from the main sink. Each has its own designer-selected cabinet position; no minimum or maximum distance applies between the two sinks. Both must fit their cabinet areas without overlapping fixtures or obstructing a door."
+    },
+    {
+      "id": "fridge-side-clearance",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The designer can enter the refrigerator appliance width. Reserve an opening with 50mm clear space on each side: a 900mm refrigerator requires a 1000mm opening. Side clearances must remain empty and may not be filled with cabinets."
+    },
+    {
       "id": "anchors-never-in-front-of-door",
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Hob, sink and refrigerator are never placed in front of a door.",
+      "statement": "Hob, main sink, veggie sink and refrigerator are never placed in front of a door.",
       "note": "Because the designer places these by hand, this is an INPUT VALIDATION rule — reject the placement with an error, do not silently move it."
     },
     {
@@ -582,7 +612,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "A sink may sit in front of a window. A hob or refrigerator never may.",
+      "statement": "The main sink and veggie sink may sit in front of a window. A hob or refrigerator never may.",
       "note": "Also input validation, same as the door rule."
     },
     {
@@ -695,12 +725,219 @@
       }
     },
     {
+      "id": "kitchen-always-drawn-with-corrections",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Never report that a kitchen cannot be made. When the designer's setup cannot be fitted as given, make slight corrections until it fits, choosing the smallest: an appliance (hob, sink, veggie sink, refrigerator) may slide along its own wall by at most 300mm — it never moves to another wall — and a cabinet zone edge (base, wall or tall band) may move by at most 300mm; zones are never added or removed. The room itself is fixed and is never changed: room dimensions, doors, windows and structures (beams, columns). Show every correction under the header \"Corrections made to draw this kitchen\".",
+      "evidence": [
+        "Stated by the business, 2026-09-29."
+      ],
+      "note": "Implemented in core/correct.mjs (correctKitchen / describeCorrections), called from /api/build after the bounded fitting search. Missing designer inputs (invalid walls, no handle type, island not placed) are not layout failures and are still asked for.",
+      "overrides": {
+        "anchor-tolerance": "The 100mm allowance still governs silent fit improvements; up to 300mm, a correction is made and listed instead of the build failing."
+      }
+    },
+    {
       "id": "wall-base-run-end-alignment",
       "status": "stated",
       "hard": true,
       "seen_in": [],
       "statement": "Where a base and wall zone share a run end, their finished runs must reach that same boundary. A packing failure must not silently leave one tier shorter.",
       "note": "Align the overall run ends. Individual door seams and the independent corner footprints are not required to match. Deliberately separate wall zones beside windows remain separate."
+    },
+    {
+      "id": "island-optional",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "An island is optional and is added only at the designer's request when adequate space exists."
+    },
+    {
+      "id": "island-prerequisites",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Draw cabinet zones and place surrounding core fixtures before confirming island size or position. Revalidate against generated cabinets."
+    },
+    {
+      "id": "island-minimum",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Use millimetres. The minimum island cabinet length is 1200mm and the minimum depth 600mm, in either orientation. The countertop overhangs 30mm past the cabinets at each end, so a 1200mm island has a 1260mm top; a longer end projection must be entered explicitly."
+    },
+    {
+      "id": "island-modules",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Use eligible catalogue cabinets for storage. Island length is a designer-entered whole-millimetre dimension, with no fixed preset maximum; the room and clearances determine its limit. Close residual storage-row gaps with cut-to-size panels. Seating-only islands do not require cabinet modules."
+    },
+    {
+      "id": "island-work-aisle",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Provide at least 1050mm clear working aisle between finished island edges and surrounding cabinets or appliances."
+    },
+    {
+      "id": "island-wall-offset",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "With 600mm-deep wall cabinets, the island edge starts at least 1650mm from that wall. Deeper projections increase the offset."
+    },
+    {
+      "id": "island-actual-zones",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Reserve cabinet depth only where a base or tall cabinet zone or actual cabinet exists. Do not reserve it along empty wall sections."
+    },
+    {
+      "id": "island-walking",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Provide 950mm for walking-only passages. Use the greatest applicable working, walking or seating clearance."
+    },
+    {
+      "id": "island-finished-edges",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Measure clearances between finished surfaces, including countertop overhangs and appliance projections."
+    },
+    {
+      "id": "island-geometry",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Calculate island length and depth independently and check the complete footprint against the actual room outline, zones, obstacles and openings."
+    },
+    {
+      "id": "island-position",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Allow movement and rotation only where the full island footprint and required clearances fit. During dragging, shade the permitted placement area, show blocked positions as a preview, and stop the island at the last valid boundary. Reject invalid coordinate and rotation edits."
+    },
+    {
+      "id": "island-alternatives",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Show up to four illustrated standard-width choices: 600, 900, 976 and 1200mm, with their purpose and a starting length that fits. Group rotations instead of listing duplicates. Provide a prominent custom length field; suggested lengths are not restrictions."
+    },
+    {
+      "id": "island-sidebar",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Clicking an island or size option opens its right sidebar with exact dimensions, position, rotation, seating capacity and per-side clearances. Before Generate Design the designer chooses only the island type and size: no cabinet modules, module widths or cabinet arrangement are shown on the plan, the type cards or the sidebar. The cabinet specification appears only after Generate Design, on the Review screen."
+    },
+    {
+      "id": "island-access",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Keep entrances, door swings and access routes clear. Check cabinet and appliance opening space without collisions."
+    },
+    {
+      "id": "island-storage",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Use four standard finished widths: 600mm storage only, 900mm seating only, 976mm seating plus storage, and 1200mm double-row storage. Seating-only uses a supported tabletop with no storage cabinets. Finish exposed cabinet ends and backs within the fixed width."
+    },
+    {
+      "id": "island-seating-depth",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Seating plus storage is 976mm wide: 600mm storage plus 376mm clear seating overhang. Seating-only is 900mm wide. Keep finishes within these standard widths; show additional end finishes in the length."
+    },
+    {
+      "id": "island-knee-space",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Measure 376mm clear seating overhang from the finished cabinet back to the countertop edge. Supports and panels must preserve knee space."
+    },
+    {
+      "id": "island-seat-count",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Allocate 650mm of usable seating edge per person. Exclude supports, legs, unusable corners and selected blocked seating spans."
+    },
+    {
+      "id": "island-seating-passage",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Reserve 1150mm from the finished seating edge to any opposing obstruction where people pass behind seated users."
+    },
+    {
+      "id": "island-seating-choice",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Seating is optional and side-specific. Recalculate the footprint and clearances when it changes. Adjacent sides must not share a seat corner."
+    },
+    {
+      "id": "island-sinks",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Main and veggie sinks may be independently assigned to the island. No distance requirement applies between the two sinks. Confirm plumbing and preparation space."
+    },
+    {
+      "id": "island-hob",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "An island hob is explicit. Preserve existing hob-to-sink separation and selected cabinet shapes; verify extraction and the appliance's countertop and installation clearances."
+    },
+    {
+      "id": "island-plumbing",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Confirm a feasible water and drainage route for island sinks after the cabinet arrangement is established."
+    },
+    {
+      "id": "island-construction",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Check overhang support against the selected countertop material and construction. Unverified support or appliance requirements must remain unresolved, never assumed passed."
+    },
+    {
+      "id": "island-revalidate",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Recalculate options whenever zones, cabinet placement, fixtures, openings or island features change."
+    },
+    {
+      "id": "island-invalid-selection",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "If room or cabinet changes invalidate an existing island, keep it visible and explain the failed clearances. Prevent new invalid placements. Never silently resize, rotate or relocate a saved island; a cancelled drag restores its original position."
+    },
+    {
+      "id": "quote-surface-and-install-rates",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-09-30"
+      ],
+      "statement": "Countertop and backsplash stone are both ₹551/sqft (material, Section A). Installation is billed separately in Section B: countertop ₹780/sqft, backsplash ₹300/sqft, cabinets ₹280/sqft. Cabinet installation is measured on the same carcass net sqft the cabinets are priced on, never on shutter area. Material and installation are never combined in one line, so nothing is charged twice. Backsplash area is the dado only: along each wall, wherever a countertop runs under a wall cabinet (or the hob's chimney slot), the wall from the countertop top to that cabinet's underside. No backsplash behind tall units, doors, windows or open wall.",
+      "params_ref": "params.quote_rates",
+      "note": "The live values are read from data/rates.json (rows by item); test/pricing checks that file against params.quote_rates."
     }
   ],
   "open_questions": [
@@ -718,6 +955,11 @@
     "backsplash": 565,
     "low_depth": 336,
     "chimney_wider_than_hob_by": 100,
+    "chimney_front_clearance": 600,
+    "chimney_panel_height": {
+      "7ft": 450,
+      "8ft": 600
+    },
     "hob_sink_min_gap": 350,
     "hob_widths": [
       600,
@@ -751,12 +993,36 @@
     "blind_shutter_clearance": 40,
     "blind_corner_dead_space_max": 100,
     "gap_filler_min": 30,
-    "wall_filler_width": 40
+    "open_wall_min": 200,
+    "wall_filler_width": 40,
+    "island": {
+      "minimum_length": 1200,
+      "minimum_depth": 600,
+      "cabinet_depth": 600,
+      "working_aisle": 1050,
+      "walkway": 950,
+      "seating_clearance": 1150,
+      "seating_overhang": 376,
+      "seating_only_depth": 900,
+      "seat_width": 650,
+      "default_open_depth": 600,
+      "hob_sink_gap": 350,
+      "countertop_end_overhang": 30
+    },
+    "quote_rates": {
+      "_note": "₹ per sqft, confirmed by the designer 2026-09-30. Source of truth for billing is data/rates.json; these must match it.",
+      "countertop_material": 551,
+      "backsplash_material": 551,
+      "countertop_install": 780,
+      "backsplash_install": 300,
+      "cabinet_install": 280,
+      "cabinet_install_basis": "carcass net sqft",
+      "backsplash_area_basis": "dado: countertop top to wall-cabinet underside, only where a countertop runs under a wall cabinet or chimney slot"
+    }
   },
   "out_of_scope": [
     "Dado (1780 / 2600) — explicitly not needed for now.",
-    "L-corner units (BLC / WLC / TLC) — planned later; their codes are 10 fields and do not parse.",
-    "Islands — only P1 had one, no rules gathered.",
+    "L-corner units (BLC / WLC / TLC) — planned later; their 10-field codes parse but are not placed yet.",
     "Costing and pricing — the sheet carries sqft, panel and shutter counts, but no pricing rules have been given.",
     "Minimum viable run length — not needed, because the designer places all three anchors."
   ],

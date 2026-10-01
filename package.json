@@ -7,5 +7,8 @@
     "dev": "node --watch server.mjs",
     "start": "node server.mjs",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@google/genai": "2.17.1"
   }
 }

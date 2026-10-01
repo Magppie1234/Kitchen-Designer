@@ -13,32 +13,32 @@
 //   node server.mjs          -> http://localhost:5055
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, sep } from 'node:path';
+import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadCatalog } from './loadCatalog.mjs';
-import { layout, gate } from './engine.mjs';
-import { fitKitchen, prepareAnchorInput } from './fitting.mjs';
-import { aiConfiguration, configuredProposer } from './ai-provider.mjs';
-import { improveFittedKitchen } from './ai-planner.mjs';
-import { check } from './checkInput.mjs';
-import { RULE_PARAMS } from './config.mjs';
+import { loadCatalog } from './core/loadCatalog.mjs';
+import { layout, gate } from './core/engine.mjs';
+import { fitKitchen, prepareAnchorInput } from './core/fitting.mjs';
+import { deriveZones, correctKitchen, fixableInput, describeCorrections } from './core/correct.mjs';
+import { check } from './core/checkInput.mjs';
+import { RULE_PARAMS } from './core/config.mjs';
 import { handleDesigns } from './vendor/designApi.js';
 import { handleConfig, requireSeries, offCatalogWarnings, seriesFinishGroup, seriesAllowsCode } from './vendor/series.js';
 import { handleLibrary, handleReprice } from './vendor/libraryApi.js';
 import { handleShare } from './vendor/shareApi.js';
 import { loadRoom, resolveOpenings } from './vendor/apiRuntime.js';
 import { priceSaleable } from './vendor/saleablePricing.js';
-import { estimateKitchen } from './vendor/costEstimate.js';
 import { accessoriesFor } from './vendor/accessories.js';
-import { specOf } from './engine.mjs';
+import { specOf } from './core/engine.mjs';
+import {suggestIslands} from './core/island.mjs';
+import { renderSnapshot } from './render.mjs';
+import { modelManifest, modelFile } from './core/models.mjs';
+
+try { process.loadEnvFile(); } catch {} // optional .env (GEMINI_API_KEY for AI renders)
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const UI = join(ROOT, 'ui');
-const MODELS = join(UI, 'models');
-const MANIFEST = join(ROOT, 'data', 'module-models.json');
 const PORT = process.env.PORT || 5055;
 const { ok: CATALOG } = loadCatalog();
-let aiBuildActive=false;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -49,7 +49,7 @@ const MIME = {
 };
 
 // ---------------------------------------------------------------- UI -> engine
-const ANCHOR_WIDTH = { hob: 900, sink: 900, fridge: 600 };
+const ANCHOR_WIDTH = { hob: 900, sink: 900, veggie: 600, fridge: 600 };
 
 // Families that may sit immediately beside the hob. The sink, the hob and the blind-corner
 // units are excluded — they are placed by their own rules, not chosen as a flank.
@@ -85,7 +85,7 @@ const dirOf = (a, b) => {
 // The designer's own cabinet bands. The UI's zone tool draws them per wall at exactly the
 // three tiers this engine solves — base, wall, tall — and sends them as
 // {wall:'W0', tier, s, e}. They are the designer SAYING where cabinets go, so when any have
-// been drawn they are the zones, verbatim; deriveZones() below only fills in for a room
+// been drawn they are the zones, verbatim; deriveZones() (correct.mjs) only fills in for a room
 // where the tool was never used.
 function designerZones(uiZones, walls) {
   const zones = { base: [], wall: [], tall: [] };
@@ -101,38 +101,17 @@ function designerZones(uiZones, walls) {
   return Object.values(zones).some((t) => t.length) ? zones : null;
 }
 
-// Fallback only, for a room whose zone tool was never used: every wall long enough to
-// furnish carries base and wall runs, and the fridge anchors a tall band.
-function deriveZones(walls, anchors) {
-  const zones = { base: [], wall: [], tall: [] };
-  const fridge = anchors.find((a) => a.item === 'fridge');
-  const TALL_BAND = 1800;
-  for (const w of walls) {
-    if (w.length < 600) continue;
-    if (fridge && fridge.wall === w.id) {
-      // Grow the tall band out from the fridge, but never over another anchor on the same
-      // wall — a sink swallowed by the fridge's band is the commonest way this goes wrong.
-      const others = anchors.filter((a) => a !== fridge && a.wall === w.id).sort((a, b) => a.at - b.at);
-      const rightLimit = others.find((a) => a.at >= fridge.at + fridge.width)?.at ?? w.length;
-      const leftLimit = [...others].reverse().find((a) => a.at + a.width <= fridge.at);
-      const floor = leftLimit ? leftLimit.at + leftLimit.width : 0;
-      let to = Math.min(rightLimit, fridge.at + TALL_BAND);
-      let from = to - fridge.at >= TALL_BAND ? fridge.at : Math.max(floor, to - TALL_BAND);
-      from = Math.min(from, fridge.at);
-      to = Math.max(to, fridge.at + fridge.width);
-      if (from > 0) for (const t of ['base', 'wall']) zones[t].push({ wall: w.id, from: 0, to: from });
-      zones.tall.push({ wall: w.id, from, to });
-      if (to < w.length) for (const t of ['base', 'wall']) zones[t].push({ wall: w.id, from: to, to: w.length });
-    } else {
-      for (const t of ['base', 'wall']) zones[t].push({ wall: w.id, from: 0, to: w.length });
-    }
-  }
-  return zones;
-}
-
 export function toEngineInput(anchors = [], options = {}) {
   const notes = [];
   const inputProblems = [];
+  const selectedHandle=options.handles?.base ?? options.handles;
+  const handle=/^(tts|titus|eh)$/i.test(String(selectedHandle ?? '')) ? 'TTS'
+    : /^(cj|c\s*(?:&|and)\s*j)$/i.test(String(selectedHandle ?? '')) ? 'CJ' : null;
+  if(!handle) inputProblems.push('Choose a Handle Type in Design → Extras before generating. Cabinet placement and the 3D walkthrough require it.');
+  const worldOrigin=options.walls?.[0]?.a??[0,0];
+  const island=options.island&&options.islandConfig?structuredClone(options.islandConfig):null;
+  if(options.island&&!island)inputProblems.push('Select and place an island from the island sidebar before generating.');
+  if(island){island.x-=worldOrigin[0];island.y-=worldOrigin[1];}
   const walls = (options.walls ?? []).map((w, i) => ({
     id: String(i), length: w?.a && w?.b ? Math.round(Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a[1])) : NaN, dir: dirOf(w?.a, w?.b),
   }));
@@ -159,9 +138,14 @@ export function toEngineInput(anchors = [], options = {}) {
   const mapped = [];
   for (const a of anchors) {
     if (!ANCHOR_WIDTH[a.type]) { notes.push(`anchor "${a.type}" is not one this engine places`); continue; }
-    const wall = wallId(a.wall), width = a.type==='sink' ? (a.width ?? options.sinkWidth ?? (a.elevation==='B'?600:900)) : (a.width??ANCHOR_WIDTH[a.type]);
+    const applianceWidth = a.type==='fridge' ? (a.applianceWidth ?? options.fridgeWidth) : null;
+    const wall = wallId(a.wall), width = applianceWidth != null ? applianceWidth + 100
+      : a.type==='sink' ? (a.width ?? options.sinkWidth ?? (a.elevation==='B'?600:900)) : (a.width??ANCHOR_WIDTH[a.type]);
     const anchor = { item: a.type, wall, at: Math.round(a.off-width/2), width };
-    if (a.type==='hob') anchor.center = a.off;
+    const islandFixture=Array.isArray(island?.fixtures)?island.fixtures.find(f=>f?.type===a.type):null;
+    if(islandFixture)Object.assign(anchor,{location:'island',wall:'island-'+islandFixture.row,at:islandFixture.at,width:islandFixture.width,row:islandFixture.row});
+    if (applianceWidth != null) anchor.applianceWidth = applianceWidth;
+    if (a.type==='hob'&&!islandFixture) anchor.center = a.off;
     // The designer's hob SHAPE choices ride on the hob anchor. They name a configuration and
     // never a size — the engine solves the width — and they are hard: it places that shape or
     // says why it could not (rules.json: hob-shape-is-designer-choice).
@@ -176,11 +160,13 @@ export function toEngineInput(anchors = [], options = {}) {
     }
     mapped.push(anchor);
   }
+  if (options.veggieSink && !mapped.some(a=>a.item==='veggie'))
+    inputProblems.push('The veggie sink is selected but has no position. Place it in a clear 600mm cabinet area.');
 
   const input = {
     project: 'UI', height, ceiling: Number(options.ceiling) || mm, inputProblems,
     dishwasher: options.dishwasher,
-    handle: /^(tts|titus|eh)$/i.test(String(options.handles?.base ?? options.handles ?? '')) ? 'TTS' : 'CJ',
+    handle: handle ?? 'CJ', // inputProblems above prevents this fallback from producing a design
     walls,
     openings: (options.openings ?? []).map((o) => {
       const wall = wallId(o.wall), width = Math.round(o.width);
@@ -194,6 +180,7 @@ export function toEngineInput(anchors = [], options = {}) {
         return { wall, at: leftEdge(wall, s.off ?? 0, width), width };
       }),
     anchors: mapped,
+    island,worldOrigin,
   };
   // UI structures are world-space boxes, not wall/off records. Project flush
   // columns onto the actual wall; keep every volume for the final collision test.
@@ -217,7 +204,8 @@ export function toEngineInput(anchors = [], options = {}) {
   }
 
   const drawn = designerZones(options.zones ?? [], walls);
-  input.zones = drawn ?? deriveZones(walls, mapped);
+  input.drawnZones=!!drawn;
+  input.zones = drawn ?? deriveZones(walls, mapped, input.openings);
   const open = new Set(options.roomMode==='open' ? (options.openWalls??[]).map(String) : []);
   input.openWalls=[...open];
   for(const tier of ['base','wall','tall']) input.zones[tier]=input.zones[tier].filter(z=>!open.has(z.wall));
@@ -232,7 +220,6 @@ export function toEngineInput(anchors = [], options = {}) {
     ['hobSides', (v) => v && Object.values(v).some((s) => s?.mode && s.mode !== 'none'),
       'the old hob side-section presets — they name exact widths; pick the flank SHAPE instead and the engine sizes it'],
     ['keeps', (v) => v?.length, 'pinned cabinets — this engine re-solves every wall from scratch'],
-    ['islandType', (v) => v, 'the island — not something this engine places'],
     ['kubos', (v) => v, 'the KUBOS open shelving'],
     ['tark', (v) => v, 'the Tark system'],
     ['fridgeType', (v) => v && v !== 'builtin', 'built-in vs free-standing fridge — a tall fridge tower is always used'],
@@ -255,7 +242,7 @@ export function toEngineInput(anchors = [], options = {}) {
 // filler, not a corner, so the filler test runs first.
 function baseKind(role) {
   if (role === 'perpendicular cabinet footprint' || role === 'unresolved corner reservation') return 'gap';
-  if (role === 'concealed corner space') return 'gap';
+  if (role === 'concealed corner space' || role === 'open wall') return 'gap';
   if (role === 'perpendicular tall footprint') return 'gap';
   if (role === 'corner void') return 'gap';
   if (/\(tall above\)/.test(role)) return 'tallBank';
@@ -263,7 +250,7 @@ function baseKind(role) {
   if (/^window/.test(role)) return 'window';
   if (/filler|countertop return|^panel/.test(role)) return 'filler';
   if (/corner/.test(role)) return 'corner';
-  if (/^(hob|sink|dishwasher)$/.test(role)) return 'anchor';
+  if (/^(hob|sink|veggie sink|dishwasher)$/.test(role)) return 'anchor';
   return 'cabinet';
 }
 
@@ -272,13 +259,13 @@ function baseKind(role) {
 // the wall tier is positioned by x0 rather than by accumulation.
 function wallKind(role) {
   if (role === 'perpendicular cabinet footprint' || role === 'unresolved corner reservation') return null;
-  if (role === 'concealed corner space') return null;
+  if (role === 'concealed corner space' || role === 'open wall') return null;
   if (role === 'perpendicular tall footprint') return null;
   if (role === 'corner void') return null;
   if (/\(tall above\)|no cabinet\)/.test(role)) return null;
   if (/glass/.test(role)) return 'wallGlass';
   if (/blind/.test(role)) return 'wallBlind';
-  if (/chimney/.test(role)) return 'chimney';
+  if (role === 'chimney') return 'chimney';   // not 'solid (chimney flank)' — that is a cabinet
   if (/filler|countertop return|^panel/.test(role)) return 'filler';
   return 'wallSolid';
 }
@@ -324,6 +311,7 @@ export function toPlan(result, input, notes, options = {}) {
         ...dimensions(tall??p,tall?'tall':'base'),
         ...(p.corner?{corner:p.corner,shutter:p.shutter}:{}),
         ...(p.hiddenCorner?{hiddenCorner:true}:{}),
+        ...(p.role==='veggie sink'?{veggie:true}:{}),
       };
       // the base row's anchors are named by the label the renderers test for
       if (kind === 'anchor') seg.label = p.role;
@@ -331,7 +319,8 @@ export function toPlan(result, input, notes, options = {}) {
       if (kind === 'tallBank') {
         seg.code=tall?.code??null;
         if(tall?.trim) {seg.kind='filler';seg.trim=true;seg.tier='tall';}
-        else seg.units = [{ type: tallType(seg.label), width: p.width, code:seg.code, ...dimensions(tall??p,'tall') }];
+        else seg.units = [{ type: tallType(seg.label), width: p.width, code:seg.code, ...dimensions(tall??p,'tall'),
+          ...(tall?.applianceWidth != null ? {applianceWidth:tall.applianceWidth,sideClearance:50} : {}) }];
       }
       segments.push(seg);
       cursor = Math.max(cursor, p.at + p.width);
@@ -358,11 +347,13 @@ export function toPlan(result, input, notes, options = {}) {
       if (p.blocker || !p.code) continue;
       bom[p.code] = (bom[p.code] ?? 0) + 1;
     }
+  for(const m of result.island?.working||[])if(m.code)bom[m.code]=(bom[m.code]||0)+1;
 
   const zones = [];
   if (input.anchors.some((a) => a.item === 'hob')) zones.push('cooking');
   if (input.anchors.some((a) => a.item === 'sink')) zones.push('washing');
   if (input.anchors.some((a) => a.item === 'fridge')) zones.push('cooling');
+  if(result.island)zones.push('island');
 
   const log = [
     ...notes.map((detail) => ({ rule: 'Adapter', status: 'assumed', detail })),
@@ -374,19 +365,18 @@ export function toPlan(result, input, notes, options = {}) {
 
   const verdict = gate(result);
   const plan = {
-    schemaVersion:2, validationVersion:9,
+    schemaVersion:2, validationVersion:10,
     geometry:{height:input.height,baseTop:RULE_PARAMS.counter_height,wallBottom:RULE_PARAMS.counter_height+RULE_PARAMS.backsplash,wallTop:heights.design_height,tall:heights.tall,counterThickness:30},
     openings:(input.openings??[]).map(o=>({...o,wall:`W${input.walls.findIndex(w=>w.id===o.wall)}`,off:o.at+o.width/2})),
-    runs, tiers, bom, zones, island: null,
+    runs, tiers, bom, zones, island: result.island?{...result.island,x:result.island.x+(input.worldOrigin?.[0]||0),y:result.island.y+(input.worldOrigin?.[1]||0)}:null,
     accessories: accessoriesFor(zones), placedAccessories: [], recommendations: [],
     warnings: [...result.problems, ...result.unresolved, ...result.warnings],
     log, clashes: [],
     verdict: verdict.verdict, releaseBlocked: verdict.releaseBlocked,
   };
-  // Pricing is the original saleable-area model (shutter sqft x finish rate), fed by the
-  // plan this engine just produced — the same numbers the library and reprice paths use.
-  plan.price = priceSaleable(plan, { pg: options.pg, finish: options.finish });
-  plan.cost = estimateKitchen(plan);
+  // Cabinets priced as the Quote tab prices them: series rate × workbook carcass net sqft
+  // over this plan's BOM — the same numbers the library and reprice paths use.
+  plan.price = priceSaleable(plan, { seriesId: options.seriesId });
   return plan;
 }
 
@@ -435,26 +425,45 @@ const app = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, '');
 
   try {
-    if(path==='/api/ai/status'&&req.method==='GET')return send(res,200,{configured:aiConfiguration().configured,busy:aiBuildActive});
+    if(path==='/api/island-options'){
+      if(req.method!=='POST')return send(res,405,{error:'POST island layout inputs'});
+      const {anchors=[],options={}}=await readBody(req),series=requireSeries(options.seriesId);
+      const {input}=toEngineInput(anchors,options);
+      const catalog=CATALOG.filter(c=>seriesAllowsCode(series,c.code));
+      const data=suggestIslands(input,catalog,input.island||options.islandConfig||{});
+      const [ox,oy]=input.worldOrigin;
+      const translate=i=>i?{...i,x:i.x+ox,y:i.y+oy}:i;
+      data.options=data.options.map(translate);data.selected=translate(data.selected);
+      data.context.walls=data.context.walls.map(w=>({...w,a:[w.a[0]+ox,w.a[1]+oy],b:[w.b[0]+ox,w.b[1]+oy]}));
+      const box=b=>({...b,x0:b.x0+ox,x1:b.x1+ox,y0:b.y0+oy,y1:b.y1+oy});
+      data.context.obstacles=data.context.obstacles.map(o=>({...box(o),...(o.openBox?{openBox:box(o.openBox)}:{})}));
+      return send(res,200,data);
+    }
+    if(path==='/api/render'){
+      if(req.method!=='POST')return send(res,405,{error:'POST {image, aspectRatio, references}'});
+      try{return send(res,200,await renderSnapshot(await readBody(req)));}
+      catch(e){return send(res,e.status||500,{error:e.message});}
+    }
     if (path === '/api/build') {
       if (req.method !== 'POST') return send(res, 405, { error: 'POST {anchors, options}' });
       const { anchors, options = {} } = await readBody(req);
-      if(options.aiImprove===true&&options.keeps?.length)return send(res,400,{error:'AI improvement cannot preserve pinned cabinets yet. Unpin them before generating an AI alternative.'});
       // Stage 2: a committed series is required before anything can be generated, and only
       // its SKUs may be offered. Enforced here, server-side, not just hidden in the UI.
       const series = requireSeries(options.seriesId);
       const { input, notes } = toEngineInput(anchors, options);
       const invalid = check(prepareAnchorInput(input));
-      // An input the engine cannot even read still has to answer in the FULL plan shape:
+      // Appliance/band errors are corrected below; only a missing designer input (walls,
+      // handle, island setup) is still rejected. An input the engine cannot even read still
+      // has to answer in the FULL plan shape:
       // the result view reads price.breakdown.total unconditionally, so a thinner object
       // here throws in the browser and the designer sees a blank screen instead of the
       // reason their input was rejected.
-      if (invalid.length)
+      if (invalid.length && !fixableInput(invalid))
         return send(res, 200, {
-          schemaVersion:2, validationVersion:9,
+          schemaVersion:2, validationVersion:10,
           inputRejected:true,
           inputIssues:invalid.map(detail=>{
-            const m=detail.match(/^anchor (hob|sink|fridge): must be fully inside a (base|tall) zone on wall (.+)$/);
+            const m=detail.match(/^anchor (hob|sink|veggie|fridge): must be fully inside a (base|tall) zone on wall (.+)$/);
             if(!m)return detail;
             const a=input.anchors.find(a=>a.item===m[1]),zones=input.zones[m[2]].filter(z=>z.wall===m[3]);
             return `The ${m[1]==='fridge'?'fridge':m[1]} on wall W${m[3]} occupies ${a.at}-${a.at+a.width} mm, outside its ${m[2]==='tall'?'tall-cabinet':'base-cabinet'} area${zones.length?' ('+zones.map(z=>`${z.from}-${z.to} mm`).join(', ')+')':''}. It could not be fitted within the 100 mm movement allowance. Move it inside that area or adjust the cabinet area, then generate again.`;
@@ -463,25 +472,26 @@ const app = createServer(async (req, res) => {
           accessories: [], placedAccessories: [], recommendations: [], clashes: [],
           warnings: invalid,
           price: { model: 'saleable', currency: 'INR', rate: 0, shutterSqft: 0, counterSqft: 0, modules: 0, lines: [], breakdown: { cabinets: 0, counter: 0, total: 0 } },
-          cost: { currency: 'INR', estimate: true, pieces: 0, breakdown: { material: 0, labour: 0, total: 0 } },
           log: invalid.map((detail) => ({ rule: 'Input', status: 'conflict', detail })),
           verdict: 'REJECTED', releaseBlocked: true,
         });
       const pg = seriesFinishGroup(series, options.pg ?? series.defaultFinish?.pg);
       const eligibleCatalog=CATALOG.filter(c=>seriesAllowsCode(series,c.code));
-      const originalFitted = await fitKitchen(input, eligibleCatalog,{proposals:options.proposeAdjustments!==false});
-      let fitted=originalFitted;
-      if(options.aiImprove===true){
-        if(aiBuildActive)return send(res,409,{error:'An AI layout improvement is already running. Try again when it finishes.'});
-        aiBuildActive=true;
-        try{fitted=await improveFittedKitchen(originalFitted,eligibleCatalog,{propose:configuredProposer()});}
-        finally{aiBuildActive=false;}
+      // A kitchen is always drawn (rules.json: kitchen-always-drawn-with-corrections): the
+      // bounded fitting search runs first; whatever it cannot fix, correctKitchen() fixes by
+      // moving appliances and cabinet bands — never walls, doors, windows or structures.
+      const derived=!input.drawnZones;
+      // (the old proposal search is skipped: correctKitchen tries the same small moves first, faster)
+      let originalFitted=invalid.length?null:await fitKitchen(input, eligibleCatalog,{proposals:false});
+      if(!originalFitted||originalFitted.result.problems.length){
+        const c=await correctKitchen(originalFitted?.input??prepareAnchorInput(input),eligibleCatalog,{original:input,derived});
+        originalFitted={input:c.input,result:c.result,waived:c.waived,proposal:null,adjustments:null,search:{...(originalFitted?.search??{version:1,evaluated:0}),corrected:true}};
       }
+      const fitted=originalFitted;
       const makePlan=(result,j)=>{
-        const plan=toPlan(result,j,notes,{pg,finish:options.finish??series.defaultFinish?.finish});
+        const plan=toPlan(result,j,notes,{pg,finish:options.finish??series.defaultFinish?.finish,seriesId:series.id});
         const {context,...planning}=result.planning;
         plan.planning={...planning,spans:context?.spans};
-        if(planning.ai)plan.planning.ai={...planning.ai,attempts:planning.ai.attempts.map(({packingSpans,...attempt})=>attempt)};
         plan.log.push({rule:'Planning flow',status:'applied',detail:planning.mode},
           ...planning.attempts.map(a=>({rule:'Candidate',status:a.problems.length?'skipped':'applied',
             detail:`${a.name??a.source}: ${a.problems.length?a.problems.join('; '):`${a.cabinets} cabinets; ${a.grossStorageLitres} L gross storage carcass volume`}`})));
@@ -490,7 +500,6 @@ const app = createServer(async (req, res) => {
         return plan;
       };
       const plan=makePlan(fitted.result,fitted.input);
-      if(fitted.result.planning?.ai?.status==='improved')plan.aiOriginal=makePlan(originalFitted.result,originalFitted.input);
       if(fitted.adjustments?.length){
         plan.anchorAdjustments=fitted.adjustments.map(c=>{
           const wall='W'+input.walls.findIndex(w=>w.id===c.wall);
@@ -500,25 +509,15 @@ const app = createServer(async (req, res) => {
         plan.planning.adjustments=plan.anchorAdjustments;
         plan.log.push(...plan.anchorAdjustments.map(c=>({rule:'Appliance position adjusted',status:'applied',by:'engine',detail:c.description})));
       }
-      plan.fitting={...fitted.search,found:!!fitted.proposal};
-      if(fitted.proposal){
-        const {input:j,result,changes}=fitted.proposal;
-        const wallId=id=>'W'+j.walls.findIndex(w=>w.id===id);
-        plan.fitting.proposal={plan:makePlan(result,j),changes:changes.map(c=>{
-          const wall=j.walls.find(w=>w.id===c.wall),sign=Math.sign(c.delta);
-          const direction=wall.dir==='E'?(sign>0?'right':'left'):wall.dir==='W'?(sign>0?'left':'right'):wall.dir==='S'?(sign>0?'down':'up'):(sign>0?'up':'down');
-          const requiresZoneReview=c.kind==='zone'&&Math.abs(c.delta)>RULE_PARAMS.zone_boundary_tolerance;
-          return {...c,wall:wallId(c.wall),requiresZoneReview,description:`${c.kind==='anchor'?c.item:c.tier+' zone '+(c.edge==='from'?'start':'end')} on ${wallId(c.wall)}: ${Math.abs(c.delta)} mm ${direction} (${c.from} → ${c.to} mm along wall)${requiresZoneReview?' — shorter upper run beside window; exceeds automatic tolerance and requires your approval':''}`};
-        }),target:{anchors:j.anchors.map(a=>({type:a.item,wall:wallId(a.wall),off:a.at+a.width/2,width:a.width})),
-          zones:Object.entries(j.zones).flatMap(([tier,zs])=>zs.map((z,i)=>({id:`fit-${tier}-${i}`,tier,wall:wallId(z.wall),s:z.from,e:z.to})))}};
-        if(result.planning?.ai?.status==='improved')plan.fitting.proposal.plan.aiOriginal=makePlan(originalFitted.proposal.result,originalFitted.proposal.input);
-      }
-      if(plan.aiOriginal){
-        plan.aiOriginal.anchorAdjustments=plan.anchorAdjustments;
-        plan.aiOriginal.planning.anchorsFixed=plan.planning.anchorsFixed;
-        plan.aiOriginal.planning.adjustments=plan.planning.adjustments;
-        plan.aiOriginal.fitting=plan.fitting;
-      }
+      plan.fitting={...fitted.search,found:false};
+      // What was changed to draw this kitchen, against the designer's own setup, plus the
+      // corrected appliance positions/bands so the design state matches the drawing.
+      plan.corrections=describeCorrections(input,fitted.input);
+      // Beyond the correction limits (300 mm, same wall) the kitchen is still drawn; what could
+      // not be fixed is listed as needing the designer's attention.
+      plan.corrections.push(...[...(fitted.waived??[]),...fitted.result.problems].map(detail=>({kind:'unresolved',description:detail})));
+      plan.corrected={anchors:fitted.input.anchors.filter(a=>a.location!=='island').map(a=>({type:a.item,wall:'W'+a.wall,off:a.at+a.width/2})),
+        zones:derived?null:Object.entries(fitted.input.zones).flatMap(([tier,zs])=>zs.map(z=>({tier,wall:'W'+z.wall,s:z.from,e:z.to})))};
       // every generated SKU must belong to the chosen series' catalogue — off-catalog codes
       // are named in plain warnings, never silently kept
       return send(res, 200, plan);
@@ -531,7 +530,7 @@ const app = createServer(async (req, res) => {
       const ex = loadRoom({ w: +q.get('w'), h: +q.get('h'), shape: q.get('shape'), nw: +q.get('nw'), nh: +q.get('nh') });
       return send(res, 200, {
         detected: ex.detected, room: ex.room, openings: ex.openings, warnings: ex.warnings,
-        suggested: suggestAnchors(ex), island: { fits: false, reason: 'islands are out of scope for this engine' },
+        suggested: suggestAnchors(ex), island: { fits: false, reason: 'Draw cabinet zones and place fixtures to calculate island options.' },
       });
     }
 
@@ -549,7 +548,7 @@ const app = createServer(async (req, res) => {
     }
 
     // The shapes a designer may pick for the hob base and for the cabinet flanking it. Read
-    // straight off the catalogue, so adding a cabinet to cabinets.csv adds a choice here and
+    // straight off the catalogue, so adding a cabinet to data/workbook.json adds a choice here and
     // nothing product-shaped is ever hardcoded in the browser. Widths are listed only so the
     // UI can say what the engine has to work with — they are not a choice.
     if (path === '/api/shapes') {
@@ -573,22 +572,12 @@ const app = createServer(async (req, res) => {
       });
     }
 
-    // The GLB module library. The manifest's authoring modelsDir is dropped and every path
-    // is forced to forward slashes — it was generated on Windows and otherwise hands the
-    // browser backslash URLs that never resolve.
-    if (path === '/api/models') {
-      const man = JSON.parse(await readFile(MANIFEST, 'utf8'));
-      delete man.modelsDir;
-      const norm = (p) => String(p || '').split('\\').join('/');
-      for (const m of man.models ?? []) m.path = norm(m.path);
-      for (const k of Object.keys(man.byCode ?? {})) if (man.byCode[k]) man.byCode[k].path = norm(man.byCode[k].path);
-      return send(res, 200, man);
-    }
+    // The GLB model library — the Models folder, linked to data/workbook.json by filename (models.mjs).
+    if (path === '/api/models') return send(res, 200, modelManifest(CATALOG));
 
     if (path.startsWith('/models/')) {
-      const rel = decodeURIComponent(path.slice('/models/'.length));
-      const full = join(MODELS, normalize(rel));
-      if (!full.startsWith(MODELS + sep)) return send(res, 403, { error: 'forbidden' });
+      const full = modelFile(normalize(decodeURIComponent(path.slice('/models/'.length))));
+      if (!full) return send(res, 404, { error: 'no such model' });
       const buf = await readFile(full);
       res.writeHead(200, { 'content-type': 'model/gltf-binary', 'cache-control': 'public, max-age=86400' });
       return res.end(buf);

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fitKitchen} from '../../fitting.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
-import {geometryProblems,overlapProblems} from '../../engine.mjs';
+import {fitKitchen} from '../../core/fitting.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
+import {geometryProblems,overlapProblems} from '../../core/engine.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
-import {RULE_PARAMS as P} from '../../config.mjs';
+import {RULE_PARAMS as P} from '../../core/config.mjs';
 const cat=loadCatalog().ok;
 test('authorized anchor adjustment repairs packing without changing the designer input or zones',async()=>{
   const j=runEndFixture();j.anchors.find(a=>a.item==='hob').at+=25;

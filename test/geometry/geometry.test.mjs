@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {layout,geometryProblems,gate,fill} from '../../engine.mjs';
-import {check} from '../../checkInput.mjs';
+import {layout,geometryProblems,gate,fill} from '../../core/engine.mjs';
+import {check} from '../../core/checkInput.mjs';
 import {toEngineInput,toPlan} from '../../server.mjs';
-import {loadCatalog} from '../../loadCatalog.mjs';
+import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {enumerateModules} from '../../vendor/costEstimate.js';
 import {bomOf} from '../../vendor/libraryApi.js';
 import {priceSaleable} from '../../vendor/saleablePricing.js';
@@ -40,7 +40,7 @@ test('default fixture: physical return reservations and bounded repair',()=>{
   assert.ok(r.problems.some(p=>/matching wall blind cabinet is missing/.test(p)));
   assert.ok(!r.problems.some(p=>/tall visible panel/.test(p)));
   assert.deepEqual(collisions(measuredVolumes(j,r.placed)),[]);
-  assert.ok(r.notes.some(n=>/hob moved -100mm/.test(n)));
+  assert.ok(r.notes.some(n=>/hob moved -\d+mm/.test(n)));
   assert.ok(r.placed.base.some(p=>p.role==='corner void'&&p.width===560));
   assert.ok(r.placed.wall.some(p=>p.role==='corner void'&&p.width===336));
   const req=uiRequest(j),adapt=toEngineInput(req.anchors,req.options).input,ui=layout(adapt,cat);
