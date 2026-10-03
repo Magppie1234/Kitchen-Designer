@@ -560,7 +560,7 @@
       "hard": true,
       "seen_in": [],
       "statement": "Whenever a wall-tier unit or a beam is over the hob, the chimney model is placed above the hob. Nothing may be placed in front of it: no cabinet, panel, accessory or appliance may enter the chimney's own envelope or the params.chimney_front_clearance (600mm) directly in front of it, from the chimney's underside to the ceiling, across the chimney's full width.",
-      "note": "Enforced by the 3D renderer: the zone is reserved before anything else is placed and an intruding unit is left out of the scene and reported. Nothing is placed on or over the chimney either: its wall-tier slot gets no backsplash or filler. The one exception is the chimney's own panel (chimney-panel). An island hob's chimney hangs from a beam and is kept clear on both faces."
+      "note": "Enforced by the 3D renderer: the zone is reserved before anything else is placed and an intruding unit is left out of the scene and reported. Nothing is placed on or over the chimney either: its wall-tier slot gets no filler. The exceptions are the chimney's own panel (chimney-panel) and a backsplash the designer adds, which lies flat on the wall behind both the chimney and its panel. An island hob's chimney hangs from a beam and is kept clear on both faces."
     },
     {
       "id": "dishwasher-beside-sink",
@@ -1017,7 +1017,7 @@
       "backsplash_install": 300,
       "cabinet_install": 280,
       "cabinet_install_basis": "carcass net sqft",
-      "backsplash_area_basis": "dado: countertop top to wall-cabinet underside, only where a countertop runs under a wall cabinet or chimney slot"
+      "backsplash_area_basis": "opt-in: only the regions the designer adds in the Elevation, on bare wall (never behind a cabinet; the chimney slot is bare for its full height, so the stone does run behind the chimney and its panel); cut area includes 10mm behind each cabinet/countertop edge it touches, billed x 1.25; slab 2440x1220 (ui/backsplash.js)"
     }
   },
   "out_of_scope": [

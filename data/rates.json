@@ -4,6 +4,6 @@
   "rows": [
     { "item": "Cabinets",   "basis": "carcass net sqft",   "materialPerSqft": null, "installPerSqft": 280 },
     { "item": "Countertop", "basis": "countertop sqft",    "materialPerSqft": 551,  "installPerSqft": 780 },
-    { "item": "Backsplash", "basis": "backsplash (dado) sqft", "materialPerSqft": 551, "installPerSqft": 300 }
+    { "item": "Backsplash", "basis": "backsplash cut sqft x 1.25", "materialPerSqft": 551, "installPerSqft": 300 }
   ]
 }

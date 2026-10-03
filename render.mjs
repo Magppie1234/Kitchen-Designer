@@ -33,10 +33,28 @@ Erasing this lettering must not change the shape, size or position of the
 object it was printed on. An appliance keeps its exact outline, its exact
 controls and its exact placement — it simply carries no branding.`;
 
-const HOUSE = `Photographed as a high-end interior magazine shot. Soft natural daylight
-from a window outside the left of frame, plus warm under-cabinet lighting.
-Neutral colour grade, clean whites, no colour cast. Shot on a 35mm lens at
-eye level, vertical lines perfectly vertical. Uncluttered — no food, no
+// Lighting is artificial on purpose: asking for daylight made the model invent a window (or a
+// window's reflection) to explain it.
+const HOUSE = `Photographed as a high-end interior magazine shot. The lighting is artificial
+and even: bright, soft, neutral-white ambient light fills the whole room like a
+well-lit showroom, with no directional sunlight and no dim or evening mood.
+All of that light comes from the ceiling: small recessed downlights, flush
+with the ceiling, are the main light source. The ceiling is a simple recessed
+tray with a concealed cove strip around its edge; that strip is a warm accent
+only. The room needs no window to be bright, so never add one. Warm LED strips
+run under the wall cabinets and wash the wall below them — the space between
+wall cabinets and countertop stays exactly as in the source, with no shelves,
+niches or dividers added. Glass-fronted units and open shelves that already
+exist in the source may be gently lit from inside, but the glass stays clear
+and the shelves behind it stay visible. The floor and every appliance keep the
+colour they have in the source image.
+No sun patches or light beams on walls, floor or cabinets, and no reflections
+of windows or glazing bars on any surface — gloss shows only soft, linear
+highlights from the ceiling lights.
+Neutral colour grade, clean whites, no colour cast. Keep the source image's
+exact camera position, lens, field of view and perspective — do not zoom,
+crop, re-frame, straighten or correct the perspective; every edge in the
+result must sit on the same pixel as in the source. Uncluttered — no food, no
 clutter on the counters, at most one or two restrained styling objects.`;
 
 const NEGATIVE = `Do not render any text, watermarks, logos, brand names, or people.
@@ -48,6 +66,27 @@ microwave, shelf, splashback or cabinet. Where the source shows a plain panel,
 render a plain panel. A kitchen that looks incomplete is correct; a kitchen with
 equipment the model does not contain is wrong.`;
 
+// Last in the prompt on purpose: it is the rule a client notices first when it is broken.
+const HARD_RULE = `HARD RULE — this overrides everything else in this prompt.
+Never, under any circumstances, invent anything that is not in the source
+image: no cabinet, drawer, shelf, tall unit, wall unit, window, door, opening,
+appliance, sink, tap, hob, hood, furniture or architectural feature.
+
+A blank wall in the source stays a blank wall. Empty floor stays empty floor.
+Where a cabinet run ends in the source it ends at the same place in the
+result — never continue it along another wall or around a corner. Count the
+cabinets, windows and doors in the source: the result has exactly the same
+number of each, in exactly the same places.
+
+There are exactly two exceptions:
+1. A few small decoration pieces (a vase, a bowl, a plant, glassware), and only
+   standing on a countertop or on a glass shelf.
+2. The ceiling: one simple recessed tray with a concealed warm cove strip, plus
+   small recessed downlights flush with the ceiling, drawn on the ceiling only.
+   No pendant, chandelier, track light or any fitting that hangs below the
+   ceiling.
+Nothing may be added on the floor, on a wall or on a cabinet front.`;
+
 function styleAssignment(labels) {
   if (!labels.length) return '';
   return [
@@ -56,6 +95,11 @@ function styleAssignment(labels) {
     ...labels.map((l, i) => `- Reference image ${i + 1}: ${l}`), '',
     'Match each swatch\'s colour, grain, sheen and reflectivity on the surfaces it',
     'is assigned to.', '',
+    'On every surface a swatch is assigned to, the colour, grain and texture shown',
+    'in the source image are placeholders. Disregard them completely and replace',
+    'them with the assigned swatch; none of the source\'s original finish may show',
+    'through or blend with it. The source defines only the shape, edges and',
+    'position of those surfaces.', '',
     'Apply it to EVERY instance of those surfaces, with no exception. If a finish',
     'is assigned to the cabinet fronts, then every front carries it — the run',
     'under the window, the tall units, the appliance housing surrounds, the',
@@ -67,13 +111,23 @@ function styleAssignment(labels) {
     'Surfaces no swatch claims keep the material and colour they already have in',
     'the source image; do not introduce a second cabinet material that was not',
     'asked for.', '',
+    'Three things are never part of the cabinet fronts, and no swatch ever covers',
+    'them, whatever the assignments above say:',
+    '- Handles: the recessed profile handle running along the edge of a front, and',
+    '  any bar handle. Each keeps exactly the colour and material it has in the',
+    '  source image.',
+    '- Skirting: the plinth strip under the base and tall units is always brown, as',
+    '  in the source image.',
+    '- Glass units: the frames around glass doors and the edge linings of glass',
+    '  shelves are dark bronze-brown, as in the source image — never silver, chrome,',
+    '  steel or aluminium.', '',
     'Do not copy the swatches\' geometry, layout or framing, and do not draw the',
     'swatches themselves as objects, samples or panels anywhere in the scene.',
   ].join('\n');
 }
 
 export const composePrompt = (labels = []) =>
-  [GEOMETRY_LOCK, TEXT_REMOVAL, [HOUSE, styleAssignment(labels)].filter(Boolean).join('\n\n'), NEGATIVE].join('\n\n');
+  [GEOMETRY_LOCK, TEXT_REMOVAL, [HOUSE, styleAssignment(labels)].filter(Boolean).join('\n\n'), NEGATIVE, HARD_RULE].join('\n\n');
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const parseDataUrl = (url) => {

@@ -55,7 +55,11 @@ const LABEL_NODE=/^2D.?text|^DimText|^Dimension.?(chain|length)/i;
 const labelledModels=new Set();
 let labelsHidden=false;
 try{ labelsHidden=localStorage.getItem('kd.hideModelLabels')==='1'; }catch(e){}
-function showLabels(root){ root.traverse(o=>{ if(o.userData.modelLabel) o.visible=!labelsHidden; }); }
+// Plain scene (Render Portal capture view): no finish maps and no lettering — the AI render
+// gets bare geometry, so nothing in the source fights the finish it is asked to apply.
+let plain=false;
+function setPlain(on){ plain=on; for(const m of labelledModels) showLabels(m); }
+function showLabels(root){ root.traverse(o=>{ if(o.userData.modelLabel) o.visible=!labelsHidden&&!plain; }); }
 function tagLabels(root){
   let found=false;
   root.traverse(o=>{ if(LABEL_NODE.test(o.name||'')) o.traverse(c=>{ c.userData.modelLabel=true; found=true; }); });
@@ -257,6 +261,10 @@ function finishMesh(o,url,mapping,worldMm){
   o.material=new THREE.MeshStandardMaterial({map:tex,roughness:0.5,metalness:0.05});
 }
 function applyFinishToObject(root){
+  // plain: drop the texture a loaded model ships with, but only on the surfaces a render swatch
+  // replaces (shutters and panels, countertop, backsplash). Handles, skirting, glass-unit frames
+  // and the carcass keep the look they have in the walkthrough — the render must not refinish them.
+  if(plain){ if(root!==scene) root.traverse(o=>{ if(o.isMesh&&ROLE_MASK_COLOR[o.userData.role]!=null) for(const m of [].concat(o.material)) if(m.map){ m.map=null; m.needsUpdate=true; } }); return; }
   if(!FINISH) return;
   root.traverse(o=>{ if(!o.isMesh||!o.userData.role) return;
     if(o.userData.role==='cabinet') finishMesh(o,FINISH.cabinetImg,FINISH.mapping,FINISH.textureWorldMm);
@@ -797,6 +805,16 @@ function buildKitchen(plan, walls){
       }
     }
   }
+  // Backsplash regions the designer added in the Elevation, as {wallKey:[{x0,x1,z0,z1}]} in wall
+  // mm (x along the wall, z up). Only the Render Portal's capture view passes them, so the AI
+  // render sees exactly where the stone goes; 3D and the walkthrough stay without.
+  const BS_T=15;
+  for(const [key,rects] of Object.entries(plan.bsRects||{})){
+    const w=walls[+key.slice(1)]; if(!w) continue;
+    const dx=w.b[0]-w.a[0],dy=w.b[1]-w.a[1],len=Math.hypot(dx,dy)||1,u=[dx/len,dy/len],ang=Math.atan2(-dy,dx),n=KitchenGeometry.normal(w,walls);
+    for(const q of rects){ const along=(q.x0+q.x1)/2, b=box(q.x1-q.x0,q.z1-q.z0,BS_T,0xC3CED2);
+      b.position.copy(world(w.a[0]+u[0]*along+n[0]*BS_T/2,w.a[1]+u[1]*along+n[1]*BS_T/2,(q.z0+q.z1)/2)); b.rotation.y=ang; b.userData.role='backsplash'; g.add(b); }
+  }
   if(plan.island?.rules&&globalThis.IslandRules){
     const i=plan.island,r=i.rules,b=IslandRules.shape(i,r),ang=-(i.rotation||0)*Math.PI/180;
     const islandAt=(a,k,y)=>{ const [x,y2]=IslandRules.point(i,r,a,k); return world(x,y2,y); };
@@ -891,22 +909,26 @@ function teardown(){
   if(raf){ cancelAnimationFrame(raf); raf=null; }
   window.removeEventListener('keydown',keyDown); window.removeEventListener('keyup',keyUp); window.removeEventListener('blur',clearKeys); clearKeys();
   if(resizeObs){ resizeObs.disconnect(); resizeObs=null; }
+  if(camera&&controls instanceof PointerLockControls) walkPose={p:camera.position.clone(),q:camera.quaternion.clone()};
+  setPlain(false);
   if(controls){ try{controls.unlock&&controls.unlock();}catch(e){} try{controls.dispose&&controls.dispose();}catch(e){} controls=null; }
   if(renderer){ renderer.dispose(); const el=renderer.domElement; if(el&&el.parentNode)el.parentNode.removeChild(el); renderer=null; }
   disposeScene(); scene=null; camera=null;
 }
 let sceneRequest=0;
+let walkPose=null;   // where the last walk scene was standing: the capture view opens on the same angle
 function walkPointInside(x,z){
   const px=x/MM+bounds.cx,py=z/MM+bounds.cy;
   return KitchenGeometry.containsRect({x0:px-350,x1:px+350,y0:py-350,y1:py+350},roomWalls);
 }
-async function startScene(plan, walls, m, orbitId, walkId, hintId){
+async function startScene(plan, walls, m, orbitId, walkId, hintId, plainScene){
   if(!plan || !walls || !walls.length) return;
   mode=m||'orbit';
   container=document.getElementById(mode==='walk'?(walkId||'walkCanvas'):(orbitId||'view3d'));
   hint=document.getElementById(hintId||'walkHint');
   if(!container) return;
   if(renderer) teardown();
+  setPlain(!!plainScene);
   const request=++sceneRequest;
   await getManifest();
   chimneyModels=await appliancesOf('chimney');
@@ -937,6 +959,7 @@ async function startScene(plan, walls, m, orbitId, walkId, hintId){
         if(walkPointInside((x-bounds.cx)*MM,(y-bounds.cy)*MM)){camera.position.set((x-bounds.cx)*MM,1.6,(y-bounds.cy)*MM);break outer;}
       }
     }
+    if(walkPose&&walkPointInside(walkPose.p.x,walkPose.p.z)){ camera.position.copy(walkPose.p); camera.quaternion.copy(walkPose.q); }
     controls.addEventListener('lock',()=>{ if(hint)hint.style.display='none'; });
     controls.addEventListener('unlock',()=>{ clearKeys(); if(hint)hint.style.display='block'; });
     container.onclick=()=>{ try{controls.lock();}catch(e){} };
@@ -1041,8 +1064,16 @@ function flattenCanvas(bgHex){
 // composite the picked finish onto exactly the right pixels (see compositeFinishRender in the main
 // script) — Option B: no AI/backend call, pure canvas compositing.
 const ROLE_MASK_COLOR={cabinet:0xff0000,countertop:0x00ff00,backsplash:0x0000ff};
+// Snapshots are always exactly 16:9, whatever shape the pane is: the AI renderer only returns a
+// fixed set of shapes, and any mismatch makes it squash or re-frame the cabinets. Same pose and
+// vertical field of view. The Render Portal's capture pane (#rpWalk) is 16:9 itself, so what
+// you see is what is kept.
+const SNAP_W=1920, SNAP_H=1080;
 window.captureSnapshotPair=function(){
   if(!renderer||mode!=='walk'||!scene||!camera) return null;
+  const live=renderer.getSize(new THREE.Vector2()), livePr=renderer.getPixelRatio(), liveAspect=camera.aspect;
+  renderer.setPixelRatio(1); renderer.setSize(SNAP_W,SNAP_H,false);
+  camera.aspect=SNAP_W/SNAP_H; camera.updateProjectionMatrix();
   renderer.render(scene,camera);                      // ensure the buffer holds the CURRENT camera pose
   const photo=flattenCanvas('#EDE8DE').toDataURL('image/jpeg',0.86);
   const saved=[];
@@ -1053,7 +1084,10 @@ window.captureSnapshotPair=function(){
   renderer.render(scene,camera);
   const mask=flattenCanvas(null).toDataURL('image/png');   // png: lossless, keeps mask edges crisp
   saved.forEach(s=>{ s.mesh.material.dispose(); s.mesh.material=s.mat; });
-  scene.background=oldBg; renderer.render(scene,camera);   // restore the live view before returning
+  scene.background=oldBg;
+  renderer.setPixelRatio(livePr); renderer.setSize(live.x,live.y,false);
+  camera.aspect=liveAspect; camera.updateProjectionMatrix();
+  renderer.render(scene,camera);   // restore the live view before returning
   return {photo,mask};
 };
 window.stopScene=function(){ teardown(); if(hint)hint.style.display='block'; };

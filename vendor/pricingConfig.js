@@ -34,6 +34,11 @@ export function quoteConfig() {
   return quoteCache;
 }
 
+// Per-city site-visit, loading/unloading and transportation charges (data/city-rates.json).
+export function cityRates() {
+  return JSON.parse(readFileSync(join(ROOT, 'data', 'city-rates.json'), 'utf8'));
+}
+
 // Installation ₹/sqft per item (Cabinets, Countertop, Backsplash).
 export function installRates() {
   const out = {};
@@ -42,20 +47,15 @@ export function installRates() {
 }
 
 // Accessory prices: { name: [{ sn, width, price }] } — names from data/accessory-prices.json,
-// prices read from the Kitchen Accessories sheet (data/accessories-master). Unlisted names = ₹0.
+// prices read from the price master (data/accessory-price-master.json). Unlisted names = ₹0.
 export function accessoryPrices() {
-  const sheet = JSON.parse(readFileSync(join(ROOT, 'data', 'accessories-master', 'accessories-master.json'), 'utf8'))['Kitchen Accessories'];
-  const head = sheet.findIndex((r) => String(r[0]).trim().startsWith('S. NO'));
-  const col = (p) => sheet[head].findIndex((h) => String(h).trim().toUpperCase().startsWith(p));
-  const [SIZE, PRICE] = [col('SIZE'), col('PRICE')];
-  const bySn = new Map(sheet.slice(head + 1).filter((r) => Number(r[0]) > 0).map((r) => [Number(r[0]), r]));
-  const { map } = JSON.parse(readFileSync(join(ROOT, 'data', 'accessory-prices.json'), 'utf8'));
+  const { rows } = JSON.parse(readFileSync(join(ROOT, 'data', 'accessory-price-master.json'), 'utf8'));
+  const bySn = new Map(rows.map((r) => [r.sn, r]));
+  const { map, defaultSize = {} } = JSON.parse(readFileSync(join(ROOT, 'data', 'accessory-prices.json'), 'utf8'));
   const out = {};
   for (const [name, sns] of Object.entries(map)) {
-    out[name] = sns.filter((sn) => bySn.has(sn)).map((sn) => {
-      const r = bySn.get(sn);
-      return { sn, width: parseInt(String(r[SIZE]).replace(/^\D*/, ''), 10) || null, price: Math.round(Number(r[PRICE])) || 0 };
-    });
+    // `def` marks the size quoted until the designer picks one (defaultSize); `name` labels the picker.
+    out[name] = sns.filter((sn) => bySn.has(sn)).map((sn) => ({ sn, name: bySn.get(sn).name, width: bySn.get(sn).width, price: bySn.get(sn).price, ...(defaultSize[name] === sn && { def: true }) }));
   }
   return out;
 }
