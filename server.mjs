@@ -37,6 +37,7 @@ try { process.loadEnvFile(); } catch {} // optional .env (GEMINI_API_KEY for AI 
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const UI = join(ROOT, 'ui');
+const ACC_MEDIA = join(ROOT, 'data', 'accessories-master', 'media');
 const PORT = process.env.PORT || 5055;
 const { ok: CATALOG } = loadCatalog();
 
@@ -595,9 +596,12 @@ const app = createServer(async (req, res) => {
     if (NOT_WIRED[path]) return send(res, 501, { error: NOT_WIRED[path] });
 
     // static
-    const file = path === '/' ? '/builder.html' : path;
-    const full = join(UI, normalize(file).replace(/^[/\\]+/, ''));
-    if (!full.startsWith(UI)) return send(res, 403, { error: 'forbidden' });
+    // the accessory master's product photos stay in data/ (pre-sales PDF uses them)
+    const [base, file] = path.startsWith('/accessory-media/')
+      ? [ACC_MEDIA, path.slice('/accessory-media'.length)]
+      : [UI, path === '/' ? '/builder.html' : path];
+    const full = join(base, normalize(file).replace(/^[/\\]+/, ''));
+    if (!full.startsWith(base)) return send(res, 403, { error: 'forbidden' });
     if ((await stat(full)).isDirectory()) throw new Error('dir');
     const buf = await readFile(full);
     res.writeHead(200, {

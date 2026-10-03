@@ -1035,6 +1035,40 @@ window.renderElevation=function(plan,walls,key,{ceil=2700,px=1800}={}){
   if(elevCache.size>40) elevCache.delete(elevCache.keys().next().value);
   return job;
 };
+// Pre-sales deck: eye-level views of the finished kitchen from inside the room, one from each
+// corner that is inside it (up to `count`). Same build + queue as renderElevation, own camera.
+window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
+  const job=elevQ.then(async()=>{
+    await getManifest();
+    if(!chimneyModels.length) chimneyModels=await appliancesOf('chimney');
+    const saved=[roomWalls,bounds,wallMeshes];
+    tracked=[];
+    let g, b, rw, wm;
+    try{ g=buildKitchen(plan,walls); b=bounds; rw=roomWalls; wm=wallMeshes;
+      await Promise.race([settleLoads(),new Promise(r=>setTimeout(r,10000))]);
+    } finally{ tracked=null; [roomWalls,bounds,wallMeshes]=saved; }
+    for(const m of wm){ m.mesh.material.transparent=false; m.mesh.material.opacity=1; m.mesh.visible=true; }
+    g.traverse(o=>{ if(o.userData.modelLabel) o.visible=false; });
+    const sc=new THREE.Scene(); sc.add(g); if(FINISH) applyFinishToObject(sc);
+    sc.add(new THREE.HemisphereLight(0xffffff,0x6b6b5a,1.5));
+    const dl=new THREE.DirectionalLight(0xfff2d8,0.9); dl.position.set(2,5,1.5); sc.add(dl);
+    if(!elevR){ elevR=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); elevR.outputColorSpace=THREE.SRGBColorSpace; }
+    elevR.setSize(w,h,false); elevR.setClearColor(0xEDE8DE,1);
+    const cam=new THREE.PerspectiveCamera(68,w/h,0.05,40), out=[];
+    for(const [x,y] of [[b.minx,b.maxy],[b.maxx,b.maxy],[b.maxx,b.miny],[b.minx,b.miny]]){
+      // ponytail: fixed 85%-to-the-corner pose; a pose picker if sales want framed shots
+      const px=b.cx+(x-b.cx)*0.85, py=b.cy+(y-b.cy)*0.85;
+      if(!KitchenGeometry.containsRect({x0:px-300,x1:px+300,y0:py-300,y1:py+300},rw)) continue;
+      cam.position.set((px-b.cx)*MM,1.6,(py-b.cy)*MM); cam.lookAt(0,1.1,0);
+      elevR.render(sc,cam); out.push(elevR.domElement.toDataURL('image/jpeg',0.88));
+      if(out.length>=count) break;
+    }
+    g.userData.active=false; disposeScene(sc);
+    return out;
+  });
+  elevQ=job.catch(()=>{});
+  return job;
+};
 // Read-only diagnostics for the local verification page: measure actual rendered
 // objects after transforms/model loading, rather than echoing requested sizes.
 window.inspectSceneGeometry=function(){
