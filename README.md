@@ -14,7 +14,7 @@ Use Node.js 22.13 or newer with built-in `node:sqlite` support.
 npm start
 ```
 
-Open <http://localhost:5055/builder.html>.
+Open [http://localhost:5055/builder.html](http://localhost:5055/builder.html).
 
 For automatic server restart during development:
 
@@ -46,4 +46,4 @@ Keep the `verification/` fixtures: several automated tests read them.
 Saved projects and layout versions live in the local `db/design.sqlite` database,
 which is created automatically. Set `DESIGN_DB` to use a different database path.
 Local databases, credentials, dependencies, logs and backup folders are excluded
-from Git. Back up the design database separately to preserve existing projects.
+from Git. Back up the design database separately to preserve existing projects..

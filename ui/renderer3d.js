@@ -1035,6 +1035,7 @@ window.renderElevation=function(plan,walls,key,{ceil=2700,px=1800}={}){
   if(elevCache.size>40) elevCache.delete(elevCache.keys().next().value);
   return job;
 };
+<<<<<<< HEAD
 // Pre-sales deck: eye-level views of the finished kitchen from inside the room, one from each
 // corner that is inside it (up to `count`). Same build + queue as renderElevation, own camera.
 window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
@@ -1069,6 +1070,8 @@ window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
   elevQ=job.catch(()=>{});
   return job;
 };
+=======
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 // Read-only diagnostics for the local verification page: measure actual rendered
 // objects after transforms/model loading, rather than echoing requested sizes.
 window.inspectSceneGeometry=function(){

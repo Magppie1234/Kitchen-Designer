@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // ui/quote-pdf.js — the client estimate PDF ("Export Estimate" on the quote step).
+=======
+// ui/quote-pdf.js — the client estimate PDF ("Download PDF" on the quote step).
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 // Every number comes from the same projectQuote()/quoteMath() the quote screen shows; only the
 // text below is fixed. Drawn with jsPDF + autoTable and saved straight to a file — no print page.
 (function(root){
@@ -65,17 +69,25 @@ If at any stage, you would like to talk to our founders, please drop the WhatsAp
   const rs=n=>(n<0?'- ':'')+'Rs '+Math.abs(Math.round(n||0)).toLocaleString('en-IN');
   const sum=(a,f)=>a.reduce((t,x)=>t+f(x),0);
 
+<<<<<<< HEAD
   // Everything both estimate layouts print, from the same projectQuote() the quote screen shows.
   function gather(){
     if(!root.jspdf){ showToast('PDF library did not load — check the internet connection and reload.'); return null; }
     const pq=projectQuote(), priced=pq.rows.filter(r=>r.priced);
     if(!priced.length){ showToast('Generate a design first.'); return null; }
+=======
+  function downloadQuotePdf(){
+    if(!root.jspdf){ showToast('PDF library did not load — check the internet connection and reload.'); return; }
+    const pq=projectQuote(), priced=pq.rows.filter(r=>r.priced);
+    if(!priced.length){ showToast('Generate a design first.'); return; }
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
     const rooms=priced.map(row=>withRoom(row.room,()=>({name:row.room.name, q:row.q, acc:quoteAccItems(),
       series:seriesLabel(row.room.seriesId), group:finishGroupLabel(row.room.seriesId), finish:S.options.lookName, handle:S.handle,
       counterName:S.options.counterName||'Matched to finish', bsName:S.options.backsplashName||S.options.counterName||'Matched to counter'})));
     const cc=pq.cc, gstPct=Math.round(((S.quoteCfg||{}).gstRate??0.18)*100);
     const T={cab:sum(rooms,r=>r.q.cabinets), acc:sum(rooms,r=>r.q.accessories+r.q.sinkAccAmt+r.q.fridgeAccAmt),
       ctop:sum(rooms,r=>r.q.counter), wall:sum(rooms,r=>r.q.wallpanel), svc:sum(rooms,r=>r.q.sectB)+cc.svcVisits+cc.lu+cc.transport};
+<<<<<<< HEAD
     const now=new Date(), fmt=d=>[d.getDate(),d.getMonth()+1,d.getFullYear()].map(n=>String(n).padStart(2,'0')).join('-');
     const date=fmt(now), validTill=fmt(new Date(now.getTime()+14*864e5));
     const client=S.project.client||'Client', seriesNames=[...new Set(rooms.map(r=>r.series))].join(' / ');
@@ -93,6 +105,10 @@ If at any stage, you would like to talk to our founders, please drop the WhatsAp
   function downloadQuotePdf(){
     const G=gather(); if(!G) return;
     const {pq,rooms,cc,gstPct,T,date,client,seriesNames,svc}=G;
+=======
+    const now=new Date(), date=[now.getDate(),now.getMonth()+1,now.getFullYear()].map(n=>String(n).padStart(2,'0')).join('-');
+    const client=S.project.client||'Client', seriesNames=[...new Set(rooms.map(r=>r.series))].join(' / ');
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 
     const doc=new root.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=30;
     let y=M;
@@ -141,6 +157,16 @@ If at any stage, you would like to talk to our founders, please drop the WhatsAp
       columnStyles:{0:{cellWidth:30,halign:'center'},1:{cellWidth:72,fontStyle:'bold',textColor:GREEN},2:{cellWidth:95},4:{halign:'right',cellWidth:58},5:{halign:'right',cellWidth:66},6:{halign:'right',cellWidth:76},7:{halign:'right',cellWidth:76,fontStyle:'bold'}}});
 
     // ---- cost summary & services ----
+<<<<<<< HEAD
+=======
+    const multi=rooms.length>1, tag=r=>multi?' — '+r.name:'';
+    const svc=[...rooms.flatMap(r=>[['Cabinet Installation Cost','Carcass, hardware, fascia, lighting and skirting'+tag(r),r.q.cabSqft,r.q.R.cab,r.q.svcCab],
+        ['Countertop Installation','Countertop fixing at site'+tag(r),r.q.ctopSqft,r.q.R.ctop,r.q.svcCtop],
+        ['Installation, Wall Panelling','Wall panelling / backsplash fixing at site'+tag(r),r.q.wallPanelSqft,r.q.R.wall,r.q.svcWall]]),
+      ['Site Visit Charges','Four supervisor visits: measurement, EPT marking and PDI',cc.visits,cc.visitRate,cc.svcVisits],
+      ['Loading Unloading\n(Including Countertop & Wall Panelling)','Countertop and wall-panelling handling',1,cc.lu,cc.lu],
+      ['Transportation\n(Including Countertop & Wall Panelling)','Countertop and wall-panelling transport',1,cc.transport,cc.transport]].filter(s=>s[4]);
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
     const A=T.cab+T.acc+T.ctop+T.wall;
     table({pageBreak:'avoid',head:[[{content:'COST SUMMARY & SERVICES',colSpan:7}],['S.No','Area Name','Product','Specs',{content:'Qty/Unit',styles:right},{content:'Price',styles:right},{content:'Amount',styles:right}]],
       columnStyles:{0:{cellWidth:30},1:{cellWidth:72},2:{cellWidth:150},4:{halign:'right',cellWidth:58},5:{halign:'right',cellWidth:66},6:{halign:'right',cellWidth:100}},
@@ -167,6 +193,7 @@ If at any stage, you would like to talk to our founders, please drop the WhatsAp
     doc.save(`Estimate_${client.replace(/[^\w]+/g,'_')}_${date}.pdf`);
     return doc;
   }
+<<<<<<< HEAD
   // ---------------------------------------------------------------------------------------
   // The redesigned estimate: A4 portrait in the app's own palette (ink, cream, gold), the
   // Magppie logo, a share-of-spend summary, a compact spec sheet instead of one tall cell,
@@ -321,4 +348,7 @@ If at any stage, you would like to talk to our founders, please drop the WhatsAp
   }
   root.downloadQuotePdf=downloadQuotePdf;
   root.downloadQuotePdfV2=downloadQuotePdfV2;
+=======
+  root.downloadQuotePdf=downloadQuotePdf;
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 })(globalThis);

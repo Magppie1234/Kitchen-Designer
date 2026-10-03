@@ -37,7 +37,10 @@ try { process.loadEnvFile(); } catch {} // optional .env (GEMINI_API_KEY for AI 
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const UI = join(ROOT, 'ui');
+<<<<<<< HEAD
 const ACC_MEDIA = join(ROOT, 'data', 'accessories-master', 'media');
+=======
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 const PORT = process.env.PORT || 5055;
 const { ok: CATALOG } = loadCatalog();
 

@@ -380,8 +380,13 @@
       <div id="quoteSeriesCmp" style="border:1px solid #EEE7DA;border-radius:12px;overflow:auto"></div>
       <div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Simplified in-app summary computed from your real generated layout. The downloadable PDF includes full specs, certifications, payment terms (50/30/20), guarantee &amp; sign-off. <b>Excludes</b> appliances, sink, faucet.</div>
       <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
+<<<<<<< HEAD
         <button class="btn" onclick="presalesPdf()" style="flex:1;min-width:220px;padding:15px;font-size:15px">⤓ Pre-sales PDF</button>
         <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Export Estimate</button>
+=======
+        <button class="btn" onclick="go('handoff')" style="flex:1;min-width:220px;padding:15px;font-size:15px">Speak to our Wellness Advisor</button>
+        <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Download PDF</button>
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
       </div>
     </div>
   </div>
@@ -6575,6 +6580,42 @@ async function shareNow(){
     catch(_){ prompt('Client share link (revision '+out.revision.number+'):',url); }
   }catch(e){ showToast('Share failed: '+e.message); }
 }
+<<<<<<< HEAD
+=======
+function presalesPdf(){
+  if(!S.plan){ showToast('Generate a design first.'); return; }
+  const q=quoteMath(), pq=projectQuote();
+  const svg=$('view2d')&&$('view2d').innerHTML?`<svg viewBox="0 0 680 520" style="width:100%">${$('view2d').innerHTML}</svg>`:'';
+  const snaps=(S.snapshots||[]).map(s=>s.rendered||s.img).filter(Boolean);
+  const acc=((S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)}</td><td style="text-align:center">×${a.qty||1}</td></tr>`).join('');
+  const bomRows=Object.entries(S.plan.bom||{}).sort().map(([c,n])=>`<tr><td>${esc(c)}</td><td style="text-align:center">${n}</td></tr>`).join('');
+  const w=window.open('','_blank'); if(!w){ showToast('Pop-up blocked — allow pop-ups to export the PDF.'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(activeRoom().name)} — Pre-sales</title>
+  <style>@page{size:A4;margin:14mm} body{font-family:system-ui,sans-serif;color:#2A2722;margin:0}
+  h1{font-size:22px;font-weight:500;margin:0 0 2px} h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8A8579;margin:18px 0 8px}
+  .meta{font-size:11px;color:#6B675E} table{width:100%;border-collapse:collapse;font-size:11px} td,th{padding:4px 6px;border-bottom:1px solid #EEE9DE;text-align:left}
+  img{max-width:100%;border-radius:6px;margin-bottom:6px;page-break-inside:avoid} .tot{font-size:15px;font-weight:700}</style></head><body>
+  <h1>${esc((S.project.client||'Client'))}'s Kitchen — ${esc(activeRoom().name)}</h1>
+  <div class="meta">${esc(seriesLabel(activeRoom().seriesId))} series · ${esc(S.options.lookName||'')} finish · ${esc(S.project.city||'')} · ${new Date().toLocaleDateString()}</div>
+  <h2>Floor plan — cabinets, countertop & backsplash</h2>${svg||'<div class="meta">2D plan not rendered.</div>'}
+  ${snaps.length?`<h2>Perspective views (chosen finish)</h2>${snaps.map(s=>`<img src="${s}">`).join('')}`:''}
+  ${acc?`<h2>Accessories</h2><table>${acc}</table>`:''}
+  <h2>Module schedule</h2><table><tr><th>SKU</th><th style="text-align:center">Qty</th></tr>${bomRows}</table>
+  <h2>Estimate</h2><table>
+  <tr><td>Cabinets & accessories</td><td style="text-align:right">${inr(q.cabinets+q.accessories+q.sinkAccAmt+q.fridgeAccAmt)}</td></tr>
+  <tr><td>Countertop (${q.p.counterSqft||0} sqft)</td><td style="text-align:right">${inr(q.counter)}</td></tr>
+  <tr><td>Backsplash (${q.wallPanelSqft} sqft)</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr>
+  <tr><td>Installation</td><td style="text-align:right">${inr(q.sectB)}</td></tr>
+  ${pq.rows.length>1?`<tr><td>Other rooms in this project</td><td style="text-align:right">${inr(pq.sub-q.beforeGst)}</td></tr>`:''}
+  <tr><td>Site visits, loading & transportation${pq.cc.city?' · '+esc(pq.cc.city):''} (once for the project)</td><td style="text-align:right">${inr(pq.cc.svcVisits+pq.cc.lu+pq.cc.transport)}</td></tr>
+  ${pq.disc?`<tr><td>Discount</td><td style="text-align:right">${inr(pq.disc)}</td></tr>`:''}
+  <tr><td>GST</td><td style="text-align:right">${inr(pq.gst)}</td></tr>
+  <tr><td class="tot">Project estimate</td><td class="tot" style="text-align:right">${inr(pq.total)}</td></tr></table>
+  <div class="meta" style="margin-top:14px">Indicative pre-sales estimate. Appliances are supplied by the client and never priced. Magppie AI Kitchen Designer.</div>
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+  w.document.close();
+}
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 /* ---------- room switcher (Step 3.3) — out of the way on single-room projects ---------- */
 function roomSwitch(){
   if(S.rooms.length<2){ goDash(); return; }
@@ -7800,7 +7841,10 @@ render();   // mounts the desk, which loads projects + workload from the design 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="quote-pdf.js"></script>
+<<<<<<< HEAD
 <script src="presales-pdf.js"></script>
+=======
+>>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 <script type="module" src="renderer3d.js"></script>
 </body>
 </html>
