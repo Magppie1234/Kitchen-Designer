@@ -285,12 +285,6 @@
       <div id="resWalk" style="display:none;position:absolute;inset:0">
         <div id="resWalkCanvas" style="width:100%;height:100%;background:transparent;cursor:pointer"></div>
         <div id="resWalkHint" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#5b554a;font-size:13px;pointer-events:none">Click to look around<br/><span style="opacity:.7">W A S D move · mouse look · Esc release</span></div>
-        <!-- Snapshot capture: up to 3 walkthrough angles feed the Render Portal for the AI finish render -->
-        <div style="position:absolute;left:16px;top:16px;z-index:15;display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:280px">
-          <button id="snapCaptureBtn" onclick="captureWalkSnapshot()" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:none;border-radius:9px;background:rgba(30,28,24,.82);color:#F4F1EB;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px -8px rgba(0,0,0,.5)">📸 Capture snapshot<span id="snapCount" style="opacity:.7;font-weight:500"></span></button>
-          <div id="snapCapMsg" style="font-size:10.5px;font-weight:600;color:#F4C77A;background:rgba(30,28,24,.78);padding:6px 10px;border-radius:8px;display:none"></div>
-          <div id="snapStrip" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
       </div>
       <!-- bottom-right actions: Open Render Portal (above) + Generate Quote. The render button reuses
            the SAME Render Portal screen (scr-render / renderRenderPortal) reached via go('render'). -->
@@ -379,18 +373,15 @@
       <div style="font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--sage);margin-bottom:12px">B · Services <span style="color:var(--muted2);font-weight:500;text-transform:none;letter-spacing:0">· computed from your design quantities</span></div>
       <div id="quoteSectionB" style="border:1px solid #EEE7DA;border-radius:12px;overflow:hidden;margin-bottom:24px"></div>
       <div style="background:#F8F5EF;border:1px solid #EEE7DA;border-radius:12px;padding:18px 20px">
-        <div onclick="toggleDiscount()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 0;border-bottom:1px dashed #E0D8C8">
-          <div style="display:flex;align-items:center;gap:10px"><span id="discBox" style="width:18px;height:18px;border-radius:5px;border:1.5px solid #C3B89F;background:#fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700"></span><span style="font-size:13px;font-weight:600;color:#6B675E">Apply Wellness Courtesy discount</span></div>
-          <span id="qDisc" style="font-size:13px;font-weight:600;color:var(--accent)">₹0</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px;color:#6B675E"><span>Total A + B (excl. GST)</span><span id="qBeforeGst" style="font-weight:600"></span></div>
-        <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px;color:#6B675E;border-bottom:1px solid #E8E1D3"><span>GST @ 18%</span><span id="qGst" style="font-weight:600"></span></div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:14px"><span style="font-family:'Spectral',serif;font-size:18px;font-weight:600">Room Total <span id="qGrandRoom" style="font-family:inherit;font-size:12px;font-weight:500;color:var(--muted2)"></span></span><span id="qGrand" style="font-family:'Spectral',serif;font-size:26px;font-weight:600;color:var(--accent)"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Spectral',serif;font-size:18px;font-weight:600">Room subtotal A + B <span id="qGrandRoom" style="font-family:inherit;font-size:12px;font-weight:500;color:var(--muted2)"></span></span><span id="qGrand" style="font-family:'Spectral',serif;font-size:26px;font-weight:600;color:var(--accent)"></span></div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:8px;line-height:1.6">Excl. GST. Site visits, loading, transportation, discount and GST are charged once for the whole project — see Project total above.</div>
       </div>
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink);margin:26px 0 12px">Series comparison <span style="color:var(--muted2);font-weight:500;text-transform:none;letter-spacing:0">· approx., this room · only the cabinet rate changes</span></div>
+      <div id="quoteSeriesCmp" style="border:1px solid #EEE7DA;border-radius:12px;overflow:auto"></div>
       <div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Simplified in-app summary computed from your real generated layout. The downloadable PDF includes full specs, certifications, payment terms (50/30/20), guarantee &amp; sign-off. <b>Excludes</b> appliances, sink, faucet.</div>
       <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
         <button class="btn" onclick="go('handoff')" style="flex:1;min-width:220px;padding:15px;font-size:15px">Speak to our Wellness Advisor</button>
-        <button class="btn ghost" style="padding:15px 22px;font-size:14px">⤓ Download PDF</button>
+        <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Download PDF</button>
       </div>
     </div>
   </div>
@@ -478,7 +469,7 @@
     <div style="padding:26px 30px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Your Name</label><input id="suClient" class="tf" style="margin-top:6px" oninput="setProject('client',this.value)"></div>
       <div><label style="font-size:12px;font-weight:600;color:#6B675E">Architect / Designer</label><input id="suArch" class="tf" style="margin-top:6px" placeholder="Optional" oninput="setProject('architect',this.value)"></div>
-      <div><label style="font-size:12px;font-weight:600;color:#6B675E">City</label><input id="suCity" class="tf" style="margin-top:6px" oninput="setProject('city',this.value)"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#6B675E">City</label><select id="suCity" class="tf" style="margin-top:6px" onchange="setProject('city',this.value)"><option value="">Select city…</option></select></div>
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Budget range</label>
         <div id="suBudget" style="display:flex;gap:8px;margin-top:7px"></div>
       </div>
@@ -538,6 +529,7 @@
 <script src="finishes.js"></script>
 <script src="geometry.js"></script>
 <script src="island-rules.js"></script>
+<script src="backsplash.js"></script>
 <script src="rule-log.js"></script>
 <script src="detailed-plan.js"></script>
 <script src="cabinet-catalog.js"></script>
@@ -797,7 +789,7 @@ const S={
   // setup — never per room. Scratch projects add as many rooms as they like, all drawn
   // from scratch; upload projects read their rooms out of one drawing (which may hold
   // several kitchens). Lives in project.details, so it persists with the project.
-  project:{client:'Abhinav Arora',architect:'',budget:'Premium',city:'Gurugram',timeline:'1–3 months',type:'Villa',method:null},
+  project:{client:'Abhinav Arora',architect:'',budget:'Premium',city:'Gurgaon',timeline:'1–3 months',type:'Villa',method:null,discount:0},
   method:null, shape:null, view:'2d', activeStep:null,
   steps:{hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]},
   // HOB guided-config state (§ new hob flow). `size` 600|900, `drawerCount` 2|3, and `drawers`
@@ -826,6 +818,7 @@ const S={
   // Built-In default); `type` + options.appliances are derived from it (engine wiring).
   fridge:{pick:null,type:null,width:600,accessories:[]},
   handle:null, look:null, material:'Calacatta Veined', rendered:false, discount:false,
+  accSizes:{},   // chosen size (price-master S.No.) per multi-size accessory: {name: sn} — see accSizeSelect
   selectedCab:null,
   // engine state
   traceImage:null,   // uploaded JPEG/PNG (or non-vector PDF fallback) shown as a Layout background to trace over
@@ -843,8 +836,10 @@ const S={
   // options.zones; lib/zones.js is the authority on what they mean. An empty list means
   // "decide for me", which is exactly how the app behaved before zones existed.
   zones:[],
-  snapshots:[],   // walkthrough captures {id,img,mask,rendered,renderedFinish} — fed to the Render Portal
+  snapshots:[],   // Render Portal captures {id,img,mask,bs,picks,rendered,renderedFinish}
+  rpSlot:'cab',   // Render Portal: the finish slot a tile click fills (cab | ctop | bs)
   rpActive:null, rpForceRepick:false,   // Render Portal: id of the snapshot currently open (null = gallery)
+  rpCapture:false,   // Render Portal: the plain 16:9 capture view is open
   structures:[], structArm:null, _dragged:false, planResult:null, tier:'Free',
   roomHeightUnit:'mm',
   fieldErr:null,   // {key,msg} — inline validation error for the currently-selected element's field
@@ -877,7 +872,7 @@ window.S=S; window.API=API;
    ==================================================================== */
 const ROOM_STATE_KEYS=[
   'method','shape','view','activeStep','steps','hob','sink','fridge','unlockedStages',
-  'handle','look','material','rendered','discount','selectedCab',
+  'handle','look','material','rendered','discount','accSizes','selectedCab',
   'traceImage','upload','kdetect','dims','room','walls','suggested','islandInfo',
   'anchors','openings','selFx','placing','arm','modules','snapshots','rpActive','rpForceRepick',
   'structures','structArm','_dragged','planResult','roomHeightUnit','fieldErr','_tf',
@@ -1030,7 +1025,7 @@ function go(screen){
 // whichever one is open, or it's left floating over whatever screen Back
 // restores underneath it.
 function closeAllModals(){
-  ['modalSetup','modalStep','modalTemplate','modalRoom','modalMethod','modalRevisions','modalSeries','modalRuleLog','modalFinishes','modalSchedule','modalCompare','modalDeskObs','moreMenu','roomMenu'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
+  ['modalSetup','modalStep','modalTemplate','modalRoom','modalMethod','modalRevisions','modalSeries','modalRuleLog','modalFinishes','modalSchedule','modalCompare','modalDeskObs','modalRpFinish','moreMenu','roomMenu'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
   S.activeStep=null;
 }
 // Back/Forward: restore the screen from history state instead of re-pushing it
@@ -1139,7 +1134,10 @@ function renderBudgets(){
       <div style="font-size:10.5px;color:${on?'#C07a63':'var(--muted2)'};margin-top:2px">${b.range}</div></button>`;
   }).join('');
 }
-function submitSetup(){ S.setupDone=true; $('modalSetup').style.display='none'; dsUpdateProject(); renderChrome(); renderDashboard();
+function submitSetup(){
+  // The city must be one we deliver to (data/city-rates.json) - it prices site visits and freight.
+  if(S.cityCfg){ if(!$('suCity').value){ showToast('Select your city from the list.'); return; } S.project.city=$('suCity').value; }
+  S.setupDone=true; $('modalSetup').style.display='none'; dsUpdateProject(); renderChrome(); renderDashboard();
   // "How would you like to begin?" is asked ONCE per project, right after setup.
   if(!S.project.method) openMethodModal(); }
 function goDash(){ if(S.setupDone) go('dashboard'); }
@@ -4299,7 +4297,7 @@ function cfgDesc(key){ const e=cfg(key); return e&&e.desc||null; }
 // These product photos are tall/portrait, so they read better fully-contained (zoomed out) rather
 // than cropped to fill. Everything else uses object-fit:cover.
 const CONTAIN_IMGS=new Set(['Tark System','Tandem Pantry','Pantry','Kubos','Fridge Built-In','Fridge Free Standing','Waste Bin – 30 L × 2','Waste Bin PVC – 14 L × 2',
-  'Bottle Pull-Out – Single','Bottle Pull-Out – Double','Bottle Pull-Out – Triple','Waste Bin Pull-Out']);
+  'Bottle Pull-Out – Single','Bottle Pull-Out – Double','Waste Bin Pull-Out']);
 function cfgFit(key){ return CONTAIN_IMGS.has(key)?'contain':'cover'; }
 function renderStepModal(){
   const st=STEPS[S.activeStep]; if(!st)return;
@@ -4710,7 +4708,7 @@ function renderHobWizard(){
    toggle (900/1200, wide picks only) + width-specific accessory groups:
      600  → Bottle Pull-Out (Single) + ONE of Waste Bin Pull-Out / RO (space for one)
      900  → Bottle Pull-Out (Single or Double) + Waste Bin Pull-Out + RO
-     1200 → Bottle Pull-Out (Single or Triple) + Waste Bin Pull-Out + RO
+     1200 → Bottle Pull-Out (Single or Double) + Waste Bin Pull-Out + RO
    `type` (compact|double) + `doubleSize` stay maintained exactly as before — the rule
    bridge (sinkW/sinkOpt), the sink anchor elevation (A/B) and the quote read them
    unchanged. Veggie Sink is its OWN step tile now (renderVeggieWizard); its state
@@ -4726,8 +4724,7 @@ function sinkWidth(){ const s=S.sink; return s.pick==='600'?600:(s.doubleSize||9
 // space takes either the waste bin OR the RO, so they share one group there.
 function sinkAccGroups(){ const w=sinkWidth();
   const bottle = w===600?['Bottle Pull-Out – Single']
-    : w===900?['Bottle Pull-Out – Single','Bottle Pull-Out – Double']
-    : ['Bottle Pull-Out – Single','Bottle Pull-Out – Triple'];
+    : ['Bottle Pull-Out – Single','Bottle Pull-Out – Double'];
   return w===600
     ? [ {label:'Bottle Pull-Out',items:bottle},
         {label:'Under-sink — space for one',items:['Waste Bin Pull-Out','RO Water Purifier']} ]
@@ -5115,6 +5112,7 @@ async function generate(){
     if(activeRoom()!==owner) {owner.design.plan=plan;owner.design.generationFailure=null;return;}
     if(S.plan)await dsRevision('before-generation',{required:true});
     if(activeRoom()!==owner||owner._buildRequest!==requestId||buildFingerprint(S)!==sourceInput)return;
+    if(S.plan?.backsplash&&!plan.backsplash)plan.backsplash=S.plan.backsplash;   // kept across a regenerate; any piece now behind a cabinet drops out
     S.plan=plan;S.generationFailure=null;
     applyCorrections(plan);
   }catch(err){
@@ -5262,7 +5260,8 @@ function toggleModelLabels(){
   renderLabelToggle();
 }
 function setResultView(v){
-  S.view=v; renderResultTabs();
+  S.view=v; if(v!=='elev') S.bsMode=false;   // adding backsplash is an Elevation-only mode
+  renderResultTabs();
   if(v==='3d'||v==='walk') closeLibPanel();   // editing lives in 2D + elevation only (Stage 6.2)
   $('resPlanWrap').style.display=v==='2d'?'flex':'none';
   $('resElevWrap').style.display=v==='elev'?'flex':'none';   // column: the drawing fits the panel's height too
@@ -5273,23 +5272,22 @@ function setResultView(v){
     // live price line — modules · total · ₹/sqft, refreshed again by every reprice
     $('resPlanMeta').textContent=S.plan?`${Object.values(S.plan.bom||{}).reduce((a,b)=>a+b,0)} modules${S.plan.price?` · ${inr(S.plan.price.breakdown.total)} · ${inr(S.plan.price.rate)}/sqft`:''}`:''; }
   else if(v==='elev'){ if(window.stopScene)window.stopScene(); apply3DFinish(); drawElevation(); }   // the render uses the chosen finish
-  else { const p=S.plan?.island?S.plan:S.reResult?engineToPlan():S.plan; if(p&&!p.openings)p.openings=S.openings;
-    apply3DFinish();   // 7.1: the scene opens in the chosen/series-default finish, never beige
-    if(window.startScene)window.startScene(p,S.walls,v==='walk'?'walk':'orbit','res3d','resWalkCanvas','resWalkHint'); }
-  if(v==='walk') renderSnapshotBar();
+  else { apply3DFinish();   // 7.1: the scene opens in the chosen/series-default finish, never beige
+    if(window.startScene)window.startScene(scenePlan(),S.walls,v==='walk'?'walk':'orbit','res3d','resWalkCanvas','resWalkHint'); }
 }
+function scenePlan(){ const p=S.plan?.island?S.plan:S.reResult?engineToPlan():S.plan; if(p&&!p.openings)p.openings=S.openings; return p; }
 const SNAP_MAX=3;
-// Grabs the CURRENT walkthrough frame (captureSnapshotPair re-renders right before reading the canvas)
-// as a jpeg photo PLUS a same-pose role mask (cabinet/countertop/backsplash — see captureSnapshotPair
-// in the module script). The mask is what lets Render with AI later composite the picked finish onto
-// exactly the right surfaces (compositeFinishRender). Capped at SNAP_MAX (3) — at the cap the button
-// disables with a reason (same disabled+reason pattern used for the Island step), rather than
-// prompting to overwrite, since a direct ✕ remove is already one tap away in the strip below.
+// Grabs the CURRENT frame of the Render Portal's capture view (captureSnapshotPair re-renders right
+// before reading the canvas) as a jpeg photo PLUS a same-pose role mask (cabinet/countertop/backsplash
+// — see captureSnapshotPair in the module script). The mask is what lets Render with AI later composite
+// the picked finish onto exactly the right surfaces (compositeFinishRender). Capped at SNAP_MAX (3) —
+// at the cap the button disables with a reason (same disabled+reason pattern used for the Island step),
+// rather than prompting to overwrite, since a direct ✕ remove is already one tap away in the strip below.
 function captureWalkSnapshot(){
   if(S.snapshots.length>=SNAP_MAX) return;
   const pair=window.captureSnapshotPair&&window.captureSnapshotPair();
   if(!pair||!pair.photo) return;
-  S.snapshots.push({id:'shot'+Date.now()+Math.random().toString(36).slice(2,6),img:pair.photo,mask:pair.mask});
+  S.snapshots.push({id:'shot'+Date.now()+Math.random().toString(36).slice(2,6),img:pair.photo,mask:pair.mask,bs:Object.keys(captureBsRects()).length>0});
   renderSnapshotBar();
   showToast(`Snapshot saved (${S.snapshots.length}/${SNAP_MAX})`);
 }
@@ -5752,25 +5750,57 @@ function renderPopLooks(){ $('popLooks').innerHTML=LOOKS.map(l=>lookCell(l,11)).
 // Entry point for every "Open Render Portal" button. Zero snapshots -> the empty state (below)
 // handles telling the user to go capture one; otherwise always re-open on the gallery, never
 // mid-flow on whatever snapshot was last active.
-function openRenderPortal(){ S.rpActive=null; S.rpForceRepick=false; go('render'); }
-function jumpToWalkthrough(){ go('result'); setResultView('walk'); }
-function openSnapshotFull(id){ S.rpActive=id; S.rpForceRepick=false; renderRenderPortal(); window.scrollTo(0,0); }
+function openRenderPortal(){ S.rpActive=null; S.rpForceRepick=false; S.rpCapture=false; go('render'); }
+// Capture view: the walkthrough scene again, but plain (no finish, no lettering) in a 16:9 pane.
+function openCapture(){ S.rpCapture=true; S.rpActive=null; renderRenderPortal(); window.scrollTo(0,0); }
+function closeCapture(){ S.rpCapture=false; if(window.stopScene)window.stopScene(); renderRenderPortal(); }
+// The backsplash areas added in the Elevation, per wall, for the capture scene to draw as panels.
+function captureBsRects(){ const out={};
+  for(const key of Object.keys(S.plan?.backsplash||{})){ const l=bsLayout(key); if(l&&l.regions.length) out[key]=l.regions.map(r=>r.rect); }
+  return out; }
+/* Render picks: one finish each for cabinets, countertop and backsplash — three at most, kept on
+   the snapshot. Render-only: the design's own finish and the quote are never touched. Cabinets is
+   every front plus the visible, filler and chimney panels, so they can never be split. A null
+   countertop follows the cabinets; a null backsplash follows the countertop. */
+const RP_SLOTS=[['cab','Cabinets'],['ctop','Countertop'],['bs','Backsplash']];
+// The design stores a look as "Art"; the finish list names the same finish "Magppie Art".
+function rpFinish(name){ return (name&&(resolveFinishByName(name)||resolveFinishByName('Magppie '+name)||counterOptions().find(o=>o.name===name)))||null; }
+function rpPicks(snap){ return snap.picks=snap.picks||{cab:rpFinish(S.options.lookName||S.look)?.name||null,
+  ctop:rpFinish(S.options.counterName)?.name||null, bs:rpFinish(S.options.backsplashName)?.name||null}; }
+// What each surface actually renders in; bs is null when the snapshot shows no backsplash panel.
+function rpResolved(snap){ const p=rpPicks(snap), cab=rpFinish(p.cab), ctop=rpFinish(p.ctop)||(cab&&cab.countertop)||cab;
+  return {cab,ctop,bs:snap.bs?(rpFinish(p.bs)||ctop):null}; }
+// Clicking a slot opens its finish grid as a pop-up; picking a tile fills the slot and closes it.
+function rpSetSlot(k){ S.rpSlot=k;
+  let m=$('modalRpFinish');
+  if(!m){ m=document.createElement('div'); m.id='modalRpFinish';
+    m.style.cssText='position:fixed;inset:0;background:rgba(30,28,24,.45);z-index:80;align-items:center;justify-content:center;padding:20px';
+    m.addEventListener('click',(e)=>{ if(e.target===m) closeRpFinish(); });
+    document.body.appendChild(m); }
+  m.innerHTML=`<div style="background:#fff;border-radius:16px;width:min(940px,100%);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 30px 70px -30px rgba(0,0,0,.6)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)">
+        <div style="font-family:'Spectral',serif;font-size:19px">Finish for ${RP_SLOTS.find(s=>s[0]===k)[1].toLowerCase()}</div>
+        <button onclick="closeRpFinish()" aria-label="Close" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div id="renderMaterials" style="overflow:auto;padding:18px 20px"></div>
+    </div>`;
+  m.style.display='flex'; renderMaterialGrid(); }
+function closeRpFinish(){ const m=$('modalRpFinish'); if(m){ m.style.display='none'; m.innerHTML=''; } }
+function rpMatch(k){ const a=S.snapshots.find(s=>s.id===S.rpActive); if(a){ rpPicks(a)[k]=null; renderRenderPortal(); } }
+function openSnapshotFull(id){ S.rpActive=id; S.rpForceRepick=false; S.rpSlot='cab'; renderRenderPortal(); window.scrollTo(0,0); }
 function backToGallery(){ S.rpActive=null; renderRenderPortal(); }
-// Retake discards this snapshot outright (freeing its slot under the 3-cap) and sends the user
-// back to Walkthrough to capture its replacement.
-function retakeSnapshot(id){ S.snapshots=S.snapshots.filter(s=>s.id!==id); S.rpActive=null; jumpToWalkthrough(); }
+// Retake discards this snapshot outright (freeing its slot under the 3-cap) and opens the
+// capture view for its replacement.
+function retakeSnapshot(id){ S.snapshots=S.snapshots.filter(s=>s.id!==id); openCapture(); }
 function nextSnapshot(){
   const idx=S.snapshots.findIndex(s=>s.id===S.rpActive), nxt=S.snapshots[idx+1]; if(!nxt) return;
-  S.rpActive=nxt.id; S.rpForceRepick=false; renderRenderPortal(); window.scrollTo(0,0);
+  S.rpActive=nxt.id; S.rpForceRepick=false; S.rpSlot='cab'; renderRenderPortal(); window.scrollTo(0,0);
 }
-// "Try a different finish" on an already-rendered snapshot: reopens the finish grid, pre-selecting
-// whatever finish it was last rendered with (so re-render-with-same is one click, not a re-pick).
-function reRenderActive(){
-  const active=S.snapshots.find(s=>s.id===S.rpActive); if(!active) return;
-  if(active.renderedFinish){ S.material=active.renderedFinish; S.materialPicked=true; }
-  S.rpForceRepick=true; renderRenderPortal();
-}
-function setMaterial(m){ S.material=m; S.materialPicked=true; renderRenderPortal(); }
+// "Try a different finish" on an already-rendered snapshot: reopens the finish grid with the
+// picks it was last rendered with (kept on the snapshot), so re-render-with-same is one click.
+function reRenderActive(){ S.rpForceRepick=true; S.rpSlot='cab'; renderRenderPortal(); }
+// A tile click fills the active slot of the open snapshot.
+function setMaterial(m){ const a=S.snapshots.find(s=>s.id===S.rpActive); closeRpFinish(); if(a){ rpPicks(a)[S.rpSlot]=m; renderRenderPortal(); } }
 
 function renderRenderPortal(){
   const planCap=S.tier==='Premium'?'up to 10':S.tier==='Basic'?'5':'2';
@@ -5778,15 +5808,37 @@ function renderRenderPortal(){
   $('renderUsage').textContent=(renderedCount?renderedCount+' of ':'')+(S.tier||'Free')+' plan · '+planCap+' renders';
   const body=$('renderPortalBody'); if(!body) return;
 
-  // ---- 0 snapshots: redirect prompt, no finish-picker shown yet ----
+  // ---- capture view: plain walkthrough in a 16:9 pane — exactly what the snapshot keeps ----
+  if(S.rpCapture){
+    $('renderTitle').textContent='Capture snapshot';
+    body.innerHTML=`
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn ghost" onclick="closeCapture()" style="padding:9px 16px;font-size:12.5px">← Done</button>
+        <span style="font-size:13px;color:var(--muted)">Walk to the angle you want, press Esc, then capture. The models are plain here — the render applies the finish.</span>
+      </div>
+      <div id="rpWalk" style="position:relative;width:min(100%,calc((100vh - 230px)*16/9));aspect-ratio:16/9;margin:0 auto;border-radius:14px;overflow:hidden;background:#EDE8DE">
+        <div id="rpWalkCanvas" style="width:100%;height:100%;cursor:pointer"></div>
+        <div id="rpWalkHint" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#5b554a;font-size:13px;pointer-events:none">Click to look around<br/><span style="opacity:.7">W A S D move · mouse look · Esc release</span></div>
+        <div style="position:absolute;left:16px;top:16px;z-index:15;display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:280px">
+          <button id="snapCaptureBtn" onclick="captureWalkSnapshot()" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:none;border-radius:9px;background:rgba(30,28,24,.82);color:#F4F1EB;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px -8px rgba(0,0,0,.5)">📸 Capture snapshot<span id="snapCount" style="opacity:.7;font-weight:500"></span></button>
+          <div id="snapCapMsg" style="font-size:10.5px;font-weight:600;color:#F4C77A;background:rgba(30,28,24,.78);padding:6px 10px;border-radius:8px;display:none"></div>
+          <div id="snapStrip" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+      </div>`;
+    if(window.startScene)window.startScene({...scenePlan(),bsRects:captureBsRects()},S.walls,'walk',null,'rpWalkCanvas','rpWalkHint',true);
+    renderSnapshotBar();
+    return;
+  }
+
+  // ---- 0 snapshots: capture prompt, no finish-picker shown yet ----
   if(!S.snapshots.length){
     $('renderTitle').textContent='Render Portal';
     body.innerHTML=`
       <div style="text-align:center;padding:80px 20px;background:#fff;border:1px solid var(--line);border-radius:16px">
         <div style="font-size:34px;margin-bottom:14px">📸</div>
         <div style="font-family:'Spectral',serif;font-size:20px;margin-bottom:8px">No snapshots yet</div>
-        <p style="font-size:13.5px;color:var(--muted);margin:0 0 20px">Go to Walkthrough and click Snapshot to proceed.</p>
-        <button class="btn" onclick="jumpToWalkthrough()" style="padding:13px 26px;font-size:14px">Go to Walkthrough →</button>
+        <p style="font-size:13.5px;color:var(--muted);margin:0 0 20px">Capture an angle of your kitchen to render it.</p>
+        <button class="btn" onclick="openCapture()" style="padding:13px 26px;font-size:14px">📸 Capture snapshot</button>
       </div>`;
     return;
   }
@@ -5804,7 +5856,10 @@ function renderRenderPortal(){
         </div>
       </div>`;
     body.innerHTML=`
-      <p style="font-size:13px;color:var(--muted);margin:0 0 16px">Click a snapshot to pick a finish and render it — each one renders on its own.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <p style="font-size:13px;color:var(--muted);margin:0">Click a snapshot to pick a finish and render it — each one renders on its own.</p>
+        ${S.snapshots.length<SNAP_MAX?`<button class="btn ghost" onclick="openCapture()" style="padding:9px 16px;font-size:12.5px">📸 Capture snapshot</button>`:''}
+      </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">${S.snapshots.map(tile).join('')}</div>`;
     return;
   }
@@ -5816,15 +5871,13 @@ function renderRenderPortal(){
 }
 // Group 1 / Group 2 (matte) finish grid — unchanged tiles/logic, just relocated into the per-snapshot view.
 function renderMaterialGrid(){
-  const el=$('renderMaterials'); if(!el) return;
-  const F=window.MAGPPIE_FINISHES;
+  const el=$('renderMaterials'), active=S.snapshots.find(s=>s.id===S.rpActive); if(!el||!active) return;
+  const F=window.MAGPPIE_FINISHES, picked=rpPicks(active)[S.rpSlot];   // the tick follows the active slot
   if(F&&F.pg1){
     // the render portal offers only the finish group(s) the room's series allows
     const ag=allowedPg();
     const G1=(!ag||ag.includes('PG1'))?F.pg1:[], G2=(!ag||ag.includes('PG2'))?F.pg2:[];
-    const allNames=[...G1,...G2].map(f=>f.name);
-    if(!S.materialPicked&&!allNames.includes(S.material)) S.material=(G1[0]||G2[0]||{}).name||S.material;
-    const tile=f=>{ const on=S.materialPicked&&S.material===f.name;
+    const tile=f=>{ const on=picked===f.name;
       return `<div onclick="setMaterial('${f.name.replace(/'/g,"\\'")}')" title="${f.finish}" style="cursor:pointer;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:${on?'#FBF1EC':'#fff'};border-radius:12px;overflow:hidden;position:relative">
         <div style="aspect-ratio:1/1;background:#EEE9DE"><img src="${f.img}" alt="${f.name}" loading="lazy" onerror="this.style.opacity=0" style="width:100%;height:100%;object-fit:cover;display:block"/></div>
         ${on?`<span style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">✓</span>`:''}
@@ -5833,7 +5886,7 @@ function renderMaterialGrid(){
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px">${list.map(tile).join('')}</div>`;
     el.innerHTML=(G1.length?grp(ag?finishGroupLabel():'Vein collection',G1):'')+(G2.length?grp(ag?finishGroupLabel():'Matte collection',G2):'');
   } else {
-    el.innerHTML=MATERIALS.map(m=>{ const on=S.materialPicked&&S.material===m.name;
+    el.innerHTML=MATERIALS.map(m=>{ const on=picked===m.name;
       return `<div onclick="setMaterial('${m.name.replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:10px;padding:9px 11px;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:${on?'#FBF1EC':'#fff'};border-radius:10px;cursor:pointer">
         <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(150deg,${m.c1},${m.c2})"></span>
         <span style="font-size:13px;font-weight:600;flex:1">${m.name}</span>${on?'<span style="color:var(--accent);font-weight:700;font-size:13px">✓</span>':''}</div>`;}).join('');
@@ -5851,31 +5904,32 @@ function renderSnapshotFullView(active,body){
       <button class="btn ghost" onclick="retakeSnapshot('${active.id}')" style="padding:9px 16px;font-size:12.5px">↺ Retake this snapshot</button>
     </div>`;
   if(showPicker){
+    const R=rpResolved(active), picks=rpPicks(active);
+    const slot=([k,label])=>{ const f=R[k], off=k==='bs'&&!active.bs;
+      const sub=off?'None in this snapshot':!f?'Pick a finish':picks[k]||k==='cab'?f.name:k==='ctop'?'Matched to cabinets':'Matched to countertop';
+      return `<div ${off?'title="Add backsplash in the Elevation, then capture again"':`onclick="rpSetSlot('${k}')"`} style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:${off?'not-allowed':'pointer'};opacity:${off?.5:1}">
+        <div style="flex:none;width:38px;height:38px;border-radius:8px;overflow:hidden;background:#EEE9DE">${f?`<img src="${f.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>`:''}</div>
+        <div style="min-width:0;flex:1"><div style="font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:700">${label}</div>
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub)}</div></div>
+        ${k!=='cab'&&picks[k]&&!off?`<button onclick="event.stopPropagation();rpMatch('${k}')" title="Follow the ${k==='ctop'?'cabinets':'countertop'} again" style="flex:none;border:none;background:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:2px">Match</button>`:''}
+      </div>`; };
     body.innerHTML=topBar+`
       <div class="ed-grid" style="display:grid;grid-template-columns:1fr 280px;gap:18px">
         <div style="position:relative;aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:#2A2722">
           <img src="${active.img}" style="width:100%;height:100%;object-fit:cover;display:block"/>
         </div>
-        <div style="display:flex;flex-direction:column;gap:14px">
-          <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px">
-            <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:6px">Selected finish</div>
-            <div id="renderSelName" style="font-size:14px;font-weight:600">${S.materialPicked?S.material:'—'}</div>
-          </div>
-          <button class="btn" id="renderBtn" onclick="doRenderActive()" ${S.materialPicked?'':'disabled'} style="padding:14px;${S.materialPicked?'':'opacity:.45;cursor:not-allowed'}">Render with AI</button>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${RP_SLOTS.map(slot).join('')}
+          <button class="btn" id="renderBtn" onclick="doRenderActive()" ${R.cab?'':'disabled'} style="padding:14px;margin-top:4px;${R.cab?'':'opacity:.45;cursor:not-allowed'}">Render with AI</button>
         </div>
-      </div>
-      <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px">
-        <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:14px">Material / Finishes</div>
-        <div id="renderMaterials"></div>
       </div>`;
-    renderMaterialGrid();
   } else {
     body.innerHTML=topBar+`
       <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px">
         <span>${active.renderedFinish||''} · drag to compare with the original</span><span style="background:var(--sage);color:#fff;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap">✓ Rendered</span>
       </div>
-      <div id="cmpBox" style="position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#2A2722;user-select:none">
-        <img src="${active.rendered}" alt="Render" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block"/>
+      <div id="cmpBox" style="position:relative;border-radius:14px;overflow:hidden;background:#2A2722;user-select:none">
+        <img src="${active.rendered}" alt="Render" style="width:100%;height:auto;display:block"/>
         <img class="cmp-before" src="${active.img}" alt="Original snapshot" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;clip-path:inset(0 50% 0 0)"/>
         <div class="cmp-bar" style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.4);pointer-events:none">
           <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.35)">⇄</span>
@@ -5956,15 +6010,18 @@ const toDataUrl=src=>fetch(src).then(r=>r.blob()).then(b=>new Promise((res,rej)=
 function nearestAspect(w,h){
   const t=w/h; return ['16:9','3:2','4:3','1:1','4:5','9:16','21:9'].reduce((best,r)=>{ const [a,b]=r.split(':'); return Math.abs(Math.log(a/b/t))<Math.abs(Math.log(best[0]/best[1]/t))?[+a,+b,r]:best; },[16,9,'16:9'])[2];
 }
-// Photoreal render via /api/render (Gemini, see render.mjs): the snapshot plus the picked finish
-// swatches, each labelled with the surfaces it belongs to.
-async function aiRender(snap,finish){
-  const im=await loadImg(snap.img);
-  const ctop=finish.countertop&&finish.countertop.img;
-  const references=ctop&&ctop!==finish.img
-    ? [{img:finish.img,label:`"${finish.name}" applies to the cabinet shutters and drawer fronts`},
-       {img:ctop,label:`"${finish.countertop.name}" applies to the countertop and the splashback`}]
-    : [{img:finish.img,label:`"${finish.name}" applies to the cabinet shutters, drawer fronts, countertop and splashback`}];
+// Photoreal render via /api/render (Gemini, see render.mjs): the snapshot plus its picked finish
+// swatches, each labelled with the surfaces it belongs to. Slots sharing a swatch go out as one
+// reference, so a render carries one to three. The splashback is named only when the snapshot
+// shows a backsplash panel — otherwise the wall stays a wall.
+const RP_SURFACE={
+  cab:'every cabinet front in the kitchen without exception — base units, wall units, tall units, drawer fronts and appliance housings alike — and every visible end panel, side panel, filler panel and the chimney panel (the handles, the skirting and the frames of glass units are not fronts and keep their source look)',
+  ctop:'every countertop, including the island top',
+  bs:'the splashback panels on the walls, exactly where the source image shows them and nowhere else'};
+async function aiRender(snap){
+  const im=await loadImg(snap.img), R=rpResolved(snap), by=new Map();
+  for(const k of ['cab','ctop','bs']) if(R[k]){ const e=by.get(R[k].img)||{img:R[k].img,name:R[k].name,on:[]}; e.on.push(RP_SURFACE[k]); by.set(e.img,e); }
+  const references=[...by.values()].map(e=>({img:e.img,label:`"${e.name}" applies to ${e.on.join('; and ')}`}));
   const r=await fetch(API+'/api/render',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
     image:snap.img, aspectRatio:nearestAspect(im.naturalWidth,im.naturalHeight),
     references:await Promise.all(references.map(async x=>({image:await toDataUrl(x.img),label:x.label})))})});
@@ -5973,13 +6030,13 @@ async function aiRender(snap,finish){
   return j.image;
 }
 async function doRenderActive(){
-  const active=S.snapshots.find(s=>s.id===S.rpActive); if(!active||!S.materialPicked) return;
-  const finish=resolveFinishByName(S.material);
-  if(!finish){ showToast('This finish has no photo to render with — pick another'); return; }
+  const active=S.snapshots.find(s=>s.id===S.rpActive); if(!active) return;
+  const R=rpResolved(active);
+  if(!R.cab){ showToast('Pick a cabinet finish first'); return; }
   go('rendering');
-  try{ active.rendered=await aiRender(active,finish); }
+  try{ active.rendered=await aiRender(active); }
   catch(e){ go('render'); showToast(e.message); return; }
-  active.renderedFinish=S.material;
+  active.renderedFinish=[...new Set([R.cab,R.ctop,R.bs].filter(Boolean).map(f=>f.name))].join(' · ');
   S.rpForceRepick=false;
   go('render');
 }
@@ -6012,32 +6069,40 @@ function renderReview(){
 function inr(n){return '₹'+Math.round(n||0).toLocaleString('en-IN');}
 // Clicking a room in the project summary retargets the detailed A/B breakdown below it.
 function openRoomQuote(id){ if(id===S.activeRoomId) return; switchRoom(id); renderChrome(); renderQuote(); }
-// Backsplash = the dado: on every wall, wherever a countertop runs under a wall cabinet, the
-// wall between the countertop and that cabinet's underside. The hob's chimney slot counts too
-// (stone behind the hob, up to the wall-cabinet line). Tall units, doors, windows and open wall
-// have no backsplash. Returns mm² and sqft.
-function backsplashArea(plan){
-  const G={baseTop:850,wallBottom:1415,...((S.rulesCfg&&S.rulesCfg.heights)||{}),...((plan&&plan.geometry)||{})};
-  const counterTop=G.baseTop, tallA=window.TALL_ANCHORS||[];
-  let mm2=0;
-  for(const r of (plan&&plan.runs)||[]){
-    const worktop=[]; let x=0;
-    for(const s of r.segments||[]){ const x0=s.x0??x, x1=x0+(s.width||0); x=x1;
-      const top=s.hiddenCorner||(['cabinet','anchor','corner'].includes(s.kind)&&!(s.kind==='anchor'&&tallA.includes(s.label)))
-        ||((s.kind==='filler'||s.kind==='inset')&&s.tier!=='tall');
-      if(top&&x1>x0) worktop.push([x0,x1]); }
-    let wx=0;
-    for(const u of ((plan.tiers&&plan.tiers[r.key]&&plan.tiers[r.key].wall)||[])){ const u0=u.x0??wx, u1=u0+(u.width||0); wx=u1;
-      if(!['wallSolid','wallGlass','wallBlind','filler','inset','chimney'].includes(u.kind)) continue;
-      const h=(u.kind==='chimney'?G.wallBottom:(u.z??G.wallBottom))-counterTop; if(h<=0) continue;
-      for(const [a,b] of worktop){ const o=Math.min(b,u1)-Math.max(a,u0); if(o>0) mm2+=o*h; } }
-  }
-  return {mm2, sqft:+(mm2/92903).toFixed(1)};
+// Backsplash geometry: the heights, ceiling and openings ui/backsplash.js measures a wall with.
+// The backsplash itself is opt-in — only the regions the designer adds in the Elevation
+// (plan.backsplash) exist, and only they are billed.
+function bsGeom(plan){
+  const H={baseTop:850,dado:565,wallTop:2500,loft:600,tall:2400,defaultCeiling:3100,...((S.rulesCfg&&S.rulesCfg.heights)||{}),...((plan&&plan.geometry)||{})};
+  return {...H,wallBottom:H.wallBottom??H.baseTop+H.dado,ceil:(S.options&&S.options.ceiling)||H.defaultCeiling,
+    tallAnchors:window.TALL_ANCHORS||[],openings:(plan&&plan.openings)||S.openings||[]};
 }
-// Accessory price from the Excel sheet (/api/config accessoryPrices): the row matching the
-// width, else the narrowest; ₹0 when the name has no Excel row.
-function accPrice(name,width){ const rows=(S.accPrices||{})[name]; if(!rows||!rows.length) return 0;
-  return (rows.find(r=>r.width===width)||rows.reduce((a,b)=>(b.width??1e9)<(a.width??1e9)?b:a)).price; }
+// Accessory price from the price master (/api/config accessoryPrices): the size the designer
+// chose for this room (S.accSizes), else the row matching the width, else the accessory's
+// default size, else the narrowest; ₹0 when the name has no row.
+function accRow(name,width){ const rows=(S.accPrices||{})[name]; if(!rows||!rows.length) return null;
+  const pick=(S.accSizes||{})[name];
+  return rows.find(r=>r.sn===pick)||rows.find(r=>r.width===width)||rows.find(r=>r.def)||rows.reduce((a,b)=>(b.width??1e9)<(a.width??1e9)?b:a); }
+function accPrice(name,width){ const r=accRow(name,width); return r?r.price:0; }
+// The lines behind quoteMath()'s accessory totals (kitchen + hob + sink + fridge), itemised for
+// the estimate PDF: same names and widths in, so the lines add up to those totals.
+function quoteAccItems(){
+  const out=new Map(), add=(name,width,qty=1)=>{ const r=accRow(name,width), k=r?r.sn:name, e=out.get(k);
+    if(e) e.qty+=qty; else out.set(k,{name:r?r.name:name,qty,price:r?r.price:0}); };
+  for(const a of (S.plan&&S.plan.accessories)||[]) add(a.name,undefined,a.qty||1);
+  for(const a of (S.plan&&S.plan.placedAccessories)||[]) add(a.name);
+  for(const h of hobBOQItems()) add(h.name,S.hob.size);
+  for(const n of (S.sink&&S.sink.accessories)||[]) add(n,sinkWidth());
+  for(const n of (S.fridge&&S.fridge.accessories)||[]) add(n);
+  return [...out.values()];
+}
+// Size picker for the accessories sold in several sizes with no cabinet width to go by (Kubos,
+// Tark, Ceiling Hanging Unit, Double Tray): one size per accessory per room, default preselected.
+function accSizeSelect(name){ const rows=(S.accPrices||{})[name]||[], def=rows.find(r=>r.def); if(!def) return '';
+  const cur=(S.accSizes||{})[name]??def.sn;
+  return `<select class="tf" style="padding:4px 6px;font-size:11px;max-width:100%" onclick="event.stopPropagation()" onchange="setAccSize('${esc(name)}',+this.value)">${rows.map(r=>`<option value="${r.sn}"${r.sn===cur?' selected':''}>${esc(r.name)} · ${inr(r.price)}</option>`).join('')}</select>`; }
+function setAccSize(name,sn){ S.accSizes={...(S.accSizes||{}),[name]:sn};
+  const m=$('modalSchedule'); if(m&&m.style.display==='flex') openSchedule(); renderQuote(); }
 function quoteMath(){
   // Every rate/constant here comes from configuration (/api/config: data/quote-config.json +
   // data/rates.json surfaces/install), with the legacy literals only as offline fallbacks.
@@ -6056,45 +6121,73 @@ function quoteMath(){
   const fridgeAccItems=(S.fridge&&S.fridge.accessories)||[]; const fridgeAccAmt=fridgeAccItems.reduce((a,n)=>a+accPrice(n),0);
   // Countertop = stone only, from its area (saved plans may still carry the old material+install figure).
   const counterSqft=+(p.counterSqft||0), counter=Math.round(counterSqft*(SUR.Countertop?SUR.Countertop.materialPerSqft:551));
-  // backsplash = the dado area (backsplashArea); priced at the CONFIGURED surface rates
-  // (material in A, installation in B), quoted separately (Stage 7.2)
-  const wallPanelSqft=backsplashArea(S.plan).sqft;
+  // backsplash = the regions added in the Elevation: cut area (10mm tucks included) × 1.25,
+  // priced at the CONFIGURED surface rates (material in A, installation in B), quoted separately
+  const bs=Backsplash.summary(S.plan,bsGeom(S.plan)), wallPanelSqft=bs.sqft;
   const wallMatRate=SUR.Backsplash?SUR.Backsplash.materialPerSqft:1850;
   const wallpanel=Math.round(wallPanelSqft*wallMatRate);
   const sectA=cabinets+accessories+sinkAccAmt+fridgeAccAmt+counter+wallpanel;
   // Installation is measured on the same areas the materials are billed on: cabinets on the
   // carcass net sqft of the cabinet table, countertop on the countertop area.
   const cabSqft=+cabQuote.lines.reduce((a,l)=>a+l.carcassSqft,0).toFixed(1), ctopSqft=+counterSqft.toFixed(1);
-  const R={visits:QC.siteVisitCount??0, visitRate:QC.siteVisitRate??0, cab:INST.Cabinets??280,
-           ctop:SUR.Countertop?SUR.Countertop.installPerSqft:780, wall:SUR.Backsplash?SUR.Backsplash.installPerSqft:300};
-  const svcVisits=R.visits*R.visitRate, svcCab=Math.round(R.cab*cabSqft), svcCtop=Math.round(R.ctop*ctopSqft), svcWall=Math.round(R.wall*wallPanelSqft), lu=QC.loadingUnloading??0, transport=QC.transportation??0;
-  const sectB=svcVisits+svcCab+svcCtop+svcWall+lu+transport;
-  const disc=S.discount?-(QC.wellnessDiscount??50000):0; const beforeGst=sectA+sectB+disc; const gst=Math.round(beforeGst*(QC.gstRate??0.18)); const grand=beforeGst+gst;
-  return {p,cabQuote,cabinets,accessories,hobAcc,hobAccAmt,sinkAccItems,sinkAccAmt,fridgeAccItems,fridgeAccAmt,counter,wallpanel,wallPanelSqft,sectA,cabSqft,ctopSqft,svcVisits,svcCab,svcCtop,svcWall,lu,transport,sectB,disc,beforeGst,gst,grand,R};
+  const R={cab:INST.Cabinets??280, ctop:SUR.Countertop?SUR.Countertop.installPerSqft:780, wall:SUR.Backsplash?SUR.Backsplash.installPerSqft:300};
+  const svcCab=Math.round(R.cab*cabSqft), svcCtop=Math.round(R.ctop*ctopSqft), svcWall=Math.round(R.wall*wallPanelSqft);
+  const sectB=svcCab+svcCtop+svcWall;
+  // This room's share of the consignment: a tall cabinet is tallKg, every other cabinet cabinetKg
+  // (data/city-rates.json). The project adds the rooms up before picking a freight bracket.
+  const CR=S.cityCfg||{}, shipKg=Object.entries(S.plan&&S.plan.bom||{}).reduce((a,[code,n])=>a+n*(/^T/.test(code)?CR.tallKg:CR.cabinetKg),0)||0;
+  // Room subtotal, excl. GST. Site visits, loading, transportation, discount and GST are
+  // project-level (projectQuote), so no room ever carries them.
+  const beforeGst=sectA+sectB;
+  return {p,cabQuote,cabinets,accessories,hobAcc,hobAccAmt,sinkAccItems,sinkAccAmt,fridgeAccItems,fridgeAccAmt,counter,wallpanel,wallPanelSqft,bs,sectA,cabSqft,ctopSqft,svcCab,svcCtop,svcWall,sectB,beforeGst,shipKg,R};
 }
-// Every room's grand total, computed by running the SAME quoteMath() against each room's
-// design state in turn (see withRoom). Rooms with no generated plan price at zero and are
-// flagged, rather than being silently dropped from the project total.
+// City charges (data/city-rates.json) for one consignment: site visits at the city's rate, and
+// loading + transportation from the first weight bracket the shipment fits (the last bracket
+// has no limit). A city that is not in the list charges nothing.
+function cityCharges(CR,cityName,shipKg){
+  CR=CR||{}; const want=String(cityName||'').trim().toLowerCase();
+  const key=Object.keys(CR.cities||{}).find(k=>k.toLowerCase()===want), city=key?CR.cities[key]:null;
+  const max=CR.bracketMaxKg||[], i=max.findIndex(m=>shipKg<=m), bracket=i<0?max.length:i;
+  return {city:key||null, shipKg, visits:city?CR.siteVisits:0, visitRate:city?city.siteRate:0,
+          svcVisits:city?CR.siteVisits*city.siteRate:0, lu:city?city.loading[bracket]:0, transport:city?city.transport[bracket]:0};
+}
+// The project quote: every room's subtotal from the SAME quoteMath() run against each room's
+// design state in turn (see withRoom), then the charges that apply ONCE per project - site
+// visits, loading and transportation for the combined weight of all rooms, the discount, GST.
+// Rooms with no generated plan add nothing (no subtotal, no weight) and are flagged.
 function projectQuote(){
   stashRoom();
   const rows=S.rooms.map(r=>{
-    const priced=!!(r.design.plan&&r.design.plan.price);
-    // quoteMath() carries fixed service costs (visits, L&U, transport) that apply even with an
-    // empty plan. A room with no generated layout has no scope at all, so it contributes 0
-    // rather than that floor - otherwise four untouched rooms would invent a project total.
-    return {room:r, grand:priced?withRoom(r,quoteMath).grand:0, priced};
+    const priced=!!(r.design.plan&&r.design.plan.price), q=priced?withRoom(r,quoteMath):null;
+    return {room:r, q, sub:q?q.beforeGst:0, priced};
   });
-  return {rows, total:rows.reduce((a,b)=>a+b.grand,0), pending:rows.filter(r=>!r.priced).length};
+  const priced=rows.filter(r=>r.priced), sub=rows.reduce((a,b)=>a+b.sub,0);
+  const cc=cityCharges(priced.length?S.cityCfg:null, S.project.city, priced.reduce((a,r)=>a+r.q.shipKg,0));
+  const disc=0-Math.min(Math.max(+S.project.discount||0,0),sub);
+  const beforeGst=sub+cc.svcVisits+cc.lu+cc.transport+disc, gst=Math.round(beforeGst*((S.quoteCfg||{}).gstRate??0.18));
+  return {rows, sub, cc, disc, beforeGst, gst, total:beforeGst+gst, pending:rows.length-priced.length};
 }
+// The discount is one ₹ amount for the whole project, set by the designer on the quote.
+function setDiscount(v){ S.project.discount=Math.max(0,Math.round(+v)||0); dsUpdateProject(); renderQuote(); }
 function renderQuote(){
-  const pq=projectQuote(), act=activeRoom();
+  const pq=projectQuote(), act=activeRoom(), cc=pq.cc;
+  const cityBasis=cc.city?esc(cc.city):`<span style="color:var(--accent)">${pq.pending<pq.rows.length?'no listed city selected — choose the city in project setup':'no room generated yet'}</span>`;
+  const shipBasis=`${cityBasis} · approx. ${cc.shipKg.toLocaleString('en-IN')} kg consignment, all rooms together`;
   $('quoteRooms').innerHTML=pq.rows.map(row=>{
     const on=row.room.id===S.activeRoomId;
     return `<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #F2EDE2;background:${on?'#FBF8F2':'#fff'};cursor:pointer" onclick="openRoomQuote('${row.room.id}')">
       <div style="min-width:0"><div style="font-size:13.5px;font-weight:${on?700:500};color:#4A463E">${esc(row.room.name)}${on?' \u00b7 viewing':''}</div>
         <div style="font-size:11px;color:var(--muted2)">${roomType(row.room.typeId).label}${row.priced?'':' \u00b7 not generated yet'}</div></div>
-      <div style="font-size:13.5px;font-weight:600;white-space:nowrap;color:${row.priced?'#4A463E':'var(--muted2)'}">${inr(row.grand)}</div></div>`;
+      <div style="font-size:13.5px;font-weight:600;white-space:nowrap;color:${row.priced?'#4A463E':'var(--muted2)'}">${inr(row.sub)}</div></div>`;
   }).join('')+
+    // charged once for the whole project: the consignment is every room's cabinets together
+    [ {name:'Site Visit Charges',basis:`${cc.visits} visits — measure, EPT mark, EPT check, PDI · ₹${cc.visitRate.toLocaleString('en-IN')}/visit · ${cityBasis}`,amt:cc.svcVisits},
+      {name:'Loading & Unloading',basis:shipBasis,amt:cc.lu},
+      {name:'Transportation',basis:shipBasis,amt:cc.transport},
+      {name:'Discount',basis:`<input type="number" min="0" step="1000" value="${-pq.disc}" class="tf" style="width:130px;padding:4px 8px;font-size:12px;margin-top:4px" onchange="setDiscount(this.value)"> ₹ off the whole project, before GST`,amt:pq.disc},
+      {name:'Total (excl. GST)',basis:'',amt:pq.beforeGst},
+      {name:'GST @ '+Math.round(((S.quoteCfg||{}).gstRate??0.18)*100)+'%',basis:'',amt:pq.gst},
+    ].map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1px solid #F2EDE2;background:#fff"><div><div style="font-size:13px;font-weight:600;color:#6B675E">${r.name}</div><div style="font-size:11px;color:var(--muted2)">${r.basis}</div></div><div style="font-size:13px;font-weight:600;white-space:nowrap">${inr(r.amt)}</div></div>`).join('')+
     `<div style="display:flex;justify-content:space-between;padding:14px 16px;background:#F8F5EF"><span style="font-size:13px;font-weight:700">Project grand total (incl. GST)</span><span style="font-size:15px;font-weight:700;color:var(--accent)">${inr(pq.total)}</span></div>`+
     (pq.pending?`<div style="padding:9px 16px;background:#FBF1EC;font-size:11px;color:var(--accent)">${pq.pending} of ${pq.rows.length} rooms have no generated layout yet, so they add \u20b90 to the project total.</div>`:'');
   $('quoteRoomHead').textContent='Breakdown \u00b7 '+(act?act.name:'')+' ('+(act?roomType(act.typeId).label:'')+')';
@@ -6111,7 +6204,8 @@ function renderQuote(){
   // Sink wet-zone spec: pick + size + veggie add-on (own tile now) + chosen accessories.
   const sinkSpec=S.steps.sink?`${S.steps.sink}${S.sink.veggie?' · Veggie Sink':''}${q.sinkAccItems.length?(' · '+q.sinkAccItems.join('; ')):' · no extra accessories'}`:'Configure the sink in the Design step';
   // Corner mechanism + accessory systems (Kubos / Tark) selected in the Design step.
-  const kitchenExtra=['bottle pull-out, baskets', S.steps.corner?('Corner: '+S.steps.corner):'', (S.steps.acc||[]).length?('Systems: '+S.steps.acc.join(', ')):''].filter(Boolean).join(' · ');
+  const kitchenExtra=['bottle pull-out, baskets', S.steps.corner?('Corner: '+S.steps.corner):'', (S.steps.acc||[]).length?('Systems: '+S.steps.acc.join(', ')):''].filter(Boolean).join(' · ')
+    +(S.plan&&S.plan.accessories||[]).map(a=>accSizeSelect(a.name)).filter(Boolean).map(s=>`<div style="margin-top:5px">${s}</div>`).join('');
   const aRows=[
     {name:'Wellness Cabinets',spec:`${esc(seriesLabel(activeRoom().seriesId))} · shutter profile ${esc(shutterProfile()||'—')} · ${handle} base · ${q.cabQuote.lines.length} cabinets, carcass net area × series rate (itemised below)`,amt:q.cabinets,w:600,tc:'var(--ink)'},
     {name:'Hob & Drawer Accessories',spec:hobSpec,amt:q.hobAccAmt,w:500,tc:'#4A463E'},
@@ -6119,27 +6213,35 @@ function renderQuote(){
     {name:'Refrigerator & Cooling',spec:`${S.steps.fridge||'Configure the fridge in the Design step'}`,amt:q.fridgeAccAmt,w:500,tc:'#4A463E'},
     {name:'Kitchen Accessories',spec:kitchenExtra,amt:q.accessories-q.hobAccAmt,w:500,tc:'#4A463E'},
     {name:'Countertop',spec:`${esc(S.options.counterName||'Matched to finish')} · ${q.p.counterSqft||0} sqft`,amt:q.counter,w:500,tc:'#4A463E'},
-    {name:'Backsplash',spec:`${esc(S.options.backsplashName||S.options.counterName||'Matched to counter')} · ${q.wallPanelSqft} sqft dado (countertop to wall-cabinet underside)`,amt:q.wallpanel,w:500,tc:'#4A463E'},
+    {name:'Backsplash',spec:`${esc(S.options.backsplashName||S.options.counterName||'Matched to counter')} · ${q.bs.pieces?`${q.wallPanelSqft} sqft · ${q.bs.pieces} piece${q.bs.pieces>1?'s':''} from ${q.bs.slabs} slab${q.bs.slabs>1?'s':''} of 8×4 ft`:'not added — add it in the Elevation while editing'}`,amt:q.wallpanel,w:500,tc:'#4A463E'},
   ];
   $('quoteSectionA').innerHTML=aRows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #F2EDE2;background:#fff">
     <div style="min-width:0"><div style="font-size:13.5px;font-weight:${r.w};color:${r.tc}">${r.name}</div><div style="font-size:11px;color:var(--muted2)">${r.spec}</div></div>
     <div style="font-size:13.5px;font-weight:600;white-space:nowrap;color:${r.tc}">${inr(r.amt)}</div></div>`).join('')+
     `<div style="display:flex;justify-content:space-between;padding:13px 16px;background:#F8F5EF"><span style="font-size:13px;font-weight:700">Section A subtotal</span><span style="font-size:13px;font-weight:700">${inr(q.sectA)}</span></div>`;
   const bRows=[
-    {name:'Site Visit Charges',basis:`${q.R.visits} visits — measure, EPT mark, EPT check, PDI · ₹${q.R.visitRate.toLocaleString('en-IN')}/visit`,amt:q.svcVisits},
     {name:'Cabinet Installation',basis:`${q.cabSqft} sqft carcass net (same as the cabinet table) · ₹${q.R.cab}/sqft`,amt:q.svcCab},
     {name:'Countertop Installation',basis:`${q.ctopSqft} sqft (same as the countertop line) · ₹${q.R.ctop}/sqft`,amt:q.svcCtop},
     {name:'Backsplash Installation',basis:`${q.wallPanelSqft} sqft (same as the backsplash line) · ₹${q.R.wall}/sqft`,amt:q.svcWall},
-    {name:'Loading & Unloading',basis:'Flat — all items',amt:q.lu},
-    {name:'Transportation',basis:'Flat — all items',amt:q.transport},
   ];
   $('quoteCabinets').innerHTML=quoteCabinetsHtml(q.cabQuote);
   $('quoteSectionB').innerHTML=bRows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:11px 16px;border-bottom:1px solid #F2EDE2"><div><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:11px;color:var(--muted2)">${r.basis}</div></div><div style="font-size:13px;font-weight:600;white-space:nowrap">${inr(r.amt)}</div></div>`).join('')+
     `<div style="display:flex;justify-content:space-between;padding:13px 16px;background:#F8F5EF"><span style="font-size:13px;font-weight:700">Section B subtotal</span><span style="font-size:13px;font-weight:700">${inr(q.sectB)}</span></div>`;
-  $('discBox').style.borderColor=S.discount?'var(--accent)':'#C3B89F'; $('discBox').style.background=S.discount?'var(--accent)':'#fff'; $('discBox').textContent=S.discount?'✓':'';
-  $('qDisc').textContent=inr(q.disc); $('qBeforeGst').textContent=inr(q.beforeGst); $('qGst').textContent=inr(q.gst); $('qGrand').textContent=inr(q.grand);
+  $('qGrand').textContent=inr(q.beforeGst);
+  $('quoteSeriesCmp').innerHTML=quoteSeriesCmpHtml(q);
 }
-function toggleDiscount(){ S.discount=!S.discount; renderQuote(); }
+// Approximate what this room would cost in every series: the same carcass net sqft at each
+// series' rate; accessories, surfaces and installation stay as quoted.
+function quoteSeriesCmpHtml(q){
+  const td='padding:9px 12px;border-bottom:1px solid #F2EDE2;font-size:12.5px', num=td+';text-align:right;white-space:nowrap';
+  const cur=activeRoom().seriesId, rest=q.beforeGst-q.cabinets;
+  return `<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8F5EF;font-size:11px;text-align:left">
+      <th style="${td}">Series</th><th style="${num}">Rate</th><th style="${num}">Cabinets · ${q.cabSqft} sqft</th><th style="${num}">Room subtotal A + B</th><th style="${num}">vs current</th></tr></thead>
+    <tbody>${(S.seriesList||[]).filter(s=>s.startingRatePerSqft!=null).map(s=>{
+      const cab=CabinetCatalog.cabinetQuote(S.plan&&S.plan.bom,S.cabCat,s.startingRatePerSqft).total, on=s.id===cur, d=cab-q.cabinets;
+      return `<tr style="background:${on?'#FBF8F2':'#fff'};font-weight:${on?700:400}"><td style="${td}">${esc(s.name)}${on?' · current':''}</td><td style="${num}">${inr(s.startingRatePerSqft)}/sqft</td><td style="${num}">${inr(cab)}</td><td style="${num}">${inr(rest+cab)}</td><td style="${num};color:var(--muted2)">${on?'—':(d>0?'+':d<0?'−':'')+inr(Math.abs(d))}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
 function quoteCabinetsHtml(cq){
   const td='padding:8px 12px;border-bottom:1px solid #F2EDE2;font-size:12px', num=td+';text-align:right;white-space:nowrap';
   const prof=shutterProfile(), off=cq.lines.filter(l=>prof&&!((S.cabCat[l.code]||{}).profiles||[]).includes(prof)).map(l=>l.code);
@@ -6158,7 +6260,7 @@ function quoteCabinetsHtml(cq){
 
 /* handoff */
 function renderHandoff(){
-  const q=quoteMath();
+  const q={grand:projectQuote().total};
   $('handoffTitle').textContent="You're all set, "+((S.project.client||'there').split(' ')[0]);
   $('handoffProject').textContent=(S.project.client||'Your')+"'s Kitchen";
   $('handoffEstimate').textContent=inr(q.grand);
@@ -6174,12 +6276,12 @@ Object.assign(window,{go,setProject,addRoom,editRoom,deleteRoom,duplicateRoom,op
   setSinkPick,toggleVeggie,setDoubleSize,toggleSinkAcc,sinkWizGo,sinkSkipAll,setFridgePick,setFridgeWidth,
   armOpening,toggleLeft,setOpeningWidth,removeOpening,setFixtureSize,setRoomHeightUnit,setRoomHeight,setKitchenHeight,aiAutomate,
   applyRoomSize,armStructure,placeStructure,setStructDim,removeStructure,startWallDrag,onWallClick,
-  generate,setResultView,openTemplatePop,closeTemplatePop,pickHandle,pickStyle,pickLook,setMaterial,doRenderActive,compareSlide,toggleDiscount,showModule,
+  generate,setResultView,openTemplatePop,closeTemplatePop,pickHandle,pickStyle,pickLook,setMaterial,doRenderActive,compareSlide,setAccSize,setDiscount,showModule,
   setLayoutView,toggleLayoutSection,pickRoomShape,setRoomMode,setRoomName,placeOpeningAuto,placeStructureAuto,
   startOpeningDrag,startStructDrag,toggleWall,setUnit,goStage,
   saveNow,openRevisions,closeRevisionsModal,restoreRevisionUi,
   continueToDesign,openSeriesModal,closeSeriesModal,chooseSeries,openRuleLog,closeRuleLog,
-  selectModule,editDelete,editMoveBy,editReplacePick,closeLibPanel,toggleLibCross,setLibBrowse,setShutterProfile,stopEditing,planElevPick,enterEditMode,
+  selectModule,editDelete,editMoveBy,editReplacePick,closeLibPanel,toggleLibCross,setLibBrowse,setShutterProfile,stopEditing,planElevPick,enterEditMode,bsToggle,bsSet,bsMove,bsUncut,bsDelete,
   setSegShutter,toggleRemark,toggleKeep,setKeepTol,releaseKeep,regenClean,
   openFinishes,closeFinishes,pickFinishRoom,setHandleGroup,setCounterFinish,setBacksplashFinish,
   toggleMoreMenu,openSchedule,openCompare,shareNow,presalesPdf,roomSwitch,pickRoomFromMenu,
@@ -6406,7 +6508,7 @@ async function openSchedule(){
   const rows=Object.entries(bom).sort().map(([code,qty])=>{ const e=entryFor(code); const amt=e?e.price*qty:null; if(amt)cabTotal+=amt;
     return `<tr><td>${esc(code)}${crossCodes.has(normCodeClient(code))?' <b style="color:#B4533A;font-size:9px">CROSS-SERIES</b>':''}</td><td>${e?`${e.w}×${e.h}×${e.d}`:'—'}</td><td>${esc(finishName)}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${e?inr(e.price):'—'}</td><td style="text-align:right">${amt?inr(amt):'—'}</td></tr>`; }).join('');
   const q=quoteMath();
-  const accRows=((S.plan&&S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('');
+  const accRows=((S.plan&&S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)} ${accSizeSelect(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('');
   const appl=[]; if(S.fridge&&S.fridge.type) appl.push(`Refrigerator (${S.fridge.type})`); if((S.options.appliances||[]).includes('oven')) appl.push('Oven / MW');
   $('schedBody').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -6417,7 +6519,7 @@ async function openSchedule(){
     ${rows||'<tr><td colspan="6" style="color:var(--muted2)">Generate a design first.</td></tr>'}
     ${cabTotal?`<tr><td colspan="5" style="padding:8px 4px;font-weight:700">Cabinets (schedule)</td><td style="text-align:right;font-weight:700">${inr(cabTotal)}</td></tr>`:''}
     <tr><td colspan="5" style="padding:8px 4px">Countertop · ${q.p.counterSqft||0} sqft</td><td style="text-align:right">${inr(q.counter)}</td></tr>
-    <tr><td colspan="5" style="padding:8px 4px">Backsplash · ${q.wallPanelSqft} sqft dado</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr></table>
+    <tr><td colspan="5" style="padding:8px 4px">Backsplash · ${q.wallPanelSqft} sqft</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr></table>
     ${accRows?`<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin:14px 0 6px">Accessories</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">${accRows}</table>`:''}
     <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin:14px 0 6px">Appliances (space & services only — never priced)</div>
@@ -6475,7 +6577,7 @@ async function shareNow(){
 }
 function presalesPdf(){
   if(!S.plan){ showToast('Generate a design first.'); return; }
-  const q=quoteMath();
+  const q=quoteMath(), pq=projectQuote();
   const svg=$('view2d')&&$('view2d').innerHTML?`<svg viewBox="0 0 680 520" style="width:100%">${$('view2d').innerHTML}</svg>`:'';
   const snaps=(S.snapshots||[]).map(s=>s.rendered||s.img).filter(Boolean);
   const acc=((S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)}</td><td style="text-align:center">×${a.qty||1}</td></tr>`).join('');
@@ -6495,11 +6597,13 @@ function presalesPdf(){
   <h2>Estimate</h2><table>
   <tr><td>Cabinets & accessories</td><td style="text-align:right">${inr(q.cabinets+q.accessories+q.sinkAccAmt+q.fridgeAccAmt)}</td></tr>
   <tr><td>Countertop (${q.p.counterSqft||0} sqft)</td><td style="text-align:right">${inr(q.counter)}</td></tr>
-  <tr><td>Backsplash (${q.wallPanelSqft} sqft dado)</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr>
-  <tr><td>Installation & services</td><td style="text-align:right">${inr(q.sectB)}</td></tr>
-  ${q.disc?`<tr><td>Discount</td><td style="text-align:right">${inr(q.disc)}</td></tr>`:''}
-  <tr><td>GST</td><td style="text-align:right">${inr(q.gst)}</td></tr>
-  <tr><td class="tot">Estimate</td><td class="tot" style="text-align:right">${inr(q.grand)}</td></tr></table>
+  <tr><td>Backsplash (${q.wallPanelSqft} sqft)</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr>
+  <tr><td>Installation</td><td style="text-align:right">${inr(q.sectB)}</td></tr>
+  ${pq.rows.length>1?`<tr><td>Other rooms in this project</td><td style="text-align:right">${inr(pq.sub-q.beforeGst)}</td></tr>`:''}
+  <tr><td>Site visits, loading & transportation${pq.cc.city?' · '+esc(pq.cc.city):''} (once for the project)</td><td style="text-align:right">${inr(pq.cc.svcVisits+pq.cc.lu+pq.cc.transport)}</td></tr>
+  ${pq.disc?`<tr><td>Discount</td><td style="text-align:right">${inr(pq.disc)}</td></tr>`:''}
+  <tr><td>GST</td><td style="text-align:right">${inr(pq.gst)}</td></tr>
+  <tr><td class="tot">Project estimate</td><td class="tot" style="text-align:right">${inr(pq.total)}</td></tr></table>
   <div class="meta" style="margin-top:14px">Indicative pre-sales estimate. Appliances are supplied by the client and never priced. Magppie AI Kitchen Designer.</div>
   <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
   w.document.close();
@@ -6588,7 +6692,7 @@ function selectModule(i){ const m=S.modules[i]; if(!m) return; showModule(i);
   if(S.view==='2d') draw2d(); else if(S.view==='elev') drawElevation(); }
 function selectTierUnit(run,tier,idx){
   if(!S.editing){ const l=editableList({run,tier}); return showCode(l&&l[idx]&&l[idx].code); }
-  S.selModRef={run,tier,idx}; openLibPanel(); drawElevation(); }
+  S.selModRef={run,tier,idx}; S.bsSel=null; openLibPanel(); drawElevation(); }
 /* ---------- edit operations ---------- */
 function firstEditBreakaway(){ if(S.reResult){ S.reResult=null; S.reCtx=null; } }
 async function afterEdit(action,from,to){
@@ -6766,7 +6870,7 @@ function enterEditMode(){
   showToast('Editing — click any cabinet to select, delete, move or replace it.');
 }
 function stopEditing(){
-  S.editing=false; closeLibPanel(); renderResultTabs();
+  S.editing=false; S.bsMode=false; closeLibPanel(); renderResultTabs();
   if(S.view==='elev') drawElevation(); else if(S.view==='2d') draw2d();
 }
 /* ---------- drag-to-place on the 2D plan (base tier) ----------
@@ -6836,13 +6940,15 @@ function syncEditWorkspace(){
   const p=$('libPanel'); if(!p) return;
   let collapsed=false; try{ collapsed=localStorage.getItem('libPanelCollapsed')==='1'; }catch(_){}
   p.classList.toggle('collapsed',collapsed);
+  if(S.bsSel&&S.editing&&S.view==='elev'&&!S.selModRef) return renderBsPanel();
+  S.bsSel=null;
   if(!S.selModRef) libPanelShell('Editing',`<div style="font-size:13px;color:var(--muted);line-height:1.6">Click a cabinet on the plan to select it — then delete, move, replace or keep it here.</div>`);
 }
 function libPanelShell(title,body){
   $('libPanel').innerHTML=`<button class="lib-rail" onclick="toggleLibCollapse()" title="Open the editor ([)" aria-label="Open the editor">▶</button>
     <div class="lib-head" style="padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:6px">
       <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);font-weight:700;flex:1">${title}</span>
-      ${S.selModRef?'<button class="btn ghost" onclick="closeLibPanel()" title="Deselect" aria-label="Deselect" style="padding:4px 10px;font-size:12px">✕</button>':''}
+      ${S.selModRef||S.bsSel?'<button class="btn ghost" onclick="closeLibPanel()" title="Deselect" aria-label="Deselect" style="padding:4px 10px;font-size:12px">✕</button>':''}
       <button class="btn ghost" onclick="toggleLibCollapse()" title="Slide the editor away ([)" aria-label="Collapse the editor" style="padding:4px 10px;font-size:12px">◀</button></div>
     <div id="libBody" style="flex:1;overflow:auto;padding:14px 16px">${body}</div>`;
 }
@@ -6862,7 +6968,7 @@ function openLibPanel(){
   if($('libPanel').classList.contains('collapsed')) toggleLibCollapse();   // a selection brings the editor back
   renderLibPanelBody();
 }
-function closeLibPanel(){ S.selModRef=null; syncEditWorkspace();
+function closeLibPanel(){ S.selModRef=null; S.bsSel=null; syncEditWorkspace();
   if(S.screen==='result'){ if(S.view==='2d') draw2d(); else if(S.view==='elev') drawElevation(); } }
 /* ---- GLB previews in the edit sidebar (rendered by window.moduleThumb, module script).
    A selected cabinet shows its resolved model above the actions; the library "Cards"
@@ -7007,9 +7113,75 @@ function renderPlanElevTabs(){
   if(!keys.includes(S.planElevKey)) S.planElevKey=keys[0];
   const anchorOf=k=>{ const r=(S.plan.runs||[]).find(x=>x.key===k); const a=(r&&r.segments||[]).find(s=>s.kind==='anchor'); return a?a.label:''; };
   box.innerHTML=keys.map(k=>{ const on=k===S.planElevKey; const lab=anchorOf(k);
-    return `<button onclick="planElevPick('${k}')" style="padding:7px 14px;border:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;background:${on?'#fff':'transparent'};color:${on?'var(--ink)':'var(--muted)'};box-shadow:${on?'0 1px 3px rgba(0,0,0,.1)':'none'}">Wall ${k}${lab?' · '+lab:''}</button>`; }).join('');
+    return `<button onclick="planElevPick('${k}')" style="padding:7px 14px;border:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;background:${on?'#fff':'transparent'};color:${on?'var(--ink)':'var(--muted)'};box-shadow:${on?'0 1px 3px rgba(0,0,0,.1)':'none'}">Wall ${k}${lab?' · '+lab:''}</button>`; }).join('')
+    +(S.editing?`<button onclick="bsToggle()" aria-pressed="${!!S.bsMode}" title="Backsplash is added and edited here, in the Elevation" style="margin-left:auto;padding:7px 14px;border:1px solid #D9A79A;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;background:${S.bsMode?'#B4533A':'#fff'};color:${S.bsMode?'#fff':'#B4533A'}">${S.bsMode?'Done adding':'＋ Backsplash'}</button>`:'');
 }
-function planElevPick(k){ S.planElevKey=k; drawElevation(); }
+function planElevPick(k){ S.planElevKey=k; S.bsSel=null; drawElevation(); syncEditWorkspace(); }
+/* ---------- backsplash: added and edited in the Elevation only (maths in ui/backsplash.js) ---------- */
+function bsLayout(key){ return Backsplash.layout(S.plan,key,bsGeom(S.plan)); }
+function bsToggle(){ S.bsMode=!S.bsMode; if(S.bsMode){ S.selModRef=null; syncEditWorkspace(); showToast('Click a bare wall area to add backsplash.'); } drawElevation(); }
+function bsChanged(){ scheduleAutosave(); drawElevation(); renderBsPanel(); }
+function bsRegion(){ return S.bsSel&&S.plan?.backsplash?.[S.bsSel.key]?.[S.bsSel.idx]; }
+function bsSelect(key,idx){ S.selModRef=null; S.bsSel={key,idx};
+  if($('libPanel').classList.contains('collapsed')) toggleLibCollapse();
+  drawElevation(); renderBsPanel(); }
+function bsAdd(key,i){ const r=bsLayout(key)?.addable[i]; if(!r) return;
+  const all=S.plan.backsplash=S.plan.backsplash||{}, list=all[key]=all[key]||[];
+  list.push({x0:r.x0,x1:r.x1,z0:r.z0,z1:r.z1,orient:'h',cuts:[]}); scheduleAutosave(); bsSelect(key,list.length-1); }
+// A changed edge is kept only while the region stays on bare wall and clear of the other regions.
+function bsSet(field,v){ const g=bsRegion(); if(!g) return; const old={...g}; g[field]=field==='orient'?v:Math.round(+v||0);
+  const all=bsLayout(S.bsSel.key).regions, me=all.find(r=>r.idx===S.bsSel.idx);
+  const clash=me&&all.some(o=>o!==me&&Math.min(o.rect.x1,me.rect.x1)>Math.max(o.rect.x0,me.rect.x0)&&Math.min(o.rect.z1,me.rect.z1)>Math.max(o.rect.z0,me.rect.z0));
+  if(!me||clash){ Object.assign(g,old); showToast(clash?'That overlaps another backsplash.':'Backsplash can only sit on bare wall.'); }
+  else Object.assign(g,me.rect);
+  bsChanged(); }
+// Breaks between pieces (wall mm): the designer's own plus the automatic ones a slab length forces.
+const bsJoints=me=>[...new Set(me.pieces.map(p=>p.x0))].slice(1);
+// Cabinet edges on a wall (base and wall tier): what a break snaps to, so a joint can line up with a cabinet.
+function bsEdges(key){ const out=new Set();
+  for(const list of [(S.plan.runs||[]).find(r=>r.key===key)?.segments, S.plan.tiers?.[key]?.wall]){ let x=0;
+    for(const u of list||[]){ const x0=u.x0??x; x=x0+(u.width||0); out.add(Math.round(x0)); out.add(Math.round(x)); } }
+  return [...out].sort((a,b)=>a-b); }
+// Move the break at `from` to `to` (from=null adds one). The automatic breaks after it re-space
+// themselves; a move that would leave a piece longer than the slab is refused.
+function bsMove(from,to){ const g=bsRegion(); to=Math.round(+to||0); if(!g) return;
+  const count=()=>bsJoints(bsLayout(S.bsSel.key).regions.find(r=>r.idx===S.bsSel.idx)).length, old=g.cuts||[], n=count();
+  if(!(to>g.x0&&to<g.x1)) showToast(`Enter a position between ${Math.round(g.x0)} and ${Math.round(g.x1)} mm.`);
+  else{ g.cuts=[...new Set([...old.filter(c=>c!==from),to])].sort((a,b)=>a-b);
+    if(from!=null&&count()>n){ g.cuts=old; showToast('That leaves a piece longer than the slab. Add another break first.'); } }
+  bsChanged(); }
+function bsUncut(i){ const g=bsRegion(); if(g){ g.cuts.splice(i,1); bsChanged(); } }
+function bsDelete(){ if(!bsRegion()) return; S.plan.backsplash[S.bsSel.key].splice(S.bsSel.idx,1); scheduleAutosave(); closeLibPanel(); }
+function renderBsPanel(){ const g=bsRegion(), me=g&&bsLayout(S.bsSel.key).regions.find(r=>r.idx===S.bsSel.idx);
+  if(!me){ S.bsSel=null; return syncEditWorkspace(); }
+  const num=(label,f)=>`<label style="font-size:11px;color:var(--muted2)">${label}<input class="tf" type="number" step="10" value="${Math.round(g[f])}" onchange="bsSet('${f}',this.value)" style="width:100%;box-sizing:border-box"></label>`;
+  const ob=(v,t)=>`<button class="btn ${(g.orient||'h')===v?'':'ghost'}" onclick="bsSet('orient','${v}')" style="flex:1;padding:7px;font-size:12px">${t}</button>`;
+  const head=t=>`<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin:14px 0 6px">${t}</div>`;
+  libPanelShell('Backsplash',`<div style="font-size:15px">Wall ${esc(S.bsSel.key)} · ${Math.round(me.w)} × ${Math.round(me.h)} mm</div>
+    <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-top:4px">Cut size, with 10 mm behind every cabinet or countertop it touches.<br>${Backsplash.sqft(me.w*me.h)} sqft billed · ${me.pieces.length} piece${me.pieces.length>1?'s':''} from ${me.slabs} slab${me.slabs>1?'s':''} of 8×4 ft</div>
+    ${head('Slab direction')}<div style="display:flex;gap:6px">${ob('h','Horizontal')}${ob('v','Vertical')}</div>
+    ${head('Position (mm)')}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${num('From','x0')}${num('To','x1')}${num('Bottom','z0')}${num('Top','z1')}</div>
+    ${head('Pieces')}<div style="font-size:12px;line-height:1.7">${me.pieces.map(p=>`${Math.round(p.x1-p.x0)} × ${Math.round(p.z1-p.z0)}`).join('<br>')}</div>
+    ${head('Breaks (mm along wall)')}<div style="font-size:12px;color:var(--muted2);line-height:1.6">Drag a break in the elevation, or type its position. It snaps to cabinet edges.</div>
+    <datalist id="bsEdgeList">${bsEdges(S.bsSel.key).filter(e=>e>g.x0&&e<g.x1).map(e=>`<option value="${e}">`).join('')}</datalist>
+    ${bsJoints(me).map(j=>{ const i=(g.cuts||[]).indexOf(j); return `<div style="display:flex;gap:6px;align-items:center;margin-top:6px"><input class="tf" type="number" step="10" list="bsEdgeList" value="${Math.round(j)}" onchange="bsMove(${j},this.value)" aria-label="Break position" style="flex:1;min-width:0">${i<0?'<span style="font-size:11px;color:var(--muted2);width:34px;text-align:center" title="Forced by the slab length">auto</span>':`<button class="btn ghost" onclick="bsUncut(${i})" aria-label="Remove this break" style="padding:2px 9px;font-size:12px;width:34px">✕</button>`}</div>`; }).join('')}
+    <div style="display:flex;gap:6px;margin-top:8px"><input id="bsCutAt" class="tf" type="number" step="10" list="bsEdgeList" placeholder="Add a break at (mm)" style="flex:1;min-width:0"><button class="btn ghost" onclick="bsMove(null,$('bsCutAt').value)" style="padding:7px 12px;font-size:12px">Break</button></div>
+    <button class="btn ghost" onclick="bsDelete()" style="width:100%;margin-top:18px;padding:9px;font-size:12.5px;color:#B4533A">Delete backsplash</button>`); }
+// The wall's backsplash for drawPlanElev: each region with its piece joints and sizes, plus —
+// while adding — the bare wall that can still take one.
+function bsElevSvg(key,xs,Y,k){ const l=bsLayout(key); if(!l) return '';
+  const box=(r,attrs,body)=>`<rect x="${xs(r.x0,r.x1-r.x0)}" y="${Y(r.z1)}" width="${(r.x1-r.x0)*k}" height="${(r.z1-r.z0)*k}" ${attrs}>${body||''}</rect>`;
+  let s='';
+  for(const g of l.regions){ const sel=S.bsSel&&S.bsSel.key===key&&S.bsSel.idx===g.idx, v=g.rect;
+    s+=box(v,`class="bsreg" data-idx="${g.idx}" fill="rgba(201,190,168,.6)" stroke="${sel?'#B4533A':'#8A7F68'}" stroke-width="${sel?2:.8}"`,`<title>Backsplash ${Math.round(g.w)} × ${Math.round(g.h)} mm · ${g.pieces.length} piece(s)</title>`);
+    for(const p of g.pieces){ const c={x0:Math.max(p.x0,v.x0),x1:Math.min(p.x1,v.x1),z0:Math.max(p.z0,v.z0),z1:Math.min(p.z1,v.z1)};
+      const w=(c.x1-c.x0)*k, txt=`${Math.round(p.x1-p.x0)}×${Math.round(p.z1-p.z0)}`;
+      s+=box(c,'fill="none" stroke="#6B604B" stroke-width=".6" stroke-dasharray="3 2" pointer-events="none"');
+      if(labelFits(txt,7,w)&&(c.z1-c.z0)*k>10) s+=`<text x="${xs(c.x0,c.x1-c.x0)+w/2}" y="${(Y(c.z0)+Y(c.z1))/2+2.5}" text-anchor="middle" font-size="7" fill="#4A463E" pointer-events="none">${txt}</text>`; }
+    // the selected region's breaks are drag handles (wired in drawPlanElev)
+    if(sel&&S.editing) for(const j of bsJoints(g)) s+=`<line class="bsjoint" data-x="${j}" x1="${xs(j,0)}" x2="${xs(j,0)}" y1="${Y(v.z1)}" y2="${Y(v.z0)}" stroke="#B4533A" stroke-width="4" stroke-opacity=".75" style="cursor:ew-resize;touch-action:none"><title>Drag to move this break</title></line>`; }
+  if(S.editing&&S.bsMode) l.addable.forEach((r,i)=>{ s+=box(r,`class="bsfree" data-i="${i}" fill="rgba(180,83,58,.10)" stroke="#B4533A" stroke-width="1" stroke-dasharray="5 4" style="cursor:copy"`,'<title>Add backsplash here</title>'); });
+  return s; }
 // Realistic elevation: a front-on render of the wall's 3D models (renderer3d.js
 // renderElevation) sits under this SVG, which keeps only the click targets, dimensions and
 // markers. Blocks = the flat diagram, and the fallback while the render loads or without WebGL.
@@ -7058,8 +7230,9 @@ function drawPlanElev(key){
     if(['open','gap','window'].includes(sg.kind)) return;
     const isTallA=sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label);
     if(sg.kind==='door'){ if(!R) s+=`<rect x="${x}" y="${Y(2100)}" width="${w}" height="${floor-Y(2100)}" fill="none" stroke="#8A8579" stroke-dasharray="4 3"/>`+T(x+w/2,Y(1000),'door','#8A8579'); return; }
-    if(sg.kind==='filler'||sg.kind==='inset'){ const bottom=sg.z??100,top=bottom+(sg.height??720);s+=E(key,'base',i,x,Y(top),w,Y(bottom)-Y(top),sg.open?'transparent':'#D9A441',sg.open?'stroke="#B9B09E" stroke-dasharray="3 3"':''); if(labelFits(Math.round(sg.width),7.5,w)) s+=T(x+w/2,floor+24,Math.round(sg.width),'#A2761E',null,7.5); return; }
-    if(sg.kind==='tallBank'||isTallA){ s+=E(key,'base',i,x,Y(sg.height??HH.tall),w,floor-Y(sg.height??HH.tall),TIER.tall); if(labelFits(isTallA?sg.label:'tall bank',9,w)) s+=label(x+w/2,Y(HH.tall)+14,isTallA?sg.label:'tall bank','#fff'); if(labelFits(sg.width,7.5,w)) s+=T(x+w/2,floor+24,sg.width,'#8A8579',null,7.5); return; }
+    if(sg.kind==='filler'||sg.kind==='inset'){ const bottom=sg.z??100,top=sg.tier==='tall'?Math.max(HH.wallTop,bottom+(sg.height??720)):bottom+(sg.height??720);s+=E(key,'base',i,x,Y(top),w,Y(bottom)-Y(top),sg.open?'transparent':'#D9A441',sg.open?'stroke="#B9B09E" stroke-dasharray="3 3"':''); if(labelFits(Math.round(sg.width),7.5,w)) s+=T(x+w/2,floor+24,Math.round(sg.width),'#A2761E',null,7.5); return; }
+    if(sg.kind==='tallBank'||isTallA){ const top=Math.max(HH.wallTop,sg.height??HH.tall);   // a tall unit ends level with the wall cabinets (its top filler is not in the plan)
+      s+=E(key,'base',i,x,Y(top),w,floor-Y(top),TIER.tall); if(labelFits(isTallA?sg.label:'tall bank',9,w)) s+=label(x+w/2,Y(top)+14,isTallA?sg.label:'tall bank','#fff'); if(labelFits(sg.width,7.5,w)) s+=T(x+w/2,floor+24,sg.width,'#8A8579',null,7.5); return; }
     const fill=sg.kind==='anchor'?(sg.label==='hob'?TIER.anchorHob:TIER.anchorSink):sg.kind==='corner'?'#B4936F':'#6E7466';
     const bottom=sg.z??100,top=bottom+(sg.height??sg.h??720);
     s+=E(key,'base',i,x,Y(top),w,Y(bottom)-Y(top),fill);
@@ -7093,13 +7266,24 @@ function drawPlanElev(key){
     if(!R) s+=`<rect x="${xs(o.off-o.width/2,o.width)}" y="${Y(head)}" width="${o.width*k}" height="${(head-sill)*k}" fill="rgba(159,182,196,.25)" stroke="#7FA0B4"/>`;
     s+=T(X(o.off),Y(head)-5,'window · sill '+sill,'#5B7A8C');
   }
+  s+=bsElevSvg(key,xs,Y,k);
   svg.setAttribute('viewBox',`${left-12} ${Y(ceil)-22} ${Wp+24} ${floor+34-(Y(ceil)-22)}`);
   svg.innerHTML=`<defs><pattern id="elevReturn" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#F1ECE2"/><line x1="0" y1="0" x2="0" y2="6" stroke="#CFC6B4" stroke-width="1.2"/></pattern></defs>`+s;
   svg.classList.toggle('elev-realistic',R);
-  svg.querySelectorAll('.emod').forEach(el=>{ el.style.cursor='pointer';
+  // While adding backsplash the cabinets are not clickable: they are edited once adding is done.
+  svg.querySelectorAll('.emod').forEach(el=>{ if(S.bsMode){ el.style.pointerEvents='none'; return; } el.style.cursor='pointer';
     el.onclick=()=>selectTierUnit(el.dataset.run,el.dataset.tier,+el.dataset.idx); });
+  if(S.editing) svg.querySelectorAll('.bsreg').forEach(el=>{ el.style.cursor='pointer'; el.onclick=()=>bsSelect(key,+el.dataset.idx); });
+  svg.querySelectorAll('.bsfree').forEach(el=>{ el.onclick=()=>bsAdd(key,+el.dataset.i); });
+  // Drag a break along the wall; within 30 mm of a cabinet edge it snaps to it.
+  svg.querySelectorAll('.bsjoint').forEach(el=>{ el.onpointerdown=e=>{ e.preventDefault(); el.setPointerCapture(e.pointerId);
+    const from=+el.dataset.x, edges=bsEdges(key), px=svg.getScreenCTM().a*k*(flip?-1:1); let to=from;
+    el.onpointermove=m=>{ to=from+(m.clientX-e.clientX)/px;
+      const near=edges.reduce((b,x)=>Math.abs(x-to)<Math.abs(b-to)?x:b,Infinity); if(Math.abs(near-to)<=30) to=near;
+      el.setAttribute('x1',X(to)); el.setAttribute('x2',X(to)); };
+    el.onpointerup=()=>{ el.onpointermove=null; if(Math.round(to)!==Math.round(from)) bsMove(from,to); }; }; });
   highlightSelection(svg);
-  $('elevMeta')&&($('elevMeta').textContent=`Wall ${key} · ${Math.round(run.total)}mm · ${S.editing?'click a unit to edit':'click a unit to see its code'}`);
+  $('elevMeta')&&($('elevMeta').textContent=`Wall ${key} · ${Math.round(run.total)}mm · ${S.bsMode?'adding backsplash · press Done adding to edit cabinets':S.editing?'click a unit to edit':'click a unit to see its code'}`);
 }
 
 /* ====================================================================
@@ -7347,6 +7531,9 @@ function loadAppConfig(attempt){
       S.seriesList=cfg.series; S.rulesCfg=cfg.rules||null;
       S.quoteCfg=cfg.quote||null; S.accPrices=cfg.accessoryPrices||null; S.cfgSurfaces=cfg.surfaces||null; S.cfgInstall=cfg.install||null; S.remarksCfg=cfg.remarks||null;
       S.cabCat=cfg.cabinets||null; S.profilesCfg=cfg.profiles||null;   // workbook: carcass sqft + shutter profiles
+      S.cityCfg=cfg.cityRates||null;
+      $('suCity').innerHTML='<option value="">Select city…</option>'+Object.keys(S.cityCfg&&S.cityCfg.cities||{}).map(c=>`<option>${esc(c)}</option>`).join('');
+      $('suCity').value=S.project.city;
       renderChrome();
     } else if(attempt<5) setTimeout(()=>loadAppConfig(attempt+1),1500);
   }).catch(()=>{ if(attempt<5) setTimeout(()=>loadAppConfig(attempt+1),1500); });
@@ -7643,6 +7830,9 @@ render();   // mounts the desk, which loads projects + workload from the design 
 
 <!-- ===================== 3D / WALKTHROUGH (three.js) ===================== -->
 <script src="island-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="quote-pdf.js"></script>
 <script type="module" src="renderer3d.js"></script>
 </body>
 </html>

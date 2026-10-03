@@ -16,7 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { surfaceRates, installRates, quoteConfig, accessoryPrices } from './pricingConfig.js';
+import { surfaceRates, installRates, quoteConfig, cityRates, accessoryPrices } from './pricingConfig.js';
 import { RULES } from './rules.js';
 import { loadCatalog } from '../core/loadCatalog.mjs';
 
@@ -108,6 +108,7 @@ export async function handleConfig(req, res) {
       install: installRates(),
       rules: RULES,
       quote: quoteConfig(),
+      cityRates: cityRates(),
       accessoryPrices: accessoryPrices(),
       remarks: remarksList(),
       ...workbookConfig(),

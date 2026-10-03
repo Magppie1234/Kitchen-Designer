@@ -3,6 +3,8 @@
 Extracted from **Accessories List with Zone and Wall Details.xlsx** (source: `D:\02 TOD Tech Supporting Docs\`).
 Dependency-free extraction of every sheet to CSV + JSON, plus all embedded product photos.
 
+> **Prices removed 2026-10-01.** The PRICE column of the Kitchen Accessories sheet is blanked here; accessory prices come only from `data/accessory-price-master.json`. This folder is kept for placement (position / zone columns) and photos.
+
 ## Contents
 - `accessories-master.json` — every sheet as a 2-D array, keyed by sheet name.
 - `csv/` — one CSV per sheet (see table below).

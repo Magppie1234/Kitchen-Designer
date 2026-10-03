@@ -104,11 +104,6 @@
     "excelName": "BOTTLE PULLOUT",
     "size": "300 mm"
   },
-  "Bottle Pull-Out – Triple": {
-    "img": "assets/config/sink-bottle-double.jpg",
-    "desc": "Pull-Out Unit (BPO)",
-    "excelName": "BOTTLE PULLOUT"
-  },
   "Waste Bin Pull-Out": {
     "img": "assets/config/sink-wastebin-30.jpg",
     "desc": "Stainless Steel · Capacity 30 lt × 2",
