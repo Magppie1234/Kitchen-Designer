@@ -551,18 +551,30 @@ export function arrangeBlindFronts(input, placed, cat, notes=[]) {
   for(const tier of ['base','wall'])for(const p of [...placed[tier]]) {
     if(!p.corner||p.blocker)continue;
     const c=p.corner, w=input.walls.find(w=>w.id===p.wall);
-    // Absorb only an existing visible residual beside this cabinet. Catalogue
-    // cabinets, anchors and required return-wall corner fillers never move.
-    const gap=placed[tier].find(q=>q.wall===p.wall&&q.role==='gap filler'&&
-      (c.end==='from'?q.at===p.at+p.width:q.at+q.width===p.at));
+    // blind-dead-space-absorbs-filler: absorb a visible gap filler into the concealed space
+    // behind this blind. The filler may sit past a chain of ordinary cabinets: the blind and
+    // that chain slide together toward it. Anchors, tall units and the required return-wall
+    // corner fillers never move, so a chain containing one absorbs nothing.
+    const fromEnd=c.end==='from';
+    const movable=q=>q.code&&!q.blocker&&!q.trim&&!q.corner
+      &&!['hob','sink','veggie sink','refrigerator','chimney','dishwasher'].includes(q.role);
+    const group=[p];
+    let gap,edge=fromEnd?p.at+p.width:p.at;
+    for(;;){
+      const q=placed[tier].find(q=>q.wall===p.wall&&!q.hiddenCorner&&(fromEnd?q.at===edge:q.at+q.width===edge));
+      if(!q)break;
+      if(q.role==='gap filler'){gap=q;break;}
+      if(!movable(q))break;
+      group.push(q);edge=fromEnd?q.at+q.width:q.at;
+    }
     const oldDead=c.end==='from'?p.at:w.length-p.at-p.width;
     let move=Math.min(gap?.width??0,Math.max(0,P.deadSpaceMax-oldDead));
     if(gap && gap.width>move && gap.width-move<RULE_PARAMS.gap_filler_min)
       move=Math.max(0,gap.width-RULE_PARAMS.gap_filler_min);
     if(move>0) {
       const oldAt=p.at;
-      p.at+=c.end==='from'?move:-move;
-      if(c.end==='from')gap.at+=move;
+      for(const q of group)q.at+=fromEnd?move:-move;
+      if(fromEnd)gap.at+=move;
       gap.width-=move;
       if(!gap.width)placed[tier].splice(placed[tier].indexOf(gap),1);
       const hidden=placed[tier].find(q=>q.hiddenCorner&&q.cornerId===c.id);
@@ -698,6 +710,10 @@ export function runEndProblems(input, placed, cornerEnds = new Set()) {
     if(cornerEnds.has(`tall:${z.wall}:${end}`))continue;
     const edge=z[end],piece=placed.tall.find(p=>p.wall===z.wall&&(end==='from'?p.at===edge:p.at+p.width===edge));
     if(piece?.blocker)continue;
+    // no-filler-beside-fridge: an appliance needs no finish piece on its outer side.
+    const nearest=placed.tall.filter(p=>!p.blocker&&p.wall===z.wall&&(end==='from'?p.at>=edge:p.at+p.width<=edge))
+      .sort((a,b)=>end==='from'?a.at-b.at:(b.at+b.width)-(a.at+a.width))[0];
+    if(nearest?.role==='refrigerator')continue;
     const concealed=tallSideAgainstWall(input,z.wall,edge,piece?.depth??560);
     const role=concealed?'wall filler':'visible panel',width=concealed?RULE_PARAMS.wall_filler_width:P.panel;
     if(!piece||piece.width!==width||(concealed?piece.role!=='wall filler':!piece.role?.startsWith('panel')))
@@ -708,6 +724,8 @@ export function runEndProblems(input, placed, cornerEnds = new Set()) {
     const {wall,at,width,edge,end}=junction;
     const panel=placed.tall.find(p=>p.wall===wall&&p.at===at&&p.width===width&&p.tallVisiblePanel);
     if(!panel) problems.push(`${wall}: base/tall junction at ${edge} needs one ${width}mm tall visible panel`);
+    else if(panel.side!==(end==='from'?'left':'right'))
+      problems.push(`${wall}: base/tall junction at ${edge} needs a ${end==='from'?'left':'right'} visible panel, not ${panel.side??'an unhanded one'}`);
     const hostEdge=end==='from'?at+width:at;
     if(!placed.tall.some(p=>!p.blocker&&!p.trim&&p.code&&p.wall===wall
       && (end==='from'?p.at===hostEdge:p.at+p.width===hostEdge)))
@@ -734,11 +752,14 @@ function solve(input, cat) {
   const packingSpans = [], appliedRuns = new Set();
   problems.push(...reserveTallReturns(input,placed,cat));
   const junctions=baseTallInterfaces(input);
-  for(const {wall,at,width,edge} of junctions){
+  for(const {wall,at,width,edge,end} of junctions){
+    // visible-panel-handing: the base run meets the tall cabinet on its low-offset ('from') side
+    // = left panel, on its high-offset ('to') side = right panel.
+    const side=end==='from'?'left':'right';
     const clash=placeInto(placed,'tall',{wall,at,width,role:'panel (tall visible)',
-      code:null,trim:true,tallVisiblePanel:true});
+      code:null,trim:true,tallVisiblePanel:true,side});
     if(clash) problems.push(`${wall}: ${width}mm tall visible panel at ${edge} conflicts with "${clash.role}"`);
-    else notes.push(`${wall}: base/tall junction at ${edge} uses one ${width}mm tall visible panel; no countertop dropdown`);
+    else notes.push(`${wall}: base/tall junction at ${edge} uses one ${width}mm tall visible panel (${side}); no countertop dropdown`);
   }
   const tallCorners=corners(input,placed,cat,['tall']);
   const cornerEnds=tallCorners.ends,fillerEnds=tallCorners.fillerEnds,cornerCuts=tallCorners.cuts;
@@ -823,13 +844,26 @@ function solve(input, cat) {
         .filter((p) => p.wall === z.wall && p.at < z.to && p.at + p.width > z.from)
         .sort((a, b) => a.at - b.at);
       let cursor = z.from;
-      const gaps = [];
+      let gaps = [];
       for (const p of on) {
         const start = Math.max(p.at, z.from), end = Math.min(p.at + p.width, z.to);
         if (start > cursor) gaps.push([cursor, start]);
         cursor = Math.max(cursor, end);
       }
       if (cursor < z.to) gaps.push([cursor, z.to]);
+      // no-filler-beside-fridge: a sliver between the refrigerator and the zone end that
+      // cannot hold a cabinet stays empty — no wall filler, panel or gap filler.
+      // The marker is a blocker (never rendered or priced) so fit comparison can still count it as waste.
+      if (tier === 'tall') {
+        const narrow = Math.min(...widthsFor.tall);
+        gaps = gaps.filter(([a, b]) => {
+          const empty = b - a < narrow
+            && ((a === z.from && on.some(p => p.role === 'refrigerator' && p.at === b))
+              || (b === z.to && on.some(p => p.role === 'refrigerator' && p.at + p.width === a)));
+          if (empty) placeInto(placed, tier, { wall: z.wall, at: a, width: b - a, role: 'empty space beside refrigerator', code: null, blocker: true, emptySpace: true });
+          return !empty;
+        });
+      }
 
       // A run has TWO ends. Each is either a corner (the next run butts into it) or a free
       // end, and a free end carries a closure piece that can grow to absorb slack.
@@ -950,7 +984,8 @@ function solve(input, cat) {
             x += w; return;
           }
           const t1 = placeInto(placed, tier, { wall: z.wall, at: x, width: w,
-            role: chosenSides[i].role, depth:lowDepth?RULE_PARAMS.low_depth:undefined, code: null, trim: true });
+            role: chosenSides[i].role, depth:lowDepth?RULE_PARAMS.low_depth:undefined, code: null, trim: true,
+            ...(tier==='tall'&&chosenSides[i].role==='panel'?{side:chosenSides[i].end?'right':'left'}:{}) });
           if (t1) problems.push(`${z.wall}/${tier}: closure piece at ${x} collides with "${t1.role}"`);
           else if(chosenSides[i].role==='gap filler') notes.push(`${z.wall}/${tier}: ${w}mm filler closes the remaining space at ${x}; no catalogue cabinet fits this space`);
           x += w;
@@ -1256,7 +1291,8 @@ export function fitQuality(result) {
   const items=Object.values(result.placed).flat().filter(p=>!p.blocker);
   return [result.problems.length?1:0,physicalConflictCount(result),result.problems.length,
     result.unresolved?.length??0,
-    items.filter(p=>p.trim).reduce((n,p)=>n+avoidableTrim(p),0),
+    items.filter(p=>p.trim).reduce((n,p)=>n+avoidableTrim(p),0)
+      + Object.values(result.placed).flat().filter(p=>p.emptySpace).reduce((n,p)=>n+p.width,0),
     -items.filter(p=>p.code&&!['hob','sink','refrigerator','microwave + oven'].includes(p.role)).reduce((n,p)=>n+p.width*(p.height??0)*(p.depth??0),0),
     items.filter(p=>p.role==='gap filler').length];
 }

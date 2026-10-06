@@ -16,15 +16,16 @@ test('6450mm room generates cabinets after repairing the 12mm fridge overhang',a
   const r=await fitKitchen(j,catalog,{proposals:false}),plan=toPlan(r.result,r.input,[]);
   assert.equal(JSON.stringify(j),before);assert.equal(plan.verdict,'FEASIBLE');
   assert.deepEqual(r.result.problems,[]);assert.deepEqual(check(r.input),[]);
-  assert.equal(r.input.anchors.find(a=>a.item==='fridge').at,555);
+  // no filler or panel beside the fridge: it sits flush with the start of the tall zone (530)
+  assert.equal(r.input.anchors.find(a=>a.item==='fridge').at,530);
   assert.ok(Object.values(plan.bom).reduce((a,b)=>a+b,0)>=20);
   assert.deepEqual(r.input.zones,j.zones);assert.deepEqual(r.input.openings,j.openings);
-  assert.ok(r.adjustments.some(a=>a.item==='fridge'&&a.from===518&&a.to===555&&a.delta===37));
+  assert.ok(r.adjustments.some(a=>a.item==='fridge'&&a.from===518&&a.to===530&&a.delta===12));
   for(const a of r.adjustments)assert.ok(Math.abs(a.delta)<=100);
   assert.deepEqual(geometryProblems(r.input,r.result.placed,catalog),[]);
   assert.deepEqual(overlapProblems(r.result.placed),[]);
   const again=await fitKitchen(j,catalog,{proposals:false,optimize:false});
-  assert.equal(again.adjustments.find(a=>a.item==='fridge').delta,37);
+  assert.equal(again.adjustments.find(a=>a.item==='fridge').delta,12);
 });
 
 test('input preparation does not bypass other errors or exceed the movement allowance',()=>{
@@ -41,5 +42,5 @@ test('all appliance movements remain relative to the original position after con
   const r=await fitKitchen(j,catalog,{proposals:false});
   assert.deepEqual(r.result.problems,[]);
   const a=r.adjustments.find(a=>a.item==='fridge');
-  assert.equal(a.from,480);assert.ok(a.to>=555&&a.to<=580);assert.ok(a.delta<=100);
+  assert.equal(a.from,480);assert.ok(a.to>=530&&a.to<=580);assert.ok(a.delta<=100);
 });

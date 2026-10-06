@@ -20,7 +20,7 @@ export function prepareAnchorInput(input) {
     if(a.location==='island')continue;
     const tier=a.item==='fridge'?'tall':'base',zs=j.zones[tier]??[];
     if(zs.some(z=>z.wall===a.wall&&a.at>=z.from&&a.at+a.width<=z.to))continue;
-    const panel=a.item==='fridge'?P.panel_width:P.countertop_return;
+    const panel=a.item==='fridge'?0:P.countertop_return;   // no-filler-beside-fridge: no end margin
     const positions=zs.filter(z=>z.wall===a.wall).map(z=>{
       const lo=z.from+panel,hi=z.to-a.width-panel;
       return lo<=hi?Math.max(lo,Math.min(hi,a.at)):null;

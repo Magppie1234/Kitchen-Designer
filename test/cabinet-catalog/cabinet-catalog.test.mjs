@@ -69,6 +69,13 @@ test('quote: each cabinet is series rate × carcass net sqft, and the total is t
   assert.equal(none.total, 0); assert.deepEqual(none.unpriced, ['A']);
 });
 
+test('quote: base / wall / tall are all priced at the room series rate', () => {
+  const byCode = { B: { carcassSqft: 2, group: 'base' }, W: { carcassSqft: 3, group: 'wall' }, T: { carcassSqft: 10, group: 'tall' } };
+  const q = cabinetQuote({ B: 1, W: 1, T: 1 }, byCode, 9900);
+  assert.deepEqual(q.lines.map((l) => l.rate), [9900, 9900, 9900]);
+  assert.equal(q.total, 15 * 9900); assert.equal(q.rate, 9900);
+});
+
 // ---- the edit gate, run against the real builder functions ----
 const html = readFileSync('ui/builder.html', 'utf8');
 const between = (a, b) => { const i = html.indexOf(a); assert.ok(i >= 0, a); return html.slice(i, html.indexOf(b, i)); };

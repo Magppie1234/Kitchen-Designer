@@ -16,3 +16,10 @@ test('each finish swatch is named with its surfaces in the prompt', () => {
   assert.match(p, /Reference image 1: "Magppie Art" applies to the cabinet shutters/);
   assert.match(p, /Preserve the underlying geometry EXACTLY/);
 });
+
+test('glass units get Eleanor vertical lights or spotlights by series; under-cabinet and skirting lights always', () => {
+  const eleanor = composePrompt([], true), spot = composePrompt([], false);
+  for (const p of [eleanor, spot, composePrompt()]) { assert.match(p, /underside of\s+the wall cabinets/); assert.match(p, /set into the skirting/); }
+  assert.match(eleanor, /slim vertical LED profile lights/); assert.doesNotMatch(eleanor, /small round spotlights/);
+  assert.match(spot, /small round spotlights/); assert.doesNotMatch(spot, /slim vertical LED profile lights/);
+});

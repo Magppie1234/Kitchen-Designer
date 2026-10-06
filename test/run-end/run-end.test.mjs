@@ -15,12 +15,15 @@ for(const reverse of [false,true])test(`base/tall junction uses one full-height 
  const junction=baseTallInterfaces(j)[0],panels=r.placed.tall.filter(p=>p.tallVisiblePanel);
  assert.equal(panels.length,1);assert.equal(panels[0].width,25);
  assert.equal(panels[0].height,2400);assert.equal(panels[0].z,0);assert.ok(panels[0].trim);
+ // visible-panel-handing: base run on the tall cabinet's low-offset side = left panel, high-offset = right
+ assert.equal(panels[0].side,reverse?'right':'left');
  assert.ok(!r.placed.base.some(p=>!p.blocker&&/^countertop return/.test(p.role)
   && (reverse?p.at===junction.edge:p.at+p.width===junction.edge)));
  const exposed=reverse?11970:0;
  assert.ok(r.placed.base.some(p=>/^countertop return/.test(p.role)&&(reverse?p.at+p.width===exposed:p.at===exposed)));
  const plan=toPlan(r,j,[],{}),pieces=plan.runs.flatMap(run=>run.segments).filter(p=>/tall visible/.test(p.label));
  assert.equal(pieces.length,1);assert.equal(pieces[0].width,25);assert.equal(pieces[0].height,2400);assert.equal(pieces[0].tier,'tall');
+ assert.equal(pieces[0].side,reverse?'right':'left');
 });
 
 test('touching base zones are continuous; a separated tall zone leaves the base end exposed',()=>{
@@ -44,6 +47,9 @@ test('fixed panel width cannot be inflated and a dropdown at the junction is rej
  const j=runEndFixture(),r=layout(j,catalog),bad=structuredClone(r.placed);
  bad.tall.find(p=>p.tallVisiblePanel).width=80;
  assert.ok(runEndProblems(j,bad).some(p=>/25mm tall visible panel/.test(p)));
+ const wrongHand=structuredClone(r.placed);
+ wrongHand.tall.find(p=>p.tallVisiblePanel).side='right';
+ assert.ok(runEndProblems(j,wrongHand).some(p=>/needs a left visible panel/.test(p)));
  const duplicate=structuredClone(r.placed);
  duplicate.base.push({wall:'A',at:8975,width:25,role:'countertop return',trim:true});
  assert.ok(runEndProblems(j,duplicate).some(p=>/dropdown is not allowed/.test(p)));

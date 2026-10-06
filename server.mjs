@@ -27,7 +27,6 @@ import { handleLibrary, handleReprice } from './vendor/libraryApi.js';
 import { handleShare } from './vendor/shareApi.js';
 import { loadRoom, resolveOpenings } from './vendor/apiRuntime.js';
 import { priceSaleable } from './vendor/saleablePricing.js';
-import { accessoriesFor } from './vendor/accessories.js';
 import { specOf } from './core/engine.mjs';
 import {suggestIslands} from './core/island.mjs';
 import { renderSnapshot } from './render.mjs';
@@ -37,10 +36,7 @@ try { process.loadEnvFile(); } catch {} // optional .env (GEMINI_API_KEY for AI 
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const UI = join(ROOT, 'ui');
-<<<<<<< HEAD
 const ACC_MEDIA = join(ROOT, 'data', 'accessories-master', 'media');
-=======
->>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 const PORT = process.env.PORT || 5055;
 const { ok: CATALOG } = loadCatalog();
 
@@ -285,7 +281,7 @@ const TALL_TYPE = [
 const tallType = (role) => (TALL_TYPE.find(([re]) => re.test(role)) ?? [, 'pantry'])[1];
 
 export function toPlan(result, input, notes, options = {}) {
-  const runs = [], tiers = {};
+  const runs = [], tiers = {}, loftSkipped = [];
   const heights=RULE_PARAMS.heights[input.height];
   const byCode=new Map(CATALOG.map(c=>[c.code,c]));
   const dimensions=(p,tier)=>{
@@ -322,7 +318,7 @@ export function toPlan(result, input, notes, options = {}) {
       // a tall band shows through the base row as its own typed unit
       if (kind === 'tallBank') {
         seg.code=tall?.code??null;
-        if(tall?.trim) {seg.kind='filler';seg.trim=true;seg.tier='tall';}
+        if(tall?.trim) {seg.kind='filler';seg.trim=true;seg.tier='tall';if(tall.side)seg.side=tall.side;}
         else seg.units = [{ type: tallType(seg.label), width: p.width, code:seg.code, ...dimensions(tall??p,'tall'),
           ...(tall?.applianceWidth != null ? {applianceWidth:tall.applianceWidth,sideClearance:50} : {}) }];
       }
@@ -341,11 +337,30 @@ export function toPlan(result, input, notes, options = {}) {
       if (!kind) continue;
       wall.push({ kind, width: p.width, x0: p.at, x1: p.at + p.width, code: p.code ?? null, label: p.role, ...dimensions(p,'wall'),...(p.corner?{corner:p.corner,shutter:p.shutter}:{}) });
     }
+    // Loft (Design → Extras): one loft cabinet sits directly on each wall cabinet, same width
+    // and handing, glass over glass and blind over blind. options.loft is the series' own
+    // loft SKUs. Nothing goes over the chimney, a filler, or a width the catalogue has no
+    // loft for (300, 500, 900 non-blind) — those are named in the warnings, never invented.
+    // ponytail: mirrors the wall row 1:1; re-tile the span with loft widths if the gaps matter.
+    const loft = [];
+    if (options.loft) for (const c of wall) {
+      if (!['wallSolid', 'wallGlass', 'wallBlind'].includes(c.kind)) continue;
+      const below = byCode.get(c.code), zone = c.kind === 'wallBlind' ? 'LB' : 'LO';
+      const fits = options.loft.filter((l) => l.zone === zone && l.width === c.width);
+      const pick = fits.find((l) => l.handing === below?.handing && l.material === below?.material)
+        ?? fits.find((l) => l.handing === below?.handing) ?? fits[0];
+      const z = c.z + c.height;
+      if (!pick) { loftSkipped.push(`${key} ${c.width}mm at ${c.x0}mm: no loft cabinet of that width in the catalogue`); continue; }
+      if (z + pick.height > input.ceiling) { loftSkipped.push(`${key} ${c.width}mm at ${c.x0}mm: needs a ${z + pick.height}mm ceiling, room is ${input.ceiling}mm`); continue; }
+      loft.push({ kind: 'loft', width: c.width, x0: c.x0, x1: c.x1, code: pick.code, label: 'loft', height: pick.height, depth: pick.depth, offset: c.offset, z,
+        ...(c.corner ? { corner: c.corner, shutter: c.shutter } : {}) });
+    }
     runs.push({ key, wall: w.id, total: w.length, segments });
-    tiers[key] = { wall, loft: [], tall: [] };
+    tiers[key] = { wall, loft, tall: [] };
   });
 
   const bom = {};
+  for (const t of Object.values(tiers)) for (const l of t.loft) bom[l.code] = (bom[l.code] ?? 0) + 1;
   for (const tier of ['base', 'wall', 'tall'])
     for (const p of result.placed[tier] ?? []) {
       if (p.blocker || !p.code) continue;
@@ -365,6 +380,7 @@ export function toPlan(result, input, notes, options = {}) {
     ...result.problems.map((detail) => ({ rule: 'Hard constraint', status: 'conflict', detail })),
     ...result.unresolved.map((detail) => ({ rule: 'Unresolved', status: 'assumed', detail })),
     ...result.warnings.map((detail) => ({ rule: 'Preference', status: 'skipped', detail })),
+    ...loftSkipped.map((detail) => ({ rule: 'Loft', status: 'skipped', detail })),
   ];
 
   const verdict = gate(result);
@@ -373,8 +389,8 @@ export function toPlan(result, input, notes, options = {}) {
     geometry:{height:input.height,baseTop:RULE_PARAMS.counter_height,wallBottom:RULE_PARAMS.counter_height+RULE_PARAMS.backsplash,wallTop:heights.design_height,tall:heights.tall,counterThickness:30},
     openings:(input.openings??[]).map(o=>({...o,wall:`W${input.walls.findIndex(w=>w.id===o.wall)}`,off:o.at+o.width/2})),
     runs, tiers, bom, zones, island: result.island?{...result.island,x:result.island.x+(input.worldOrigin?.[0]||0),y:result.island.y+(input.worldOrigin?.[1]||0)}:null,
-    accessories: accessoriesFor(zones), placedAccessories: [], recommendations: [],
-    warnings: [...result.problems, ...result.unresolved, ...result.warnings],
+    accessories: [], placedAccessories: [], recommendations: [],   // accessories are the designer's picks while editing (placedAccessories), never automatic
+    warnings: [...result.problems, ...result.unresolved, ...result.warnings, ...loftSkipped.map((d) => `Loft skipped — ${d}`)],
     log, clashes: [],
     verdict: verdict.verdict, releaseBlocked: verdict.releaseBlocked,
   };
@@ -493,7 +509,8 @@ const app = createServer(async (req, res) => {
       }
       const fitted=originalFitted;
       const makePlan=(result,j)=>{
-        const plan=toPlan(result,j,notes,{pg,finish:options.finish??series.defaultFinish?.finish,seriesId:series.id});
+        const plan=toPlan(result,j,notes,{pg,finish:options.finish??series.defaultFinish?.finish,seriesId:series.id,
+          loft:options.loft&&eligibleCatalog.filter(c=>['LO','LB'].includes(c.zone))});
         const {context,...planning}=result.planning;
         plan.planning={...planning,spans:context?.spans};
         plan.log.push({rule:'Planning flow',status:'applied',detail:planning.mode},

@@ -4,6 +4,7 @@
 (function(root){
   // Quote: each placed cabinet = selected series rate × that cabinet's workbook Carcass Net Sqft.
   // Amounts are rounded per line and the total is the sum of the shown lines.
+  // `rate` is the room's one series rate — every cabinet in a room is priced in that series.
   function cabinetQuote(bom,byCode,rate){
     const lines=[],unpriced=[];
     for(const [code,qty] of Object.entries(bom||{}))for(let i=0;i<qty;i++){

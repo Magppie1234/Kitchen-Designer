@@ -380,13 +380,8 @@
       <div id="quoteSeriesCmp" style="border:1px solid #EEE7DA;border-radius:12px;overflow:auto"></div>
       <div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Simplified in-app summary computed from your real generated layout. The downloadable PDF includes full specs, certifications, payment terms (50/30/20), guarantee &amp; sign-off. <b>Excludes</b> appliances, sink, faucet.</div>
       <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
-<<<<<<< HEAD
         <button class="btn" onclick="presalesPdf()" style="flex:1;min-width:220px;padding:15px;font-size:15px">⤓ Pre-sales PDF</button>
         <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Export Estimate</button>
-=======
-        <button class="btn" onclick="go('handoff')" style="flex:1;min-width:220px;padding:15px;font-size:15px">Speak to our Wellness Advisor</button>
-        <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Download PDF</button>
->>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
       </div>
     </div>
   </div>
@@ -2673,7 +2668,11 @@ function renderEditorLeft(){
     <div style="font-size:11px;color:var(--muted2);margin-top:10px;line-height:1.5">Tip: drag a placed hob / sink / fridge on the plan to reposition it — or tap one to select &amp; edit.</div>`)
     +leftSection('extras','Extras',S.handle?'':'<span style="color:var(--accent)">Handle required</span>',`
     <div style="font-size:11px;color:${S.handle?'var(--muted2)':'var(--accent)'};margin-bottom:10px;line-height:1.5">${S.handle?'Handle Type is set for this room. Change it here before regenerating if needed.':'Choose Handle Type before generating. It determines the cabinet models used in the design, 3D view, and walkthrough.'}</div>
-    ${stepCards(STEPS.map(s=>s.key).filter(k=>!ANCHOR_KEYS.includes(k)))}`);
+    ${stepCards(STEPS.map(s=>s.key).filter(k=>!ANCHOR_KEYS.includes(k)))}
+    <button type="button" aria-pressed="${!!S.options.loft}" onclick="S.options.loft=!S.options.loft;renderEditorLeft()" style="display:flex;align-items:flex-start;gap:11px;width:100%;margin-top:8px;padding:11px 12px;border:1.5px solid ${S.options.loft?'#D8DCD2':'var(--line)'};background:${S.options.loft?'#F3F5F0':'#fff'};border-radius:11px;cursor:pointer;text-align:left;font:inherit;color:inherit">
+      <span style="flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${S.options.loft?'var(--sage)':'#fff'};color:${S.options.loft?'#fff':'#A39A88'};border:1px solid ${S.options.loft?'transparent':'#D2CABA'}">${S.options.loft?'✓':'+'}</span>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:600">Loft</span><span style="display:block;font-size:11px;color:${S.options.loft?'#5B6353':'#A39A88'}">${S.options.loft?'Loft cabinets above the wall cabinets · applies on Generate':'Add loft cabinets above the wall cabinets'}</span></span>
+    </button>`);
   // reflect core-fixture progress on the canvas Generate button
   const gb=$('edGenBtn'); if(gb){ const missing=[];if(core<3)missing.push('Place hob, sink & fridge');if(!S.handle)missing.push('choose Handle Type in Extras');gb.disabled=!canGen; gb.style.opacity=canGen?'1':'.5'; gb.style.cursor=canGen?'pointer':'not-allowed'; gb.style.pointerEvents=canGen?'auto':'none'; gb.title=canGen?'':missing.join(' and '); }
 }
@@ -5117,6 +5116,7 @@ async function generate(){
     if(activeRoom()!==owner) {owner.design.plan=plan;owner.design.generationFailure=null;return;}
     if(S.plan)await dsRevision('before-generation',{required:true});
     if(activeRoom()!==owner||owner._buildRequest!==requestId||buildFingerprint(S)!==sourceInput)return;
+    if(S.plan?.placedAccessories?.length)plan.placedAccessories=S.plan.placedAccessories;   // the designer's accessory picks survive a regenerate
     if(S.plan?.backsplash&&!plan.backsplash)plan.backsplash=S.plan.backsplash;   // kept across a regenerate; any piece now behind a cabinet drops out
     S.plan=plan;S.generationFailure=null;
     applyCorrections(plan);
@@ -5275,7 +5275,7 @@ function setResultView(v){
   renderLabelToggle();
   if(v==='2d'){ if(window.stopScene)window.stopScene(); draw2d();
     // live price line — modules · total · ₹/sqft, refreshed again by every reprice
-    $('resPlanMeta').textContent=S.plan?`${Object.values(S.plan.bom||{}).reduce((a,b)=>a+b,0)} modules${S.plan.price?` · ${inr(S.plan.price.breakdown.total)} · ${inr(S.plan.price.rate)}/sqft`:''}`:''; }
+    $('resPlanMeta').textContent=S.plan?`${Object.values(S.plan.bom||{}).reduce((a,b)=>a+b,0)} modules${S.plan.price?` · ${inr(S.plan.price.breakdown.total)}${S.plan.price.rate!=null?` · ${inr(S.plan.price.rate)}/sqft`:''}`:''}`:''; }
   else if(v==='elev'){ if(window.stopScene)window.stopScene(); apply3DFinish(); drawElevation(); }   // the render uses the chosen finish
   else { apply3DFinish();   // 7.1: the scene opens in the chosen/series-default finish, never beige
     if(window.startScene)window.startScene(scenePlan(),S.walls,v==='walk'?'walk':'orbit','res3d','resWalkCanvas','resWalkHint'); }
@@ -6029,6 +6029,7 @@ async function aiRender(snap){
   const references=[...by.values()].map(e=>({img:e.img,label:`"${e.name}" applies to ${e.on.join('; and ')}`}));
   const r=await fetch(API+'/api/render',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
     image:snap.img, aspectRatio:nearestAspect(im.naturalWidth,im.naturalHeight),
+    eleanor:seriesById(activeRoom().seriesId)?.eleanorLight,   // Eleanor vertical lights or spotlights in the glass units
     references:await Promise.all(references.map(async x=>({image:await toDataUrl(x.img),label:x.label})))})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.image) throw new Error(j.error||'AI render failed (HTTP '+r.status+')');
@@ -6094,7 +6095,6 @@ function accPrice(name,width){ const r=accRow(name,width); return r?r.price:0; }
 function quoteAccItems(){
   const out=new Map(), add=(name,width,qty=1)=>{ const r=accRow(name,width), k=r?r.sn:name, e=out.get(k);
     if(e) e.qty+=qty; else out.set(k,{name:r?r.name:name,qty,price:r?r.price:0}); };
-  for(const a of (S.plan&&S.plan.accessories)||[]) add(a.name,undefined,a.qty||1);
   for(const a of (S.plan&&S.plan.placedAccessories)||[]) add(a.name);
   for(const h of hobBOQItems()) add(h.name,S.hob.size);
   for(const n of (S.sink&&S.sink.accessories)||[]) add(n,sinkWidth());
@@ -6107,16 +6107,17 @@ function accSizeSelect(name){ const rows=(S.accPrices||{})[name]||[], def=rows.f
   const cur=(S.accSizes||{})[name]??def.sn;
   return `<select class="tf" style="padding:4px 6px;font-size:11px;max-width:100%" onclick="event.stopPropagation()" onchange="setAccSize('${esc(name)}',+this.value)">${rows.map(r=>`<option value="${r.sn}"${r.sn===cur?' selected':''}>${esc(r.name)} · ${inr(r.price)}</option>`).join('')}</select>`; }
 function setAccSize(name,sn){ S.accSizes={...(S.accSizes||{}),[name]:sn};
-  const m=$('modalSchedule'); if(m&&m.style.display==='flex') openSchedule(); renderQuote(); }
+  const m=$('modalSchedule'); if(m&&m.style.display==='flex') openSchedule(); renderQuote(); renderLibPanelBody(); }
 function quoteMath(){
   // Every rate/constant here comes from configuration (/api/config: data/quote-config.json +
   // data/rates.json surfaces/install), with the legacy literals only as offline fallbacks.
   const QC=S.quoteCfg||{}, SUR=S.cfgSurfaces||{}, INST=S.cfgInstall||{};
   const p=S.plan&&S.plan.price||{breakdown:{cabinets:0,counter:0,total:0},shutterSqft:0,counterSqft:0};
-  // Cabinets: each placed cabinet = the series rate × its workbook Carcass Net Sqft.
+  // Cabinets: each placed cabinet = the room's series rate × its workbook Carcass Net Sqft.
   const cabQuote=CabinetCatalog.cabinetQuote(S.plan&&S.plan.bom,S.cabCat,seriesRate());
   const cabinets=cabQuote.total;
-  const accPacks=(S.plan&&S.plan.accessories||[]).reduce((a,b)=>a+accPrice(b.name)*(b.qty||1),0)+(S.plan&&S.plan.placedAccessories||[]).reduce((a,b)=>a+accPrice(b.name),0);
+  // Kitchen accessories: only the ones the designer ticked while editing (plan.placedAccessories).
+  const accPacks=(S.plan&&S.plan.placedAccessories||[]).reduce((a,b)=>a+accPrice(b.name),0);
   // Hob drawer accessories (full config → BOQ). Each assigned tray includes a sintered stone base tray.
   const hobAcc=hobBOQItems(); const hobAccAmt=hobAcc.reduce((a,h)=>a+accPrice(h.name,S.hob.size),0);
   const accessories=accPacks+hobAccAmt;
@@ -6209,8 +6210,7 @@ function renderQuote(){
   // Sink wet-zone spec: pick + size + veggie add-on (own tile now) + chosen accessories.
   const sinkSpec=S.steps.sink?`${S.steps.sink}${S.sink.veggie?' · Veggie Sink':''}${q.sinkAccItems.length?(' · '+q.sinkAccItems.join('; ')):' · no extra accessories'}`:'Configure the sink in the Design step';
   // Corner mechanism + accessory systems (Kubos / Tark) selected in the Design step.
-  const kitchenExtra=['bottle pull-out, baskets', S.steps.corner?('Corner: '+S.steps.corner):'', (S.steps.acc||[]).length?('Systems: '+S.steps.acc.join(', ')):''].filter(Boolean).join(' · ')
-    +(S.plan&&S.plan.accessories||[]).map(a=>accSizeSelect(a.name)).filter(Boolean).map(s=>`<div style="margin-top:5px">${s}</div>`).join('');
+  const kitchenExtra=(S.plan&&S.plan.placedAccessories||[]).map(a=>esc((accRow(a.name)||a).name)).join(' · ')||'None selected — add them while editing the layout';
   const aRows=[
     {name:'Wellness Cabinets',spec:`${esc(seriesLabel(activeRoom().seriesId))} · shutter profile ${esc(shutterProfile()||'—')} · ${handle} base · ${q.cabQuote.lines.length} cabinets, carcass net area × series rate (itemised below)`,amt:q.cabinets,w:600,tc:'var(--ink)'},
     {name:'Hob & Drawer Accessories',spec:hobSpec,amt:q.hobAccAmt,w:500,tc:'#4A463E'},
@@ -6251,8 +6251,8 @@ function quoteCabinetsHtml(cq){
   const td='padding:8px 12px;border-bottom:1px solid #F2EDE2;font-size:12px', num=td+';text-align:right;white-space:nowrap';
   const prof=shutterProfile(), off=cq.lines.filter(l=>prof&&!((S.cabCat[l.code]||{}).profiles||[]).includes(prof)).map(l=>l.code);
   const notes=[
-    cq.rate==null?'The selected series has no rate, so cabinets are not priced. Pick a series with a rate.':'',
-    cq.unpriced.length&&cq.rate!=null?`Not priced (no Carcass Net Sqft in the workbook): ${[...new Set(cq.unpriced)].map(esc).join(', ')}`:'',
+    seriesRate()==null?'The selected series has no rate, so cabinets are not priced. Pick a series with a rate.':'',
+    cq.unpriced.length&&seriesRate()!=null?`Not priced (no Carcass Net Sqft in the workbook): ${[...new Set(cq.unpriced)].map(esc).join(', ')}`:'',
     off.length?`Not offered in shutter profile ${esc(prof)} per the workbook: ${[...new Set(off)].map(esc).join(', ')}`:'',
   ].filter(Boolean);
   return `<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8F5EF;font-size:11px;text-align:left">
@@ -6513,7 +6513,7 @@ async function openSchedule(){
   const rows=Object.entries(bom).sort().map(([code,qty])=>{ const e=entryFor(code); const amt=e?e.price*qty:null; if(amt)cabTotal+=amt;
     return `<tr><td>${esc(code)}${crossCodes.has(normCodeClient(code))?' <b style="color:#B4533A;font-size:9px">CROSS-SERIES</b>':''}</td><td>${e?`${e.w}×${e.h}×${e.d}`:'—'}</td><td>${esc(finishName)}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${e?inr(e.price):'—'}</td><td style="text-align:right">${amt?inr(amt):'—'}</td></tr>`; }).join('');
   const q=quoteMath();
-  const accRows=((S.plan&&S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)} ${accSizeSelect(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('');
+  const accRows=((S.plan&&S.plan.placedAccessories)||[]).map(a=>`<tr><td>${esc(a.name)} ${accSizeSelect(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('');
   const appl=[]; if(S.fridge&&S.fridge.type) appl.push(`Refrigerator (${S.fridge.type})`); if((S.options.appliances||[]).includes('oven')) appl.push('Oven / MW');
   $('schedBody').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -6580,42 +6580,6 @@ async function shareNow(){
     catch(_){ prompt('Client share link (revision '+out.revision.number+'):',url); }
   }catch(e){ showToast('Share failed: '+e.message); }
 }
-<<<<<<< HEAD
-=======
-function presalesPdf(){
-  if(!S.plan){ showToast('Generate a design first.'); return; }
-  const q=quoteMath(), pq=projectQuote();
-  const svg=$('view2d')&&$('view2d').innerHTML?`<svg viewBox="0 0 680 520" style="width:100%">${$('view2d').innerHTML}</svg>`:'';
-  const snaps=(S.snapshots||[]).map(s=>s.rendered||s.img).filter(Boolean);
-  const acc=((S.plan.accessories)||[]).map(a=>`<tr><td>${esc(a.name)}</td><td style="text-align:center">×${a.qty||1}</td></tr>`).join('');
-  const bomRows=Object.entries(S.plan.bom||{}).sort().map(([c,n])=>`<tr><td>${esc(c)}</td><td style="text-align:center">${n}</td></tr>`).join('');
-  const w=window.open('','_blank'); if(!w){ showToast('Pop-up blocked — allow pop-ups to export the PDF.'); return; }
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(activeRoom().name)} — Pre-sales</title>
-  <style>@page{size:A4;margin:14mm} body{font-family:system-ui,sans-serif;color:#2A2722;margin:0}
-  h1{font-size:22px;font-weight:500;margin:0 0 2px} h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8A8579;margin:18px 0 8px}
-  .meta{font-size:11px;color:#6B675E} table{width:100%;border-collapse:collapse;font-size:11px} td,th{padding:4px 6px;border-bottom:1px solid #EEE9DE;text-align:left}
-  img{max-width:100%;border-radius:6px;margin-bottom:6px;page-break-inside:avoid} .tot{font-size:15px;font-weight:700}</style></head><body>
-  <h1>${esc((S.project.client||'Client'))}'s Kitchen — ${esc(activeRoom().name)}</h1>
-  <div class="meta">${esc(seriesLabel(activeRoom().seriesId))} series · ${esc(S.options.lookName||'')} finish · ${esc(S.project.city||'')} · ${new Date().toLocaleDateString()}</div>
-  <h2>Floor plan — cabinets, countertop & backsplash</h2>${svg||'<div class="meta">2D plan not rendered.</div>'}
-  ${snaps.length?`<h2>Perspective views (chosen finish)</h2>${snaps.map(s=>`<img src="${s}">`).join('')}`:''}
-  ${acc?`<h2>Accessories</h2><table>${acc}</table>`:''}
-  <h2>Module schedule</h2><table><tr><th>SKU</th><th style="text-align:center">Qty</th></tr>${bomRows}</table>
-  <h2>Estimate</h2><table>
-  <tr><td>Cabinets & accessories</td><td style="text-align:right">${inr(q.cabinets+q.accessories+q.sinkAccAmt+q.fridgeAccAmt)}</td></tr>
-  <tr><td>Countertop (${q.p.counterSqft||0} sqft)</td><td style="text-align:right">${inr(q.counter)}</td></tr>
-  <tr><td>Backsplash (${q.wallPanelSqft} sqft)</td><td style="text-align:right">${inr(q.wallpanel)}</td></tr>
-  <tr><td>Installation</td><td style="text-align:right">${inr(q.sectB)}</td></tr>
-  ${pq.rows.length>1?`<tr><td>Other rooms in this project</td><td style="text-align:right">${inr(pq.sub-q.beforeGst)}</td></tr>`:''}
-  <tr><td>Site visits, loading & transportation${pq.cc.city?' · '+esc(pq.cc.city):''} (once for the project)</td><td style="text-align:right">${inr(pq.cc.svcVisits+pq.cc.lu+pq.cc.transport)}</td></tr>
-  ${pq.disc?`<tr><td>Discount</td><td style="text-align:right">${inr(pq.disc)}</td></tr>`:''}
-  <tr><td>GST</td><td style="text-align:right">${inr(pq.gst)}</td></tr>
-  <tr><td class="tot">Project estimate</td><td class="tot" style="text-align:right">${inr(pq.total)}</td></tr></table>
-  <div class="meta" style="margin-top:14px">Indicative pre-sales estimate. Appliances are supplied by the client and never priced. Magppie AI Kitchen Designer.</div>
-  <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
-  w.document.close();
-}
->>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 /* ---------- room switcher (Step 3.3) — out of the way on single-room projects ---------- */
 function roomSwitch(){
   if(S.rooms.length<2){ goDash(); return; }
@@ -6752,6 +6716,8 @@ function editReplacePick(code,w,h,cross){ if(!S.editing) return;
   const right=list[li+1]?.kind==='filler'&&sameTier(list[li+1],s)&&s.x0+s.width===list[li+1].x0?list[li+1]:null;
   const slack=s.width+(left&&left.kind==='filler'?left.width:0)+(right&&right.kind==='filler'?right.width:0);
   if(w>slack){ showToast(`Does not fit — slot has ${slack}mm, ${code} needs ${w}mm.`); return; }
+  const ceil=S.options?.ceiling||S.rulesCfg?.heights?.defaultCeiling||3100;
+  if(S.selModRef.tier==='loft'&&s.z!=null&&s.z+h>ceil){ showToast(`Does not fit — ${code} is ${h}mm high, only ${ceil-s.z}mm to the ceiling.`); return; }
   const from=segDesc(s);
   let need=w-s.width;   // >0: consume neighbour fillers; <0: grow a filler beside it
   if(need>0){ if(right){ const u=Math.min(need,right.width); right.width-=u; right.x0+=u; need-=u; }
@@ -6764,7 +6730,8 @@ function editReplacePick(code,w,h,cross){ if(!S.editing) return;
   if(cross) rep.crossSeries=true;   // Stage 4.4 — flagged on the design and (later) the module schedule
   if(fam) Object.assign(rep,{kind:'anchor',label:s.label,func:s.func,tier:s.tier,wall:s.wall});
   list[li]=rep;
-  if(w<s.width){ list.splice(li+1,0,{kind:'filler',width:s.width-w,x0:(s.x0||0)+w,x1:(s.x0||0)+s.width,depth:s.depth,height:s.height,z:s.z,offset:s.offset,tier:s.tier}); }
+  if(w<s.width){ list.splice(li+1,0,{kind:'filler',width:s.width-w,x0:(s.x0||0)+w,x1:(s.x0||0)+s.width,depth:s.depth,height:s.height,z:s.z,offset:s.offset,tier:s.tier,
+    ...(S.selModRef.tier==='loft'&&s.open?{open:true,label:'open space'}:{})}); }   // what is left of an open loft slot stays open
   const ni=normalizeList(list,li); S.selModRef.idx=ni>=0?ni:li;
   afterEdit('replace',from,`${code} ${w}mm${cross?' (CROSS-SERIES)':''}`);
 }
@@ -7045,7 +7012,7 @@ function renderLibPanelBody(){
       <div id="libList" style="display:flex;flex-direction:column;gap:4px"><div style="color:var(--muted2);font-size:12px">Loading library…</div></div>
     </div>
     <div style="margin-top:16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Accessories for this zone</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Kitchen accessories · tick to add to the estimate</div>
       <div id="libAcc" style="font-size:12px;color:#6B675E;line-height:1.6"></div>
     </div>
     ${(S.editLog&&S.editLog.length&&S.remarksCfg)?`<div style="margin-top:16px">
@@ -7075,9 +7042,16 @@ function renderLibPanelBody(){
         window.moduleThumb([c],+w,code).then(u=>{ if(!u||!img.isConnected) return; img.src=u; img.style.display='block'; });
       }); },true);
     const zone=zoneForSel(), acc=(lib.zoneAccessories&&lib.zoneAccessories[zone])||[];
-    $('libAcc')&&($('libAcc').innerHTML=acc.length?`<div style="margin-bottom:4px;color:var(--muted2)">Zone · ${zone}</div>`+acc.map(a=>`• ${esc(a.name)}${a.qty>1?' ×'+a.qty:''}`).join('<br>'):'No zone accessories apply here.');
+    // Every accessory on offer, this zone's first; a tick adds it to the room (plan.placedAccessories)
+    // and to the estimate. Nothing is added unless ticked here.
+    S._accList=[...new Set([...acc,...Object.values(lib.zoneAccessories||{}).flat()].map(a=>a.name))];
+    const has=n=>(S.plan.placedAccessories||[]).some(a=>a.name===n);
+    $('libAcc')&&($('libAcc').innerHTML=S._accList.map((n,i)=>`<label style="display:flex;align-items:flex-start;gap:7px;padding:3px 0;cursor:pointer"><input type="checkbox" ${has(n)?'checked':''} onchange="toggleRoomAcc(${i})" style="margin-top:3px"><span style="flex:1;min-width:0">${esc(n)}${i<acc.length?` <span style="color:var(--muted2);font-size:10.5px">· ${zone} zone</span>`:''}<br>${has(n)&&accSizeSelect(n)||`<span style="color:var(--muted2);font-size:11px">${inr(accPrice(n))}</span>`}</span></label>`).join(''));
   }).catch(()=>{ $('libList')&&($('libList').innerHTML='<div style="color:#B4533A;font-size:12px">Library unavailable — is the server running?</div>'); });
 }
+function toggleRoomAcc(i){ const n=S._accList[i], list=S.plan.placedAccessories||[];
+  S.plan.placedAccessories=list.some(a=>a.name===n)?list.filter(a=>a.name!==n):[...list,{name:n}];
+  scheduleAutosave(); renderLibPanelBody(); }
 function toggleLibCross(v){ S.libCross=!!v; renderLibPanelBody(); }
 function setLibBrowse(v){ S.libBrowse=v; renderLibPanelBody(); }
 function toggleLibFitOnly(v){ S.libFitOnly=!!v; renderLibPanelBody(); }
@@ -7252,6 +7226,15 @@ function drawPlanElev(key){
   });
   const t=S.plan.tiers&&S.plan.tiers[key];
   if(t){
+    // Every wall cabinet has an editable loft slot above it: where no loft stands (loft off,
+    // no loft of that width, or one deleted) an open space holds the place, so a loft can be
+    // added there from the library. Open space draws nothing in 3D and costs nothing.
+    t.loft=t.loft||[];
+    for(const c of t.wall||[]){ if(!['wallSolid','wallGlass','wallBlind'].includes(c.kind)) continue;
+      const x0=c.x0||0, z=(c.z??WB)+(c.height??HH.wallTop-WB);
+      if(z>=ceil||t.loft.some(l=>(l.x0||0)<x0+c.width&&(l.x0||0)+l.width>x0)) continue;
+      t.loft.push({kind:'filler',open:true,label:'open space',width:c.width,x0,x1:x0+c.width,z,height:ceil-z,depth:c.depth,offset:c.offset}); }
+    t.loft.sort((a,b)=>(a.x0||0)-(b.x0||0));
     (t.wall||[]).forEach((u,i)=>{ const w=u.width*k, x=xs(u.x0||0,u.width), bottom=u.z??WB, top=bottom+(u.height??HH.wallTop-WB), y=Y(top), h=Y(bottom)-Y(top);
       // 'none' = outside the drawn wall zone: holds its width so positions stay exact, draws nothing
       if(u.kind==='tallFootprint'||u.kind==='overDoor'||u.kind==='none'||u.kind==='inset') return;
@@ -7263,7 +7246,9 @@ function drawPlanElev(key){
       if(u.shutter&&!R)s+=`<rect data-blind-shutter="true" x="${xs(u.shutter.x0,u.shutter.width)}" y="${y}" width="${u.shutter.width*k}" height="${h}" fill="#D8C9A3" stroke="#70551E" stroke-width="1" pointer-events="none"/>`;
       { const lbl=u.label||(u.kind==='wallGlass'?'glass':u.kind==='wallBlind'?'blind corner':'wall unit'); if(labelFits(lbl,7,w)) s+=label(x+w/2,y+h/2+3,lbl,'#fff',7); }
     });
-    (t.loft||[]).forEach((u,i)=>{ const w=u.width*k, x=xs(u.x0||0,u.width), y=Y(HH.wallTop+HH.loft), h=Y(HH.wallTop)-Y(HH.wallTop+HH.loft);
+    (t.loft||[]).forEach((u,i)=>{ const w=u.width*k, x=xs(u.x0||0,u.width), bottom=u.z??HH.wallTop, top=bottom+(u.height??HH.loft), y=Y(top), h=Y(bottom)-Y(top);
+      if(u.kind==='filler'){ s+=E(key,'loft',i,x,y,w,h,u.open?'transparent':'#D9A441',u.open?'stroke="#B9B09E" stroke-dasharray="3 3"':'');
+        if(u.open&&labelFits('+ loft',7,w)) s+=`<text x="${x+w/2}" y="${y+h/2+3}" text-anchor="middle" font-size="7" fill="#8A8579" pointer-events="none">+ loft</text>`; return; }
       if(u.kind!=='loft') return;
       s+=E(key,'loft',i,x,y,w,h,'#8A8F7E');
       if(labelFits('loft',7,w)) s+=label(x+w/2,y+h/2+3,'loft','#fff',7);
@@ -7599,8 +7584,7 @@ function openSeriesModal(){
       ${s.startingRatePerSqft?`<div style="line-height:1"><span style="font-size:21px;font-weight:600;color:var(--ink)">${inr(s.startingRatePerSqft)}</span><span style="font-size:11px;color:var(--muted2)"> /sqft · from</span></div>`:''}
       ${s.positioning?`<div style="font-size:11.5px;color:#6B675E;line-height:1.5">${esc(s.positioning)}</div>`:''}
       <div style="font-size:11px;color:var(--muted2);line-height:1.6;border-top:1px solid var(--line);padding-top:8px;margin-top:auto">
-        ${s.optionsBlurb?`<b style="color:#6B675E">${esc(s.optionsBlurb)}</b><br>`:''}
-        ${(s.finishLabel||(s.finishGroups&&s.finishGroups.length))?`Finishes · ${esc(s.finishLabel||s.finishGroups.join('/'))}<br>`:''}Handle families · ${(s.handleTypes||[]).length}${s.catalogPlaceholder?'<br><span style="color:#B4936F">Catalogue · full (interim)</span>':''}
+        ${[['Eleanor light',s.eleanorLight],['Visible panel',s.visiblePanel]].map(([n,ok])=>`${n} · <b style="color:${ok?'#6B675E':'var(--muted2)'}">${ok?'✓ Available':'✕ Not available'}</b>`).join('<br>')}
       </div>
     </button>`;
   }).join('');
@@ -7609,7 +7593,7 @@ function openSeriesModal(){
       <div style="font-family:'Spectral',serif;font-size:20px">Choose a series</div>
       <button class="btn ghost" onclick="closeSeriesModal()" style="padding:6px 12px;font-size:12px">✕</button></div>
     <div style="font-size:12px;color:var(--muted2);margin-bottom:16px;line-height:1.55">Every cabinet, finish option and price in this room comes from the chosen series, and the carcass comes with it. You can change series later — the kitchen redesigns to the new series' cabinets.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;align-items:stretch">${cards||'<div style="grid-column:1/-1;color:var(--muted2);font-size:13px">Series list not loaded — is the server running?</div>'}</div></div>`;
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch">${cards||'<div style="grid-column:1/-1;color:var(--muted2);font-size:13px">Series list not loaded — is the server running?</div>'}</div></div>`;
 }
 function closeSeriesModal(){ const m=$('modalSeries'); if(m) m.style.display='none'; S._seriesNext=null; }
 function chooseSeries(id){
@@ -7841,10 +7825,7 @@ render();   // mounts the desk, which loads projects + workload from the design 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="quote-pdf.js"></script>
-<<<<<<< HEAD
 <script src="presales-pdf.js"></script>
-=======
->>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 <script type="module" src="renderer3d.js"></script>
 </body>
 </html>

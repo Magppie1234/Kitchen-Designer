@@ -27,11 +27,17 @@ test('compare both tall-bank sides and cabinet combinations instead of accepting
   assert.deepEqual(collisions(measuredVolumes(j,r.placed)),[]);
 });
 
-test('storage optimization cannot reclaim space by omitting an exposed tall side panel',()=>{
+test('no filler or panel beside the refrigerator at a tall run end',()=>{
   const j=fixture(),fridge=j.anchors.find(a=>a.item==='fridge');
   j.zones.tall=[{wall:'4',from:fridge.at,to:4993}];
   const r=layout({...j,lockAnchors:true,lockZones:true},catalog,{fast:true});
-  assert.ok(r.problems.some(p=>/needs a 25mm visible panel/.test(p)));
+  assert.ok(!r.problems.some(p=>/4\/tall: run from/.test(p)));
+  assert.ok(!r.placed.tall.some(p=>p.wall==='4'&&p.trim&&p.at+p.width===fridge.at));
+  // a 40mm sliver between the fridge and the zone end stays empty
+  j.zones.tall=[{wall:'4',from:fridge.at-40,to:4993}];
+  const s=layout({...j,lockAnchors:true,lockZones:true},catalog,{fast:true});
+  assert.ok(!s.placed.tall.some(p=>p.wall==='4'&&p.trim&&p.at<fridge.at&&p.at+p.width<=fridge.at));
+  assert.ok(!s.problems.some(p=>/4\/tall: run from/.test(p)));
 });
 
 test('the actual kitchen reclaims 150mm, preserves appliances and stays within original anchor allowances',async()=>{

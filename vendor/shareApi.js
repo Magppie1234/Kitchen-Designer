@@ -106,7 +106,7 @@ function sharePage(sh) {
   let plan2d = '', elevs = '';
   try { plan2d = livePlanSvg(st); elevs = liveElevSvg(st); } catch { /* drawing is best-effort */ }
   const snaps = (st.snapshots || []).map((s) => s.rendered || s.img).filter(Boolean);
-  const acc = (st.plan && st.plan.accessories) || [];
+  const acc = (st.plan && st.plan.placedAccessories) || [];   // the accessories the designer picked while editing
   const price = st.plan && st.plan.price;
   const finishName = (st.options && st.options.lookName) || st.material || '';
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -126,7 +126,7 @@ ${plan2d ? `<div class="card"><h2>Floor plan</h2>${plan2d}</div>` : ''}
 ${elevs ? `<div class="card"><h2>Elevations</h2>${elevs}</div>` : ''}
 ${acc.length ? `<div class="card"><h2>Accessories</h2><table>${acc.map((a) => `<tr><td>${esc(a.name)}</td><td>×${a.qty || 1}</td></tr>`).join('')}</table></div>` : ''}
 ${sh.includeEstimate && price ? `<div class="card"><h2>Estimate</h2>
-<table><tr><td>Cabinets (${price.carcassSqft ?? 0} sqft carcass × ₹${price.rate ?? '—'}/sqft · ${esc(series?.name || '')})</td><td style="text-align:right">${inr(price.breakdown.cabinets)}</td></tr>
+<table><tr><td>Cabinets (${price.carcassSqft ?? 0} sqft carcass × ${price.rate != null ? '₹' + price.rate + '/sqft' : 'no series rate'} · ${esc(series?.name || '')})</td><td style="text-align:right">${inr(price.breakdown.cabinets)}</td></tr>
 <tr><td>Countertop (${price.counterSqft} sqft)</td><td style="text-align:right">${inr(price.breakdown.counter)}</td></tr>
 <tr><td class="total">Estimate</td><td class="total" style="text-align:right">${inr(price.breakdown.total)}</td></tr></table>
 <div class="meta" style="margin-top:8px">Indicative estimate before services, taxes and site specifics — the formal quotation follows.</div></div>` : ''}

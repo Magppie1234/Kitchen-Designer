@@ -270,7 +270,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Visible panels are exactly 25mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead. Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
+      "statement": "Visible panels are exactly 25mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead; the refrigerator's own sides are exempt (no-filler-beside-fridge). Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
       "note": "The 30mm minimum applies to ordinary gap fillers. Wall fillers at concealed tall sides are exactly 40mm. Automatic corner fillers remain 40-100mm; manually specified corner fillers may be up to 150mm.",
       "reconciles": [
         "panel (outdated): P1 27, P2 20/30, P3 20, P4 20/30",
@@ -455,12 +455,42 @@
       "note": "Applies separately to base and upper corners using the actual adjacent cabinet front projection, including any depth offset. Base and upper blind cabinets remain on the same wall. Cabinet catalogue body dimensions stay unchanged. Track the opening shutter separately from the concealed blind section; all clearance, opening and collision checks remain in force."
     },
     {
+      "id": "blind-dead-space-absorbs-filler",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "Where a base or wall blind cabinet has a visible gap filler further along its run, use the concealed space behind the blind (up to 100mm) to take that filler up before leaving it visible. The filler need not touch the blind: the blind and every ordinary cabinet between it and the filler slide together toward the filler, which closes up against the next item. Only whole cabinets slide; a hob, sink, veggie sink, refrigerator, chimney, dishwasher, tall unit or other fixed item in that chain means nothing slides and the filler stays. If the filler is wider than the space available, absorb what fits so that the remaining filler is still at least 30mm.",
+      "evidence": [
+        "Designer, 2026-10-04: blind 1150 | 500 | 300 bottle pullout | 77 filler | sink. The 77 is under the 100mm allowance, yet it was left as a visible filler beside the sink."
+      ],
+      "note": "Refines blind-corner-snap. Before this, only a filler touching the blind was absorbed, and the packer puts the leftover at the far end of the span, so it almost never was. The corner filler of at least 40mm required on the adjacent wall is a different piece and is never absorbed. Implemented in arrangeBlindFronts (core/engine.mjs)."
+    },
+    {
+      "id": "visible-panel-handing",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "A tall visible panel is handed by the side of the tall cabinet it sits on. Where a base run meets the tall cabinet on its left side, the panel is a LEFT visible panel; where the base run meets it on its right side, it is a RIGHT visible panel. A panel on an exposed end of a tall run follows the same rule by its side of the cabinet.",
+      "note": "Left is the lower wall offset (the 'from' end of the run), right the higher ('to' end), the same convention the renderer uses for LH/RH fillers. The catalogue stocks one VP-560-15 and one VP-336-15 with no left or right code, so the hand is recorded on the panel (side), carried into the plan and 3D view, and checked at every base/tall junction; it does not change the SKU or the price."
+    },
+    {
       "id": "run-end-treatment",
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel. Reserve corner footprints before treating run ends.",
+      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel; a refrigerator at the end of a tall run needs neither (no-filler-beside-fridge). Reserve corner footprints before treating run ends.",
       "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm."
+    },
+    {
+      "id": "no-filler-beside-fridge",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "The refrigerator is an appliance, not a cabinet, so it never gets a wall filler, visible panel or gap filler on its outer side. When the refrigerator is the last item at the end of a tall run, whether that end is a free end or faces a wall, nothing is placed beside it. If a leftover space between the refrigerator and that end is too small to hold any tall cabinet, it stays empty; it still counts as unused space when layouts are compared, so the refrigerator is not slid off the wall just to hide it. The tall cabinet on the refrigerator's other side is finished by its own rules as usual.",
+      "evidence": [
+        "Designer, 2026-10-04: a filler was drawn between the refrigerator and the wall although the refrigerator sat between a tall cabinet and that wall."
+      ],
+      "note": "Exception to panel-vs-filler and run-end-treatment. A base/tall junction panel is unchanged. The engine marks the empty sliver with a non-rendered blocker (role 'empty space beside refrigerator', emptySpace) so fit scoring counts it as waste."
     },
     {
       "id": "chimney-over-hob",

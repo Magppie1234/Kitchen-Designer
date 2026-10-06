@@ -151,6 +151,22 @@ test('solid chimney flanks are wall cabinets; only the chimney itself is a chimn
   assert.deepEqual(plan.tiers.W0.wall.map(u=>u.kind),['wallSolid','chimney','wallGlass']);
 });
 
+test('loft: one loft cabinet sits on each wall cabinet, is priced, and never beats the ceiling',()=>{
+  const {input}=toEngineInput([],options), wall=input.walls[0].id, lofts=loadCatalog().ok.filter(c=>['LO','LB'].includes(c.zone));
+  const placed=[{at:0,width:850,role:'solid',code:'WC-SH-NHX-ST-3SG-2HS-XXX-850-1085-336-15'},{at:850,width:1000,role:'chimney',code:null},
+    {at:1850,width:500,role:'solid',code:null}].map(p=>({...p,wall}));
+  const result={placed:{base:[],wall:placed,tall:[]},notes:[],problems:[],unresolved:[],warnings:[]};
+  const plan=toPlan(result,{...input,ceiling:3100},[],{pg:'PG1',finish:'Classic',loft:lofts});
+  const [l]=plan.tiers.W0.loft, under=plan.tiers.W0.wall[0];
+  assert.equal(plan.tiers.W0.loft.length,1,'nothing over the chimney or a width with no loft SKU');
+  assert.deepEqual([l.x0,l.width,l.z,l.height],[0,850,under.z+under.height,600]);
+  assert.equal(plan.bom[l.code],1,'a loft that is drawn is a loft that is priced');
+  assert.ok(plan.warnings.some(w=>/Loft skipped.*500mm/.test(w)));
+  // the same wall under a 2500 ceiling has no room for a 600 loft above a 2500 wall top
+  assert.deepEqual(toPlan(result,input,[],{loft:lofts}).tiers.W0.loft,[]);
+  assert.deepEqual(toPlan(result,{...input,ceiling:3100},[],{}).tiers.W0.loft,[],'off unless chosen');
+});
+
 test('toEngineInput requires a chosen handle and preserves its catalogue code', () => {
   const missing = toEngineInput(anchors, { ...options, handles: null }).input;
   assert.ok(missing.inputProblems.some((p) => /Handle Type/.test(p)));

@@ -572,7 +572,11 @@ function buildKitchen(plan, walls){
       if(Math.min(size.x,size.y,size.z)<=0)return;
       own(m); m.traverse(o=>{if(o.isMesh)o.userData.role=role;});
       const [sx,sz]=turn?[d,w]:[w,d];
-      m.scale.set(sx*MM/size.x,h*MM/size.y,sz*MM/size.z); m.position.y=-h*MM/2; if(turn)m.rotation.y=Math.PI/2;
+      m.scale.set(sx*MM/size.x,h*MM/size.y,sz*MM/size.z); m.position.y=-h*MM/2;
+      // A panel stands on its side: +90deg faces its finished side toward rising wall offset (a right
+      // panel, base run on the high side); a left panel turns the other way so the finished side
+      // faces the base run, not the cabinet.
+      if(turn)m.rotation.y=side==='LH'?-Math.PI/2:Math.PI/2;
       const holder=new THREE.Group(); holder.add(m); holder.position.copy(pos); holder.rotation.y=ang;
       g.add(holder);applyFinishToObject(holder);b.visible=false;parts.push(holder);
     }).catch(()=>{});
@@ -733,15 +737,16 @@ function buildKitchen(plan, walls){
         let h=seg.height??720, z=seg.z??100;
         // A tall gap filler starts on the floor, but the tall cabinets beside it stand on their
         // skirting: it stops at the skirting line and the skirting runs on beneath it.
-        // End panels stay floor to top.
-        if(tall&&!panel&&z<SKIRT_H){ h-=SKIRT_H-z; z=SKIRT_H; }
+        // Visible panels too: every filler or panel stops at the skirting line, with skirting
+        // beneath it, so its bottom edge matches the cabinets beside it.
+        if(tall&&z<SKIRT_H){ h-=SKIRT_H-z; z=SKIRT_H; }
         const along=off+ww/2;
         const at=(k,y)=>world(w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset),y);
         // a visible panel is an end panel standing sideways; any other filler is the front
         // filler strip (LH in the first half of the run, RH in the second)
-        if(panel) item(D<450?'VP-336-15':'VP-560-15',null,ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
+        if(panel) item(D<450?'VP-336-15':'VP-560-15',seg.side==='left'?'LH':seg.side==='right'?'RH':null,ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
         else item(tall?(h>2200?'TFP-2397':'TFP-2037'):'BFP-717',along<r.total/2?'LH':'RH',ww,h,FILLER_D,at(D-FILLER_D/2,z+h/2),ang,0xE6DFCE,'cabinet');
-        if(!panel) skirting(ww,z,D,at,ang);
+        skirting(ww,z,D,at,ang);
         if(!tall) worktop(off,off+ww,D,inset);
         off+=ww;continue;}
       if(['cabinet','anchor','corner'].includes(seg.kind)){
@@ -784,13 +789,14 @@ function buildKitchen(plan, walls){
     // with its own kinds, its own codes and its own along-wall x0 (annotatePositions), so we
     // place exactly that: cabinets where there are cabinets, a backsplash where the tier says
     // chimney/filler/inset, and nothing at all over a window, a doorway or a tall footprint.
-    const tw=(plan.tiers&&plan.tiers[r.key]&&plan.tiers[r.key].wall)||[];
+    // loft units (Design → Extras) ride the same pass: each carries its own x0, z and height
+    const tt=(plan.tiers&&plan.tiers[r.key])||{}, tw=[...(tt.wall||[]),...(tt.loft||[])];
     let twx=0;   // fallback cursor for a plan annotated before x0 existed
     for(const tu of tw){ const ux=(tu.x0!=null?tu.x0:twx); twx=ux+tu.width;
       const along=ux+tu.width/2;
       const depth=tu.depth??WD_WALL, bottom=tu.z??stack.wallBottom, height=tu.height??(stack.wallTop-stack.wallBottom);
       const wpx=w.a[0]+u[0]*along+n[0]*(depth/2+(tu.offset??0)), wpy=w.a[1]+u[1]*along+n[1]*(depth/2+(tu.offset??0));
-      if(tu.kind==='wallSolid'||tu.kind==='wallGlass'||tu.kind==='wallBlind'){
+      if(tu.kind==='wallSolid'||tu.kind==='wallGlass'||tu.kind==='wallBlind'||tu.kind==='loft'){
         // the tier's own SKU drives the GLB (falling back to the generic 3-shelf wall unit),
         // so a glass or blind-corner wall cabinet renders as itself
         if(tu.shutter)placeBlind(tu,w,u,n,ang,depth,bottom,height,0x21433A);
@@ -1035,7 +1041,6 @@ window.renderElevation=function(plan,walls,key,{ceil=2700,px=1800}={}){
   if(elevCache.size>40) elevCache.delete(elevCache.keys().next().value);
   return job;
 };
-<<<<<<< HEAD
 // Pre-sales deck: eye-level views of the finished kitchen from inside the room, one from each
 // corner that is inside it (up to `count`). Same build + queue as renderElevation, own camera.
 window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
@@ -1070,8 +1075,6 @@ window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
   elevQ=job.catch(()=>{});
   return job;
 };
-=======
->>>>>>> e2774067c0d47d1d418d831311ca2b77e1ec5bec
 // Read-only diagnostics for the local verification page: measure actual rendered
 // objects after transforms/model loading, rather than echoing requested sizes.
 window.inspectSceneGeometry=function(){

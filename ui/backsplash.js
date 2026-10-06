@@ -34,7 +34,7 @@
       if(['wallSolid','wallGlass','wallBlind'].includes(u.kind)||((u.kind==='filler'||u.kind==='inset')&&!u.open)) add(x0,w,z0,z1,true);
     }
     x=0;
-    for(const u of t.loft||[]){ const x0=u.x0??x, w=u.width||0; x=x0+w; if(u.kind==='loft') add(x0,w,G.wallTop,G.wallTop+(G.loft||600),true); }
+    for(const u of t.loft||[]){ const x0=u.x0??x, w=u.width||0; x=x0+w; if(u.kind==='loft'){ const z0=u.z??G.wallTop; add(x0,w,z0,z0+(u.height??G.loft??600),true); } }
     for(const o of G.openings||[]) if(o.wall===key&&o.type==='window'){ const full=o.variant==='fulllength', sill=o.sill??(full?50:900);
       add(o.off-o.width/2,o.width,sill,sill+(o.winH??(full?2100:1200)),false); }
     return {obs:out,L};

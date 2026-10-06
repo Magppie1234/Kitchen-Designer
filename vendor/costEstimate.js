@@ -39,7 +39,7 @@ export function enumerateModules(plan) {
     const t = plan.tiers?.[run.key];
     if (t) {
       for (const w of t.wall) if (['wallSolid', 'wallGlass', 'wallBlind'].includes(w.kind)) push({ kind: 'wall', W: w.width, H: w.height??w.h??1085, D: w.depth??DEPTH.wall, label: 'wall cabinet' });
-      for (const l of t.loft) push({ kind: 'loft', W: l.width, H: l.height??l.h??600, D: l.depth??DEPTH.loft, label: 'loft cabinet' });
+      for (const l of t.loft) if (l.kind === 'loft') push({ kind: 'loft', W: l.width, H: l.height??l.h??600, D: l.depth??DEPTH.loft, label: 'loft cabinet' });
       for (const x of t.tall) push({ kind: 'tall', W: x.width, H: x.height??x.h??2100, D:x.depth??DEPTH.tall, label: x.note || 'tall unit', carries: x.note && /pantry/i.test(x.note) ? ['pantry'] : [] });
     }
   }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {blindCornerProblems,layout,gate} from '../../core/engine.mjs';
+import {blindCornerProblems,layout,gate,arrangeBlindFronts} from '../../core/engine.mjs';
 import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {cornerArrangements} from '../../core/planner.mjs';
 const walls=[{id:'A',dir:'E',length:4000},{id:'B',dir:'S',length:4000},{id:'C',dir:'W',length:4000},{id:'D',dir:'N',length:4000}];
@@ -49,4 +49,30 @@ test('each corner is checked separately and a second blind on the adjacent wall 
   placed.wall.push(upper('B',3100));assert.deepEqual(blindCornerProblems({walls},placed),[]);
   placed.wall.push(upper('A',3100));assert.match(blindCornerProblems({walls},placed)[0],/wall A/);
   assert.deepEqual(blindCornerProblems({walls},{base:[],wall:[]}),[]);
+});
+
+// blind-dead-space-absorbs-filler: 1150 | 500 | 300 | 77 filler | sink on wall A, blind at the 'from' end.
+const dead=(...items)=>{
+  const placed={base:[{wall:'A',at:0,width:1150,code:'BB',role:'blind corner',
+    corner:{id:'D:A',end:'from',adjacentWall:'D',adjacentEnd:'to'}},...items],wall:[],tall:[]};
+  arrangeBlindFronts({walls},placed,[],[]);return placed.base;
+};
+const cab=(at,width,role='shutter')=>({wall:'A',at,width,code:`C${width}`,role});
+const gapFiller=(at,width)=>({wall:'A',at,width,role:'gap filler',trim:true,code:null});
+const sink=at=>({wall:'A',at,width:600,role:'sink',code:'SK'});
+
+test('a filler past a chain of ordinary cabinets becomes concealed space behind the blind',()=>{
+  const out=dead(cab(1150,500),cab(1650,300,'bottle pullout'),gapFiller(1950,77),sink(2027));
+  assert.ok(!out.some(p=>p.role==='gap filler'));
+  assert.deepEqual(out.filter(p=>p.code).map(p=>[p.code,p.at]),[['BB',77],['C500',1227],['C300',1727],['SK',2027]]);
+  assert.equal(out.find(p=>p.hiddenCorner).width,77);
+});
+
+test('absorption stops at 100mm and leaves a legal filler; an anchor in the chain blocks it',()=>{
+  const big=dead(cab(1150,500),gapFiller(1650,130),sink(1780));
+  assert.equal(big.find(p=>p.code==='BB').at,100);
+  assert.equal(big.find(p=>p.role==='gap filler').width,30);
+  const blocked=dead(cab(1150,500),sink(1650),cab(2250,300),gapFiller(2550,77));
+  assert.equal(blocked.find(p=>p.code==='BB').at,0);
+  assert.equal(blocked.find(p=>p.role==='gap filler').width,77);
 });

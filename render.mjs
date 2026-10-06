@@ -33,21 +33,50 @@ Erasing this lettering must not change the shape, size or position of the
 object it was printed on. An appliance keeps its exact outline, its exact
 controls and its exact placement — it simply carries no branding.`;
 
+// Built-in cabinet lighting. Every series has the profile light under the wall cabinets (the
+// "dupley") and the one in the skirting. Inside glass wall and tall units a series has either
+// the Eleanor vertical profile lights (series.json eleanorLight) or spotlights — never both.
+// Solid-door cabinets are lit inside too, but a closed door shows none of it.
+const GLASS_LIGHT = {
+  true: `Inside every glass-fronted wall unit and glass-fronted tall unit that exists
+in the source, the light comes from slim vertical LED profile lights: one
+continuous warm-white line recessed into each inner side panel, just behind
+the door frame, running the full inner height of the unit from bottom to top
+and passing every shelf. They wash the shelves and their contents evenly from
+both sides. There are no spotlights, pucks or downlights inside these units.`,
+  false: `Inside every glass-fronted wall unit and glass-fronted tall unit that exists
+in the source, the light comes from small round spotlights recessed in the
+underside of the unit's top panel, shining straight down through the glass
+shelves so the light is brightest at the top and falls off towards the bottom.
+There are no vertical light strips or lines of light along the sides of these
+units.`,
+  undefined: `Glass-fronted units and open shelves that already exist in the source may be
+gently lit from inside.`,
+};
+
 // Lighting is artificial on purpose: asking for daylight made the model invent a window (or a
 // window's reflection) to explain it.
-const HOUSE = `Photographed as a high-end interior magazine shot. The lighting is artificial
+const house = (eleanor) => `Photographed as a high-end interior magazine shot. The lighting is artificial
 and even: bright, soft, neutral-white ambient light fills the whole room like a
 well-lit showroom, with no directional sunlight and no dim or evening mood.
 All of that light comes from the ceiling: small recessed downlights, flush
 with the ceiling, are the main light source. The ceiling is a simple recessed
 tray with a concealed cove strip around its edge; that strip is a warm accent
-only. The room needs no window to be bright, so never add one. Warm LED strips
-run under the wall cabinets and wash the wall below them — the space between
-wall cabinets and countertop stays exactly as in the source, with no shelves,
-niches or dividers added. Glass-fronted units and open shelves that already
-exist in the source may be gently lit from inside, but the glass stays clear
-and the shelves behind it stay visible. The floor and every appliance keep the
-colour they have in the source image.
+only. The room needs no window to be bright, so never add one.
+
+The cabinets carry their own built-in lighting, all of it warm white:
+A slim horizontal LED profile light runs continuously along the underside of
+the wall cabinets, at their front edge, and washes the wall and countertop
+below — the space between wall cabinets and countertop stays exactly as in the
+source, with no shelves, niches or dividers added.
+A slim horizontal LED profile light is set into the skirting under the base and
+tall units and casts a soft, even glow onto the floor just in front of it. The
+skirting itself keeps its source colour.
+${GLASS_LIGHT[eleanor]}
+The glass stays clear and the shelves behind it stay visible. Cabinets with
+solid doors stay closed and show no interior light, and no glass door, open
+shelf or niche is created to show one.
+The floor and every appliance keep the colour they have in the source image.
 No sun patches or light beams on walls, floor or cabinets, and no reflections
 of windows or glazing bars on any surface — gloss shows only soft, linear
 highlights from the ceiling lights.
@@ -78,14 +107,16 @@ result — never continue it along another wall or around a corner. Count the
 cabinets, windows and doors in the source: the result has exactly the same
 number of each, in exactly the same places.
 
-There are exactly two exceptions:
+There are exactly three exceptions:
 1. A few small decoration pieces (a vase, a bowl, a plant, glassware), and only
    standing on a countertop or on a glass shelf.
 2. The ceiling: one simple recessed tray with a concealed warm cove strip, plus
    small recessed downlights flush with the ceiling, drawn on the ceiling only.
    No pendant, chandelier, track light or any fitting that hangs below the
    ceiling.
-Nothing may be added on the floor, on a wall or on a cabinet front.`;
+3. The built-in cabinet lighting described above: the light itself, on
+   cabinets that exist in the source. It adds no cabinet, shelf or glass door.
+Nothing else may be added on the floor, on a wall or on a cabinet front.`;
 
 function styleAssignment(labels) {
   if (!labels.length) return '';
@@ -126,8 +157,8 @@ function styleAssignment(labels) {
   ].join('\n');
 }
 
-export const composePrompt = (labels = []) =>
-  [GEOMETRY_LOCK, TEXT_REMOVAL, [HOUSE, styleAssignment(labels)].filter(Boolean).join('\n\n'), NEGATIVE, HARD_RULE].join('\n\n');
+export const composePrompt = (labels = [], eleanor) =>
+  [GEOMETRY_LOCK, TEXT_REMOVAL, [house(eleanor), styleAssignment(labels)].filter(Boolean).join('\n\n'), NEGATIVE, HARD_RULE].join('\n\n');
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const parseDataUrl = (url) => {
@@ -137,7 +168,7 @@ const parseDataUrl = (url) => {
 };
 
 let client;
-// body: { image: dataUrl, aspectRatio, references: [{ image: dataUrl, label }] }
+// body: { image: dataUrl, aspectRatio, eleanor?: boolean, references: [{ image: dataUrl, label }] }
 export async function renderSnapshot(body, { signal } = {}) {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) throw fail(503, 'AI rendering is not configured: GEMINI_API_KEY is missing on the server.');
@@ -151,7 +182,7 @@ export async function renderSnapshot(body, { signal } = {}) {
   try {
     interaction = await client.interactions.create({
       model: MODEL,
-      input: [{ type: 'text', text: composePrompt(refs.map((r) => r.label)) },
+      input: [{ type: 'text', text: composePrompt(refs.map((r) => r.label), typeof body.eleanor === 'boolean' ? body.eleanor : undefined) },
         ...[source, ...refs].map(({ mime_type, data }) => ({ type: 'image', mime_type, data }))],
       store: true,
       // delivery/mime_type deliberately omitted — the live API rejects them (see Render Studio notes)

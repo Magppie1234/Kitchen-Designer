@@ -56,7 +56,7 @@
     // everything that has to load or render, in parallel
     draw2d();   // the plan SVG is only filled while the Review tab has drawn it
     const planSvg=$('view2d')&&$('view2d').innerHTML;
-    const accNames=[...new Set([...(S.plan.accessories||[]),...(S.plan.placedAccessories||[])].map(a=>a.name)
+    const accNames=[...new Set((S.plan.placedAccessories||[]).map(a=>a.name)
       .concat((S.sink&&S.sink.accessories)||[],(S.fridge&&S.fridge.accessories)||[]))];
     const archFile=S.upload&&S.upload.file&&/^image\//.test(S.upload.file.type)?S.upload.file:null;
     const [statics,logo,planImg,elevs,views,accImgs,arch]=await Promise.all([

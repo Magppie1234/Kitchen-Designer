@@ -65,7 +65,7 @@ export function seriesAllowsCode(series, code) {
   return skuSet(series).has(normalizeCode(code));
 }
 
-// The finish group is FIXED BY THE SERIES (Gold = PG2 only; Elite/Signature = PG1).
+// The finish group is FIXED BY THE SERIES (every series currently prices in finish group PG1 — the series NAMES PG1/PG2 are not finish groups).
 // Given a requested pg, return the one the series actually prices in — the requested
 // group when allowed, else the series' first (its home group). No finishGroups
 // configured means unconstrained (pass-through).
@@ -98,8 +98,8 @@ export async function handleConfig(req, res) {
   try {
     return json(200, {
       series: allSeries().map((s) => ({
-        id: s.id, name: s.name, tier: s.tier, startingRatePerSqft: s.startingRatePerSqft,
-        positioning: s.positioning, optionsBlurb: s.optionsBlurb,
+        id: s.id, name: s.name, group: s.group || null, tier: s.tier, startingRatePerSqft: s.startingRatePerSqft,
+        positioning: s.positioning, eleanorLight: !!s.eleanorLight, visiblePanel: !!s.visiblePanel,
         finishGroups: s.finishGroups || null, finishLabel: s.finishLabel || null, finishStyle: s.finishStyle || null,
         carcass: s.carcass, handleTypes: s.handleTypes,
         defaultFinish: s.defaultFinish, catalogPlaceholder: !!s.catalogPlaceholder,

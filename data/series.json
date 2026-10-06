@@ -1,13 +1,13 @@
 {
-  "note": "Series master — admin-owned configuration, seeded here because the Design App has no Admin UI. A room picks exactly one series (kitchen rooms.series_id); the generator, cabinet library and pricing must only offer SKUs whose code matches that series' catalog. Adding a series is a data change only — code must never enumerate series; the picker lists them in FILE ORDER (ascending price ladder). startingRatePerSqft is the series rate (₹/sqft), confirmed by the business 2026-09-29: the Quote prices each cabinet as this rate × its workbook Carcass Net Sqft (the workbook itself carries no rates). finishGroups fixes the finish group per series; finishLabel is the DESIGNER-FACING name for it (PG codes and carcass material names never appear in the UI). carcass comes with the series and is never a designer choice. handleTypes lists the handle families available in that series (the catalog's _CJ/_EH model variants); a series with one entry skips the handle step entirely. finishStyle (Modern | Classic) locks a series to that finish style.",
+  "note": "Series master — admin-owned configuration, seeded here because the Design App has no Admin UI. A room picks exactly one series (kitchen rooms.series_id); the generator, cabinet library and pricing must only offer SKUs whose code matches that series' catalog. Adding a series is a data change only — code must never enumerate series; the picker lists them in FILE ORDER, two per row (Modern row first, then Classic; each row ascending in price). startingRatePerSqft is the series rate (₹/sqft), revised 2026-10-04 (series renamed Elite→PG2, Signature→PG1; the ids keep the old words because saved rooms store them): the Quote prices each cabinet as this rate × its workbook Carcass Net Sqft (the workbook itself carries no rates). finishGroups fixes the finish group per series; finishLabel is the DESIGNER-FACING name for it (PG codes and carcass material names never appear in the UI). carcass comes with the series and is never a designer choice. handleTypes lists the handle families available in that series (the catalog's _CJ/_EH model variants); a series with one entry skips the handle step entirely. finishStyle (Modern | Classic) locks a series to that finish style. group (PG1 | PG2) is the price group a series belongs to; every cabinet in a room is priced at the rate of the room's one series. eleanorLight / visiblePanel say whether the series offers the Eleanor light and the visible panel; the picker card shows both.",
   "series": [
     {
       "id": "elite-modern",
-      "name": "Elite Modern",
+      "name": "PG2 Modern",
+      "group": "PG2",
       "tier": "Modern",
-      "startingRatePerSqft": 7900,
-      "positioning": "A broader collection in clean, contemporary modern finishes.",
-      "optionsBlurb": "Expanded options",
+      "startingRatePerSqft": 7500,
+      "positioning": "A broader collection in clean, contemporary modern finishes. No Eleanor light and no visible panel.",
       "catalog": "full",
       "carcass": "HDHMR",
       "handleTypes": [
@@ -22,38 +22,17 @@
       "defaultFinish": {
         "pg": "PG1",
         "finish": "Modern"
-      }
-    },
-    {
-      "id": "elite-classic",
-      "name": "Elite Classic",
-      "tier": "Classic",
-      "startingRatePerSqft": 9400,
-      "positioning": "A broader collection in timeless classic finishes.",
-      "optionsBlurb": "Expanded options",
-      "catalog": "full",
-      "carcass": "HDHMR",
-      "handleTypes": [
-        "CJ",
-        "EH"
-      ],
-      "finishGroups": [
-        "PG1"
-      ],
-      "finishStyle": "Classic",
-      "finishLabel": "Classic finishes",
-      "defaultFinish": {
-        "pg": "PG1",
-        "finish": "Classic"
-      }
+      },
+      "eleanorLight": false,
+      "visiblePanel": false
     },
     {
       "id": "signature-modern",
-      "name": "Signature Modern",
+      "name": "PG1 Modern",
+      "group": "PG1",
       "tier": "Modern",
       "startingRatePerSqft": 9900,
-      "positioning": "The complete Magppie collection in modern finishes, nothing held back.",
-      "optionsBlurb": "Everything — the full collection",
+      "positioning": "The complete Magppie collection in modern finishes — with visible panel and with Eleanor light.",
       "catalog": "full",
       "carcass": "HDHMR",
       "handleTypes": [
@@ -68,15 +47,42 @@
       "defaultFinish": {
         "pg": "PG1",
         "finish": "Modern"
-      }
+      },
+      "eleanorLight": true,
+      "visiblePanel": true
+    },
+    {
+      "id": "elite-classic",
+      "name": "PG2 Classic",
+      "group": "PG2",
+      "tier": "Classic",
+      "startingRatePerSqft": 8815,
+      "positioning": "A broader collection in timeless classic finishes. No Eleanor light and no visible panel.",
+      "catalog": "full",
+      "carcass": "HDHMR",
+      "handleTypes": [
+        "CJ",
+        "EH"
+      ],
+      "finishGroups": [
+        "PG1"
+      ],
+      "finishStyle": "Classic",
+      "finishLabel": "Classic finishes",
+      "defaultFinish": {
+        "pg": "PG1",
+        "finish": "Classic"
+      },
+      "eleanorLight": false,
+      "visiblePanel": false
     },
     {
       "id": "signature-classic",
-      "name": "Signature Classic",
+      "name": "PG1 Classic",
+      "group": "PG1",
       "tier": "Classic",
-      "startingRatePerSqft": 11400,
-      "positioning": "The complete Magppie collection in classic finishes, nothing held back.",
-      "optionsBlurb": "Everything — the full collection",
+      "startingRatePerSqft": 11215,
+      "positioning": "The complete Magppie collection in classic finishes — with visible panel and with Eleanor light.",
       "catalog": "full",
       "carcass": "HDHMR",
       "handleTypes": [
@@ -91,7 +97,9 @@
       "defaultFinish": {
         "pg": "PG1",
         "finish": "Classic"
-      }
+      },
+      "eleanorLight": true,
+      "visiblePanel": true
     }
   ]
 }

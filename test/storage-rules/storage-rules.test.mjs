@@ -6,7 +6,7 @@ import {fitKitchen} from '../../core/fitting.mjs';
 import {planKitchen} from '../../core/planner.mjs';
 import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
-import {accessoriesFor} from '../../vendor/accessories.js';
+import {ZONE_ACCESSORIES} from '../../vendor/accessories.js';
 import {toPlan} from '../../server.mjs';
 const cat=loadCatalog().ok;
 const cabinet=(role,at,width,wall='A')=>({role,at,width,wall,code:'test'});
@@ -42,7 +42,7 @@ test('named hob flanks remain intact while required storage is fitted beyond the
 test('cancelled accessories do not appear automatically or block a valid design',()=>{
   const j=runEndFixture(),r=layout(j,cat),plan=toPlan(r,j,[]);
   assert.deepEqual(r.unresolved,[]);assert.equal(plan.verdict,'FEASIBLE');assert.equal(plan.releaseBlocked,false);
-  assert.ok(!accessoriesFor(['cooking','washing','island']).some(a=>/dish rack|vegetable|onion|potato/i.test(a.name)));
+  assert.ok(!Object.values(ZONE_ACCESSORIES).flat().some(a=>/dish rack|vegetable|onion|potato/i.test(a.name)));
   const rules=JSON.parse(readFileSync('rules.json','utf8'));
   assert.ok(!rules.rules.some(r=>r.id==='countertop-beside-tall-appliance'));
   assert.ok(!rules.rules.find(r=>r.id==='preferred-models').preferred.some(p=>/dish rack|vegetable basket/.test(p.item)));

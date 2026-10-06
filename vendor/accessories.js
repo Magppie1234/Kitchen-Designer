@@ -36,24 +36,3 @@ export const ZONE_ACCESSORIES = {
     { name: 'Kubos', position: 'wallAccessory', qty: 1 },
   ],
 };
-
-// Return the accessory pack for a zone (flattened by qty into individual items
-// would be ZONE_ACCESSORIES[zone] expanded; here we return the {name,qty} list).
-export function accessoriesForZone(zone) {
-  return ZONE_ACCESSORIES[zone] || [];
-}
-
-// Roll accessory packs for a set of zones present in the kitchen into a flat
-// bill: [{ name, position, qty }] merged across zones (qty summed by name+position).
-export function accessoriesFor(zones) {
-  const bill = new Map();
-  for (const z of zones) {
-    for (const a of accessoriesForZone(z)) {
-      const k = `${a.name}|${a.position}`;
-      const cur = bill.get(k) || { name: a.name, position: a.position, qty: 0 };
-      cur.qty += a.qty;
-      bill.set(k, cur);
-    }
-  }
-  return [...bill.values()];
-}
