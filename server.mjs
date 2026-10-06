@@ -13,6 +13,7 @@
 //   node server.mjs          -> http://localhost:5055
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCatalog } from './core/loadCatalog.mjs';
@@ -30,9 +31,10 @@ import { priceSaleable } from './vendor/saleablePricing.js';
 import { specOf } from './core/engine.mjs';
 import {suggestIslands} from './core/island.mjs';
 import { renderSnapshot } from './render.mjs';
-import { modelManifest, modelFile } from './core/models.mjs';
+import { modelManifest, modelFile, MODEL_ROOTS } from './core/models.mjs';
+import { requestUser, supabaseEnv, userFromToken } from './vendor/supabase.js';
 
-try { process.loadEnvFile(); } catch {} // optional .env (GEMINI_API_KEY for AI renders)
+try { process.loadEnvFile(); } catch {} // optional .env (SUPABASE_*, GEMINI_API_KEY)
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const UI = join(ROOT, 'ui');
@@ -435,15 +437,33 @@ const NOT_WIRED = {
   '/api/dwg-extract': 'DWG/DXF import is not part of this project',
 };
 
-const app = createServer(async (req, res) => {
+// The whole app's request handler: `node server.mjs` serves it locally, api/index.mjs on Vercel.
+export async function handler(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname;
 
   res.setHeader('access-control-allow-origin', '*');
-  res.setHeader('access-control-allow-headers', 'content-type,x-filename');
+  res.setHeader('access-control-allow-headers', 'content-type,x-filename,authorization');
   res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return send(res, 204, '');
 
+  // Login (Supabase Auth, invite-only). Static files stay public — they hold no designs — and
+  // so do the browser's Supabase settings and a client opening a share link. Every other /api
+  // call needs a signed-in user, and runs as that user so the database applies their access.
+  let user = null;
+  try {
+    if (path === '/api/auth-config') { const { url: sbUrl, anon } = supabaseEnv(); return send(res, 200, { url: sbUrl, anonKey: anon }); }
+    if (path.startsWith('/api/') && !(path === '/api/share' && req.method === 'GET')) {
+      user = await userFromToken(req.headers.authorization?.replace(/^Bearer /i, ''));
+      if (!user) return send(res, 401, { error: 'Sign in required.' });
+      if (user.role === 'admin' && path === '/api/render') return send(res, 403, { error: 'Admin accounts are view-only.' });
+    }
+  } catch (e) { return send(res, e?.status ?? 500, { error: String(e?.message ?? e) }); }
+  return requestUser.run(user, () => route(req, res, url, path));
+}
+const app = createServer(handler);
+
+async function route(req, res, url, path) {
   try {
     if(path==='/api/island-options'){
       if(req.method!=='POST')return send(res,405,{error:'POST island layout inputs'});
@@ -594,7 +614,10 @@ const app = createServer(async (req, res) => {
     }
 
     // The GLB model library — the Models folder, linked to data/workbook.json by filename (models.mjs).
-    if (path === '/api/models') return send(res, 200, modelManifest(CATALOG));
+    // Locally the Models folder is rescanned per request; on Vercel the models are CDN files and
+    // the manifest was written at build time (scripts/build-vercel.mjs).
+    if (path === '/api/models') return send(res, 200, existsSync(MODEL_ROOTS[0]) ? modelManifest(CATALOG)
+      : JSON.parse(await readFile(join(ROOT, 'data', 'models-manifest.json'), 'utf8')));
 
     if (path.startsWith('/models/')) {
       const full = modelFile(normalize(decodeURIComponent(path.slice('/models/'.length))));
@@ -634,7 +657,7 @@ const app = createServer(async (req, res) => {
     if (e?.code === 'ENOENT' || e?.code === 'EISDIR' || e?.message === 'dir') return send(res, 404, { error: `not found: ${path}` });
     send(res, e?.status ?? 500, { error: String(e?.message ?? e) });
   }
-});
+}
 
 // Only listen when run directly, so server.test.mjs can import the adapters (same pattern
 // engine.mjs uses for its CLI block).

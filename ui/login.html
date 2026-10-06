@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Magppie · Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Spectral:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --accent:#B4533A; --sage:#6E7466; --paper:#F4F1EB; --linen:#E7E1D6; --ink:#1C1B18;
+    --muted:#8A8579; --muted2:#9A9384; --line:#E3DDD2; --line2:#DAD2C4; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{background:var(--paper);font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:34px 30px;width:100%;max-width:400px}
+  .brand{font-family:'Spectral',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:.3px}
+  .eyebrow{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted2);margin-top:4px}
+  h1{font-family:'Spectral',Georgia,serif;font-weight:400;font-size:22px;margin:26px 0 6px}
+  p.sub{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.55}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  input{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:10px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  input:focus{outline:2px solid var(--sage);outline-offset:1px;border-color:var(--sage)}
+  button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:10px;background:var(--ink);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.55;cursor:default}
+  .link{display:inline-block;margin-top:16px;font-size:12.5px;color:var(--muted);background:none;border:0;padding:0;width:auto;cursor:pointer;text-decoration:underline;font-weight:500}
+  .msg{font-size:13px;line-height:1.5;margin-top:16px;padding:10px 12px;border-radius:10px;display:none}
+  .msg.err{display:block;background:#FBF1EC;color:var(--accent);border:1px solid #E8C9BE}
+  .msg.ok{display:block;background:#EEF0EB;color:var(--sage);border:1px solid #D5DACF}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand">Magppie</div>
+  <div class="eyebrow">AI Kitchen Designer</div>
+
+  <!-- sign in -->
+  <form id="fSignIn" class="hide">
+    <h1>Sign in</h1>
+    <p class="sub">Access is by invitation. Use the email your invite was sent to.</p>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+    <button type="button" class="link" id="toForgot">Forgot password, or never set one?</button>
+  </form>
+
+  <!-- request a reset link -->
+  <form id="fForgot" class="hide">
+    <h1>Set a new password</h1>
+    <p class="sub">We'll email you a link to set your password. It only works for invited accounts.</p>
+    <label for="femail">Email</label>
+    <input id="femail" type="email" autocomplete="username" required>
+    <button type="submit">Email me a link</button>
+    <button type="button" class="link" id="toSignIn">Back to sign in</button>
+  </form>
+
+  <!-- arriving from an invite / reset link -->
+  <form id="fSetPw" class="hide">
+    <h1 id="setTitle">Choose your password</h1>
+    <p class="sub" id="setSub"></p>
+    <label for="npw">New password</label>
+    <input id="npw" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="npw2">Repeat password</label>
+    <input id="npw2" type="password" autocomplete="new-password" minlength="8" required>
+    <button type="submit">Save password and continue</button>
+  </form>
+
+  <div id="msg" class="msg" role="status" aria-live="polite"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(async function(){
+  const $=id=>document.getElementById(id);
+  const show=id=>['fSignIn','fForgot','fSetPw'].forEach(f=>$(f).classList.toggle('hide',f!==id));
+  const say=(text,ok)=>{ const m=$('msg'); m.textContent=text; m.className='msg '+(text?(ok?'ok':'err'):''); };
+  const busy=(form,on)=>form.querySelectorAll('button[type=submit]').forEach(b=>b.disabled=on);
+  const next=()=>{ const n=new URLSearchParams(location.search).get('next'); return n&&n.startsWith('/')&&!n.startsWith('//')?n:'/'; };
+
+  // read the link type BEFORE supabase-js consumes the URL hash
+  const h=new URLSearchParams(location.hash.slice(1));
+  const linkType=h.get('type'), linkError=h.get('error_description');
+
+  let sb;
+  try{
+    const cfg=await fetch('/api/auth-config').then(r=>{ if(!r.ok) throw new Error(); return r.json(); });
+    sb=supabase.createClient(cfg.url,cfg.anonKey);
+  }catch(_){ show(null); say('Sign-in is not available right now: the server has no Supabase settings.'); return; }
+
+  if(linkError){ history.replaceState(null,'',location.pathname); show('fForgot');
+    say(/expired|invalid/i.test(linkError)?'That link has expired or was already used. Enter your email to get a fresh one.':linkError); return; }
+
+  const { data } = await sb.auth.getSession();
+  if(data.session && (linkType==='invite'||linkType==='recovery')){
+    history.replaceState(null,'',location.pathname);
+    $('setTitle').textContent=linkType==='invite'?'Welcome — choose your password':'Choose a new password';
+    $('setSub').textContent='Signed in as '+data.session.user.email+'. You will use this password from now on.';
+    show('fSetPw');
+  } else if(data.session){ location.replace(next()); return; }
+  else show('fSignIn');
+
+  $('toForgot').onclick=()=>{ say(''); $('femail').value=$('email').value; show('fForgot'); };
+  $('toSignIn').onclick=()=>{ say(''); show('fSignIn'); };
+
+  $('fSignIn').onsubmit=async e=>{ e.preventDefault(); busy(e.target,true); say('');
+    const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value });
+    busy(e.target,false);
+    if(error) return say(/invalid/i.test(error.message)?'Wrong email or password. If you never set a password, use "Forgot password".':error.message);
+    location.replace(next()); };
+
+  $('fForgot').onsubmit=async e=>{ e.preventDefault(); busy(e.target,true); say('');
+    // the link lands on "/", which hands it back to this page (ui/auth.js)
+    const { error } = await sb.auth.resetPasswordForEmail($('femail').value.trim(),{ redirectTo:location.origin+'/' });
+    busy(e.target,false);
+    say(error?error.message:'If that email has an invite, a link is on its way. Check spam too.',!error); };
+
+  $('fSetPw').onsubmit=async e=>{ e.preventDefault(); say('');
+    if($('npw').value!==$('npw2').value) return say('The two passwords do not match.');
+    busy(e.target,true);
+    const { error } = await sb.auth.updateUser({ password:$('npw').value });
+    busy(e.target,false);
+    if(error) return say(error.message);
+    location.replace('/'); };
+})();
+</script>
+</body>
+</html>

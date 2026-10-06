@@ -25,3 +25,8 @@ verification/npm-cache/
 *.log
 Thumbs.db
 .DS_Store
+
+# Vercel build output (scripts/build-vercel.mjs)
+public/
+data/models-manifest.json
+.vercel/

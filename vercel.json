@@ -1,0 +1,12 @@
+{
+  "buildCommand": "node scripts/build-vercel.mjs",
+  "outputDirectory": "public",
+  "regions": ["bom1"],
+  "functions": {
+    "api/index.mjs": { "includeFiles": "{rules.json,data/*.json}", "maxDuration": 300 }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/builder.html" },
+    { "source": "/api/:path*", "destination": "/api/index" }
+  ]
+}

@@ -526,6 +526,8 @@
 <!-- rule-engine.js (the legacy in-browser rule cluster) is not part of this project — layout comes from rules.json via /api/build -->
 <!-- PG1 / PG2 finishes (updated names + embedded photos, ingested from the two Finishes Excels).
      window.MAGPPIE_FINISHES = { pg1:[...], pg2:[...] }; surfaced in the Render Portal. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js"></script>
 <script src="finishes.js"></script>
 <script src="geometry.js"></script>
 <script src="island-rules.js"></script>
@@ -6573,7 +6575,7 @@ async function shareNow(){
   stashRoom();
   try{
     const out=await fetch(API+'/api/share',{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({roomId:r.id,state:serializeRoomDesign(r)})}).then(x=>x.json());
+      body:JSON.stringify(await mapStrings({roomId:r.id,state:serializeRoomDesign(r)},offloadImage))}).then(x=>x.json());
     if(out.error) throw new Error(out.error);
     const url=(API||location.origin)+out.url;
     try{ await navigator.clipboard.writeText(url); showToast('Share link copied — pinned to revision '+out.revision.number+', expires '+new Date(out.expiresAt).toLocaleDateString()); }
@@ -7367,16 +7369,39 @@ const STATUS_META={
   'in-process':{label:'In process', sub:'currently being worked on',       bg:'#EEF0EB', fg:'var(--sage)'},
   'submitted': {label:'Submitted',  sub:'forwarded to Sales / the client', bg:'#F1ECE2', fg:'#8A7A5E'},
 };
+// The admin (profiles.role = 'admin') lands on the same dashboard, view-only: every
+// designer's projects, a per-designer summary on top, and projects open without saving.
+function renderDeskHead(me){
+  const admin=me&&me.role==='admin';
+  $('deskHead').innerHTML=`<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div><div class="eyebrow" style="margin-bottom:8px">${admin?'All designers · view only':'My Studio'}</div>
+      <h1 style="font-weight:400;font-size:34px;margin:0">${admin?'Admin Dashboard':'Designer Dashboard'}</h1></div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      ${me?`<span style="font-size:12px;color:var(--muted2)">${esc(me.email)}</span><button class="btn ghost" onclick="signOut()" style="padding:10px 14px;font-size:12.5px">Sign out</button>`:''}
+      ${admin?'':`<button class="btn" onclick="newProjectFromDesk()" style="padding:12px 18px;font-size:13.5px">+ New project</button>`}</div></div>`;
+}
+function designerSummaryHtml(projects){
+  const by=new Map();
+  for(const p of projects){ const k=p.owner&&p.owner.id||'?';
+    if(!by.has(k)) by.set(k,{who:p.owner&&(p.owner.email||p.owner.name)||'Unknown',n:0,revs:0,a:0,ip:0,sub:0,value:0,last:''});
+    const d=by.get(k); d.n++; d.revs+=p.revisionCount||0; d.value+=p.value||0;
+    d[{assigned:'a','in-process':'ip',submitted:'sub'}[p.status]||'a']++; if(p.updatedAt>d.last) d.last=p.updatedAt; }
+  const td='padding:9px 10px;border-bottom:1px solid var(--line);text-align:right', th=td+';font-size:11px;color:var(--muted2);font-weight:600';
+  return `<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 8px;margin-bottom:8px;overflow-x:auto;flex:1 1 100%">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:640px">
+      <tr><th style="${th};text-align:left">Designer</th><th style="${th}">Projects</th><th style="${th}">Revisions</th><th style="${th}">Assigned</th><th style="${th}">In process</th><th style="${th}">Submitted</th><th style="${th}">Value</th><th style="${th}">Last active</th></tr>
+      ${[...by.values()].sort((x,y)=>y.last.localeCompare(x.last)).map(d=>`<tr><td style="${td};text-align:left;font-weight:600">${esc(d.who)}</td><td style="${td}">${d.n}</td><td style="${td}">${d.revs}</td><td style="${td}">${d.a}</td><td style="${td}">${d.ip}</td><td style="${td}">${d.sub}</td><td style="${td}">${inr(d.value)}</td><td style="${td}">${d.last?new Date(d.last).toLocaleDateString():'—'}</td></tr>`).join('')
+        ||`<tr><td colspan="8" style="${td};text-align:left;color:var(--muted2)">No designer has created a project yet.</td></tr>`}
+    </table></div>`;
+}
 async function renderDesk(){
   const head=$('deskHead'); if(!head) return;
-  head.innerHTML=`<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
-    <div><div class="eyebrow" style="margin-bottom:8px">My Studio</div>
-      <h1 style="font-weight:400;font-size:34px;margin:0">Designer Dashboard</h1></div>
-    <button class="btn" onclick="newProjectFromDesk()" style="padding:12px 18px;font-size:13.5px">+ New project</button></div>`;
+  renderDeskHead(DS.me);
   $('deskBuckets').innerHTML='<div style="padding:30px;text-align:center;color:var(--muted2);font-size:13px">Loading projects…</div>';
   try{
     const list=await dsGet('');
     DS.on=true; S.projectsIndex=list.projects||[]; S.workload=list.workload||{};
+    DS.me=list.me||null; DS.readOnly=!!(DS.me&&DS.me.role==='admin'); renderDeskHead(DS.me);
   }catch(e){
     dsOffline(e);
     $('deskStats').innerHTML='';
@@ -7388,14 +7413,16 @@ async function renderDesk(){
   const W=S.workload;
   const stat=(n,label)=>`<div style="background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 18px;min-width:120px">
     <div style="font-size:22px;font-weight:600">${n}</div><div style="font-size:11px;color:var(--muted2)">${label}</div></div>`;
-  $('deskStats').innerHTML=stat(W.assigned,'assigned')+stat(W.inProcess,'in process')+stat(W.submitted,'submitted')
+  const admin=DS.readOnly;
+  $('deskStats').innerHTML=(admin?designerSummaryHtml(S.projectsIndex):'')+stat(W.assigned,'assigned')+stat(W.inProcess,'in process')+stat(W.submitted,'submitted')
     +stat(W.designsMade,'designs made')+stat(W.totalRevisions,'revisions · total workload');
   const card=(p)=>{ const d=p.details||{}; const M=STATUS_META[p.status]||STATUS_META['assigned'];
     return `<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:220px">
         <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
           <span style="font-family:'Spectral',serif;font-size:17px">${esc(p.name)}</span>
-          <span style="font-size:11px;color:var(--muted2)">${esc(d.client||'')}${d.city?' · '+esc(d.city):''}</span></div>
+          <span style="font-size:11px;color:var(--muted2)">${esc(d.client||'')}${d.city?' · '+esc(d.city):''}</span>
+          ${admin&&p.owner?`<span style="font-size:11px;font-weight:600;color:var(--sage)">${esc(p.owner.email||p.owner.name||'')}</span>`:''}</div>
         <div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted2)">
           <span style="font-weight:600;padding:2px 9px;border-radius:14px;background:${M.bg};color:${M.fg}">${M.label}</span>
           <span>${p.rooms.length} room${p.rooms.length===1?'':'s'} · ${p.designedRooms} designed</span>
@@ -7404,10 +7431,10 @@ async function renderDesk(){
             :(p.value?`<span>${inr(p.value)} so far</span>`:'')}
         </div></div>
       <div style="flex:none;display:flex;gap:7px;flex-wrap:wrap">
-        <button class="btn" onclick="openProjectFromDesk('${p.id}')" style="padding:9px 15px;font-size:12.5px">${p.status==='assigned'?'Start':'Open'} →</button>
+        <button class="btn" onclick="openProjectFromDesk('${p.id}')" style="padding:9px 15px;font-size:12.5px">${admin?'View':p.status==='assigned'?'Start':'Open'} →</button>
         ${p.designedRooms?`<button class="btn ghost" onclick="openDeskObs('${p.id}')" title="Generated vs refined (OBS-01)" style="padding:9px 12px;font-size:12.5px">Observability</button>`:''}
-        ${p.status==='in-process'?`<button class="btn ghost" onclick="submitProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Submit</button>`:''}
-        ${p.status==='submitted'?`<button class="btn ghost" onclick="reopenProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Reopen</button>`:''}
+        ${!admin&&p.status==='in-process'?`<button class="btn ghost" onclick="submitProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Submit</button>`:''}
+        ${!admin&&p.status==='submitted'?`<button class="btn ghost" onclick="reopenProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Reopen</button>`:''}
       </div></div>`; };
   const bucket=(status)=>{ const list=(S.projectsIndex||[]).filter(p=>p.status===status); const M=STATUS_META[status];
     return `<div style="margin-bottom:26px">
@@ -7428,13 +7455,15 @@ function hydrateProject(project){
   // project never counts as a change (the 20s sweep would otherwise re-save untouched
   // state and wrongly pull an Assigned project into In-Process).
   try{ stashRoom(); DS.lastSavedJson=JSON.stringify(serializeRoomDesign(activeRoom())); }catch(_){ DS.lastSavedJson=null; }
+  $('saveBtn').style.display=DS.readOnly?'none':'';
+  if(DS.readOnly) updateSaveChip('view');
   renderChrome();
 }
 // ASSIGNED -> IN-PROCESS happens on the FIRST EDIT, not on open: looking at an assigned
 // project leaves it assigned; the moment a single thing changes — a wall, a door, the
 // finish, the series — it moves to In Process. Called from every write path.
 function markInProcess(){
-  if(!DS.on||!DS.projectId||DS.projectStatus!=='assigned') return;
+  if(!DS.on||DS.readOnly||!DS.projectId||DS.projectStatus!=='assigned') return;
   DS.projectStatus='in-process';
   const row=(S.projectsIndex||[]).find(p=>p.id===DS.projectId); if(row) row.status='in-process';
   dsCall('setProjectStatus',{projectId:DS.projectId,status:'in-process'}).catch(()=>{ DS.projectStatus='assigned'; });
@@ -7442,11 +7471,13 @@ function markInProcess(){
 async function openProjectFromDesk(id){
   try{
     const out=await dsGet('?project='+id);
-    hydrateProject(out.project);
+    showToast('Opening project…');
+    hydrateProject(await hydrateImages(out.project));
     go('dashboard');
     // A project that never picked a method AND has no drawn geometry is one that was
     // abandoned at that step — ask again. Projects with real work carry on untouched
     // (older projects predate the setting and must not be interrupted by it).
+    if(DS.readOnly){ showToast('View only — changes are not saved.'); return; }
     if(!S.project.method && !S.rooms.some(r=>(r.design.walls||[]).length)) openMethodModal();
   }catch(e){ showToast('Could not open the project: '+e.message); }
 }
@@ -7643,19 +7674,47 @@ function roomFromServer(sr){
   r.design.roomName=r.name;
   return r;
 }
+// Snapshot and AI-render images live in Supabase Storage; the saved design keeps only their
+// links (a room with renders is 10+ MB, and Vercel caps a request at 4.5 MB). In memory they
+// stay data URLs, so the render, compare, download and PDF code works unchanged: images are
+// uploaded once on save (DS_IMG remembers data URL -> link) and fetched back on open.
+const DS_IMG=new Map(), DS_IMG_PATH='/storage/v1/object/public/design-images/';
+async function mapStrings(v,fn){
+  if(typeof v==='string') return fn(v);
+  if(Array.isArray(v)) return Promise.all(v.map(x=>mapStrings(x,fn)));
+  if(v&&typeof v==='object') return Object.fromEntries(await Promise.all(Object.entries(v).map(async([k,x])=>[k,await mapStrings(x,fn)])));
+  return v;
+}
+function offloadImage(v){
+  if(!v.startsWith('data:image/')||v.length<20000) return v;
+  if(!DS_IMG.has(v)){
+    const up=(async()=>{ const {sb,user}=await AUTH, blob=await (await fetch(v)).blob();
+      const path=user.id+'/'+crypto.randomUUID()+'.'+({'image/png':'png','image/webp':'webp'}[blob.type]||'jpg');
+      const {error}=await sb.storage.from('design-images').upload(path,blob,{contentType:blob.type});
+      if(error) throw new Error('Image upload failed: '+error.message);
+      return sb.storage.from('design-images').getPublicUrl(path).data.publicUrl; })();
+    DS_IMG.set(v,up); up.catch(()=>DS_IMG.delete(v));
+  }
+  return DS_IMG.get(v);
+}
+function hydrateImages(obj){
+  return mapStrings(obj,async v=>{ if(!v.includes(DS_IMG_PATH)) return v;
+    try{ const d=await toDataUrl(v); DS_IMG.set(d,Promise.resolve(v)); return d; }catch(_){ return v; } });
+}
 async function dsGet(qs){
   const res=await fetch(API+'/api/designs'+qs); const j=await res.json();
   if(!res.ok) throw new Error(j.error||('HTTP '+res.status)); return j;
 }
 async function dsCall(action,payload){
+  if(DS.readOnly) throw new Error('View only — admin accounts cannot change designs.');
   const res=await fetch(API+'/api/designs',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify(Object.assign({action},payload))});
+    body:JSON.stringify(await mapStrings(Object.assign({action},payload),offloadImage))});
   const j=await res.json();
   if(!res.ok) throw new Error(j.error||('HTTP '+res.status)); return j;
 }
 function updateSaveChip(state){
   const el=$('saveChip'); if(!el) return;
-  const M={saved:['Saved','var(--sage)'],pending:['Saving…','#8A7A5E'],error:['Save failed','#B4533A'],off:['Offline','#B4533A']};
+  const M={saved:['Saved','var(--sage)'],pending:['Saving…','#8A7A5E'],error:['Save failed','#B4533A'],off:['Offline','#B4533A'],view:['View only','var(--muted2)']};
   const st=M[state]||M.off; el.textContent=st[0]; el.style.color=st[1]; el.style.display='inline';
 }
 function dsOffline(e){
@@ -7667,7 +7726,7 @@ function dsOffline(e){
 /* ---------- autosave (the store checkpoints layout changes) ---------- */
 function scheduleAutosave(){ if(!DS.on) return; markInProcess(); clearTimeout(DS.timer); DS.timer=setTimeout(autosaveNow,1800); }
 async function autosaveNow(){
-  if(!DS.on||DS.saving||DS.restoring) return;
+  if(!DS.on||DS.readOnly||DS.saving||DS.restoring) return;
   const r=activeRoom(); if(!r||!isUuid(r.id)) return;
   stashRoom();
   const state=serializeRoomDesign(r), j=JSON.stringify(state);
@@ -7698,7 +7757,7 @@ async function saveNow(){
 }
 // Required checkpoints can be awaited before replacement; other callers get a visible error.
 async function dsRevision(reason,{required=false}={}){
-  if(!DS.on) return;
+  if(!DS.on||DS.readOnly) return;
   const r=activeRoom(); if(!r||!isUuid(r.id)) return;
   stashRoom();
   try{return await dsCall('saveRevision',{roomId:r.id,reason,state:serializeRoomDesign(r)});}
@@ -7740,6 +7799,7 @@ async function restoreRevisionUi(revId){
     const r=activeRoom();stashRoom();
     if(DS.pending)await DS.pending;
     const out=await dsCall('restoreRevision',{revisionId:revId,roomId:r.id,currentState:serializeRoomDesign(r)});
+    out.state=await hydrateImages(out.state);
     if(activeRoom()!==r)return;
     const fresh=JSON.parse(JSON.stringify(BLANK_ROOM));
     for(const k of ROOM_STATE_KEYS) if(out.state[k]!==undefined) fresh[k]=out.state[k];

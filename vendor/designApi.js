@@ -10,11 +10,10 @@
 //   GET  /api/designs?revision=<id>       -> { revision }                   (full snapshot)
 //   POST /api/designs  { action, ... }    -> per-action result (see ACTIONS)
 //
-// If the local store cannot be opened (db/ unwritable, unsupported Node) every call answers
-// 503 {error}; the client treats that as "working offline" and keeps the old in-memory
-// behaviour instead of breaking.
+// Every call runs as the signed-in user (server.mjs rejects anonymous calls before this).
+// The admin account is view-only: every POST is refused here, and the database refuses it too.
 import { readJsonBody } from './apiRuntime.js';
-import { hasDb } from './db.js';
+import { requestUser } from './supabase.js';
 import * as store from './designStore.js';
 
 const json = (res, code, obj) => {
@@ -42,8 +41,7 @@ const ACTIONS = {
 
 export async function handleDesigns(req, res) {
   try {
-    if (!hasDb()) return json(res, 503, { error: 'Design store unavailable — could not open db/design.sqlite (Node 22.13+ required).' });
-
+    const me = requestUser.getStore();
     if (req.method === 'GET') {
       const q = new URL(req.url, 'http://x').searchParams;
       if (q.get('project')) {
@@ -57,11 +55,12 @@ export async function handleDesigns(req, res) {
       }
       // OBS-01 at dashboard level: generated-vs-refined summary for every room of a project.
       if (q.get('observability')) return json(res, 200, { rooms: await store.projectObservability(q.get('observability')) });
-      // Project list + the workload summary the dashboard shows and SAL-04's
-      // auto-assignment will read (single designer today; the seam is the users table).
+      // Project list + the workload summary the dashboard shows. A designer gets their own
+      // projects; the admin gets every designer's, each tagged with its owner.
       const projects = await store.listProjects();
       const bucket = (s) => projects.filter((p) => p.status === s);
       return json(res, 200, {
+        me: { email: me.email, name: me.name, role: me.role },
         projects,
         workload: {
           assigned: bucket('assigned').length,
@@ -74,6 +73,7 @@ export async function handleDesigns(req, res) {
     }
 
     if (req.method === 'POST') {
+      if (me.role === 'admin') return json(res, 403, { error: 'Admin accounts are view-only.' });
       // 32 MB cap: room state can legitimately carry snapshot images, but nothing sane is bigger.
       const body = await readJsonBody(req, 32 * 1024 * 1024);
       const fn = ACTIONS[body.action];

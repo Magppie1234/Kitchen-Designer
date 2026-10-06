@@ -1,16 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {requestUser} from '../../vendor/supabase.js';
+import * as store from '../../vendor/designStore.js';
 
-test('layout history survives edits, reloads and restoration, including unsaved browser changes',async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kitchen-versions-'));
-  process.env.DESIGN_DB=join(dir,'versions.sqlite');
-  const store=await import('../../vendor/designStore.js');
-  const {getDb}=await import('../../vendor/db.js');
+try{process.loadEnvFile();}catch{}
+// Runs against the real Supabase project as a designer: set SUPABASE_TEST_TOKEN to a test
+// designer's access token (signed in, from the browser's session). Skipped otherwise.
+const token=process.env.SUPABASE_TEST_TOKEN;
+
+test('layout history survives edits, reloads and restoration, including unsaved browser changes',{skip:!token&&'SUPABASE_TEST_TOKEN not set'},()=>requestUser.run({token},async()=>{
+  let p;
   try{
-    const p=await store.createProject({name:'History test'});
+    p=await store.createProject({name:'History test'});
     const initial={walls:[],plan:{runs:[{key:'W0',segments:[{width:900}]}]},planStyle:'classic'};
     const room=await store.createRoom(p.id,{name:'Kitchen',state:initial});
     const baseline=await store.createRevision(room.id,'save',initial);
@@ -31,10 +32,9 @@ test('layout history survives edits, reloads and restoration, including unsaved 
     await store.restoreRevision(checkpoint.id);
     assert.deepEqual((await store.getProject(p.id)).rooms.find(r=>r.id===room.id).state,unsaved,'can return to the layout replaced by Restore');
     const count=(await store.listRevisions(room.id)).length;
-    await assert.rejects(store.restoreRevision(baseline.id,{roomId:'another-room',currentState:{}}),/different room/);
+    await assert.rejects(store.restoreRevision(baseline.id,{roomId:'00000000-0000-4000-8000-000000000000',currentState:{}}),/different room/);
     assert.equal((await store.listRevisions(room.id)).length,count);
   }finally{
-    getDb().close();
-    for(const suffix of ['', '-wal','-shm'])rmSync(process.env.DESIGN_DB+suffix,{force:true});
+    if(p) await store.deleteProject(p.id);
   }
-});
+}));

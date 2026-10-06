@@ -15,7 +15,7 @@ import { createShare, getShare } from './designStore.js';
 import { quoteConfig } from './pricingConfig.js';
 import { getSeries } from './series.js';
 import { readJsonBody } from './apiRuntime.js';
-import { hasDb } from './db.js';
+import { requestUser } from './supabase.js';
 import { RULES } from './rules.js';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -121,7 +121,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;b
 <div class="card"><h1>${esc(sh.roomName)}</h1>
 <div class="meta">${series ? esc(series.name) + ' series · ' : ''}${finishName ? esc(finishName) + ' finish · ' : ''}Revision ${sh.revisionNumber} · shared ${new Date(sh.createdAt).toLocaleDateString()} · link expires ${sh.expiresAt ? new Date(sh.expiresAt).toLocaleDateString() : 'never'}</div></div>
 ${sh.newerExists ? `<div class="note">A newer version of this design exists (revision ${sh.latestRevision}). This page shows revision ${sh.revisionNumber} exactly as it was shared — ask your designer to reshare for the latest.</div>` : ''}
-${snaps.length ? `<div class="card"><h2>Views</h2>${snaps.map((s) => `<img src="${s}" alt="kitchen view">`).join('')}</div>` : ''}
+${snaps.length ? `<div class="card"><h2>Views</h2>${snaps.map((s) => `<img src="${esc(s)}" alt="kitchen view">`).join('')}</div>` : ''}
 ${plan2d ? `<div class="card"><h2>Floor plan</h2>${plan2d}</div>` : ''}
 ${elevs ? `<div class="card"><h2>Elevations</h2>${elevs}</div>` : ''}
 ${acc.length ? `<div class="card"><h2>Accessories</h2><table>${acc.map((a) => `<tr><td>${esc(a.name)}</td><td>×${a.qty || 1}</td></tr>`).join('')}</table></div>` : ''}
@@ -136,8 +136,9 @@ ${sh.includeEstimate && price ? `<div class="card"><h2>Estimate</h2>
 
 export async function handleShare(req, res) {
   try {
-    if (!hasDb()) return json(res, 503, { error: 'Design store unavailable — shares need the local database.' });
     if (req.method === 'POST') {
+      // creating a share needs a signed-in designer (server.mjs); opening one (GET) does not
+      if (requestUser.getStore()?.role === 'admin') return json(res, 403, { error: 'Admin accounts are view-only.' });
       const b = await readJsonBody(req, 32 * 1024 * 1024);
       if (!b.roomId || !b.state) return json(res, 400, { error: 'POST {roomId, state, includeEstimate?}' });
       const qc = quoteConfig();
