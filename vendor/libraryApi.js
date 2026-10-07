@@ -13,7 +13,8 @@
 //        (preferring an explicit seg.code a replacement set over the generic mapping),
 //        and off-catalogue warnings. No storage, no side effects.
 import { loadCatalog } from '../core/loadCatalog.mjs';
-import { categoryOf, modelManifest } from '../core/models.mjs';
+import { existsSync, readFileSync } from 'node:fs';
+import { categoryOf, modelManifest, MODEL_ROOTS } from '../core/models.mjs';
 import { priceSaleable } from './saleablePricing.js';
 import { getSeries, seriesAllowsCode, offCatalogWarnings, seriesFinishGroup } from './series.js';
 import { ZONE_ACCESSORIES } from './accessories.js';
@@ -27,7 +28,10 @@ const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'applic
 // into Models/ show up without a restart, like /api/models.
 function libraryEntries() {
   const catalog = loadCatalog().ok;
-  const pathOf = new Map(modelManifest(catalog).models.filter((m) => m.code).map((m) => [m.code, m.path]));
+  // On Vercel Models/ lives on the CDN, not beside the function: use the build's manifest, as /api/models does.
+  const manifest = existsSync(MODEL_ROOTS[0]) ? modelManifest(catalog)
+    : JSON.parse(readFileSync(new URL('../data/models-manifest.json', import.meta.url), 'utf8'));
+  const pathOf = new Map(manifest.models.filter((m) => m.code).map((m) => [m.code, m.path]));
   return catalog
     .map((c) => ({ code: c.code, category: categoryOf(c), w: c.width, h: c.height, d: c.depth, sample: c.code,
       carcassSqft: c.carcassSqft, profiles: c.profiles, unitType: c.unitType, subType: c.subType,
