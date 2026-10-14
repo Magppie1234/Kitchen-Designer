@@ -6,7 +6,11 @@ import {layout,geometryProblems,overlapProblems,gate} from '../../core/engine.mj
 import {fitKitchen} from '../../core/fitting.mjs';
 const original=()=>JSON.parse(readFileSync('verification/corner-log-input.json','utf8'));
 const cat=loadCatalog().ok;
-const quick=j=>layout({...j,lockAnchors:true,lockZones:true},cat,{fast:true});
+// With the appliances locked, a run that can only close with a filler between two cabinets is
+// reported (no-filler-between-cabinets) — the fitter closes it by moving an appliance. Those
+// packing reports are set aside here; the reservation itself is what these tests check.
+const quick=j=>{const r=layout({...j,lockAnchors:true,lockZones:true},cat,{fast:true});
+  return {...r,problems:r.problems.filter(p=>!/no-filler-between-cabinets/.test(p))};};
 
 test('the reported 300mm return is reserved once rather than packed inside the adjoining base cabinets',()=>{
   const j=original(),before=JSON.stringify(j),r=quick(j);
@@ -17,6 +21,11 @@ test('the reported 300mm return is reserved once rather than packed inside the a
   assert.deepEqual(geometryProblems(j,r.placed,cat),[]);assert.deepEqual(overlapProblems(r.placed),[]);
   assert.match(r.notes.join('\n'),/300mm corner zone.*560mm/);
   assert.deepEqual(quick(j).placed,r.placed,'identical input gives identical placement');
+});
+test('the corner-log kitchen closes with no filler between cabinets once its appliances may move',async()=>{
+  const r=(await fitKitchen(original(),cat,{proposals:false})).result;
+  assert.deepEqual(r.problems,[]);
+  assert.ok(!r.placed.base.some(p=>p.role==='gap filler'&&r.placed.base.filter(q=>q.wall===p.wall&&!q.blocker&&!q.trim&&(q.at+q.width===p.at||q.at===p.at+p.width)).length===2));
 });
 test('short returns respect room reflection, both corner ends and tier depth',()=>{
   for(const size of [150,300,560])for(const reflected of [false,true]){

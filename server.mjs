@@ -193,7 +193,8 @@ export function toEngineInput(anchors = [], options = {}) {
     z0:s.type==='beam'?input.ceiling-(s.h??s.drop??300):0, z1:s.type==='beam'?input.ceiling:(s.h??input.ceiling),
   }));
   for(const s of options.structures??[]) {
-    if(s.type!=='column'||!Number.isFinite(s.x)||!Number.isFinite(s.y)||!(s.w>0&&s.d>0)) continue;
+    // a drawn wall (partition) touching a room wall blocks that span too, like a column
+    if((s.type!=='column'&&s.type!=='partition')||!Number.isFinite(s.x)||!Number.isFinite(s.y)||!(s.w>0&&s.d>0)) continue;
     for(let i=0;i<(options.walls??[]).length;i++) {
       const w=options.walls[i]; if(!walls[i].dir) continue;
       const n=KitchenGeometry.normal(w,options.walls), ux=(w.b[0]-w.a[0])/walls[i].length, uy=(w.b[1]-w.a[1])/walls[i].length;
@@ -247,6 +248,7 @@ function baseKind(role) {
   if (role === 'concealed corner space' || role === 'open wall') return 'gap';
   if (role === 'perpendicular tall footprint') return 'gap';
   if (role === 'corner void') return 'gap';
+  if (role === 'door side clearance') return 'open';   // bare wall beside a door: nothing drawn
   if (/\(tall above\)/.test(role)) return 'tallBank';
   if (/^door/.test(role)) return 'door';
   if (/^window/.test(role)) return 'window';
@@ -263,7 +265,7 @@ function wallKind(role) {
   if (role === 'perpendicular cabinet footprint' || role === 'unresolved corner reservation') return null;
   if (role === 'concealed corner space' || role === 'open wall') return null;
   if (role === 'perpendicular tall footprint') return null;
-  if (role === 'corner void') return null;
+  if (role === 'corner void' || role === 'window clearance' || role === 'door side clearance') return null;
   if (/\(tall above\)|no cabinet\)/.test(role)) return null;
   if (/glass/.test(role)) return 'wallGlass';
   if (/blind/.test(role)) return 'wallBlind';

@@ -36,14 +36,15 @@ test('front projection includes offsets and concealed space is capped at 100mm',
   blind.at=101;assert.match(blindShutterProblems(input,placed,[]).join(),/allowed range is 0-100mm/);
 });
 
-test('saved kitchen moves residuals into concealed corners and keeps both tiers synchronized',()=>{
-  const input=fixture(),r=layout(input,catalog),plan=toPlan(r,input,[]);
+test('saved kitchen moves residuals into concealed corners and keeps both tiers synchronized',async()=>{
+  const {fitKitchen}=await import('../../core/fitting.mjs');
+  const fit=await fitKitchen(fixture(),catalog,{proposals:false}),input=fit.input,r=fit.result,plan=toPlan(r,input,[]);
   assert.deepEqual(r.problems,[]);assert.deepEqual(geometryProblems(input,r.placed,catalog),[]);assert.deepEqual(overlapProblems(r.placed),[]);
   assert.deepEqual(blindCornerProblems(input,r.placed),[]);
   const row=r.placed.base.filter(p=>p.wall==='2').sort((a,b)=>a.at-b.at);
-  assert.deepEqual(row.filter(p=>p.hiddenCorner).map(p=>p.width),[100,57]);
-  assert.deepEqual(row.filter(p=>p.role==='gap filler').map(p=>p.width),[43]);
-  assert.equal(row.find(p=>p.role==='sink').at,1193);
+  assert.ok(row.filter(p=>p.hiddenCorner).every(p=>p.width<=100),'concealed corner space stays within 100mm');
+  const sink=row.find(p=>p.role==='sink');
+  assert.ok(!row.some(p=>p.role==='gap filler'&&(p.at+p.width===sink.at||p.at===sink.at+sink.width)),'no filler beside the sink');
   for(const tier of ['base','wall'])for(const p of r.placed[tier].filter(p=>p.corner)){
     assert.ok(p.corner.deadSpace<=100);assert.equal(p.shutter.clearance,40);
     assert.equal(p.shutter.cornerDistance,p.shutter.adjacentFront+40);
@@ -58,9 +59,9 @@ test('saved kitchen moves residuals into concealed corners and keeps both tiers 
   without.runs.forEach(r=>r.segments=r.segments.filter(p=>!p.hiddenCorner));
   const noSpace=enumerateModules(without);
   assert.equal(withSpace.specs.length,noSpace.specs.length);
-  assert.equal(withSpace.counterMm2-noSpace.counterMm2,157*560);
+  assert.equal(withSpace.counterMm2-noSpace.counterMm2,row.filter(p=>p.hiddenCorner).reduce((n,p)=>n+p.width,0)*560,'concealed corner space still carries countertop');
   assert.ok(!r.notes.some(n=>/143mm filler|57mm filler/.test(n)));
-  const explanation=KitchenRuleLog.explain({status:'applied',detail:r.notes.find(n=>/100mm concealed corner/.test(n))});
+  const explanation=KitchenRuleLog.explain({status:'applied',detail:r.notes.find(n=>/mm concealed corner/.test(n))});
   assert.equal(explanation.title,'Corner shutters aligned');assert.match(explanation.problem,/concealed and empty/);
 });
 

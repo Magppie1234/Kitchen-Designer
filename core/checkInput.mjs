@@ -180,6 +180,36 @@ export function check(j) {
     if (o.type === 'window' && (a.item === 'hob' || a.item === 'fridge'))
       problems.push(`${a.item} is in front of a window on ${o.wall} (window-rules-by-anchor)`);
   }
+  // door-side-clearance: no appliance within 50mm of a door's edge on the same wall.
+  const doorGap = RULE_PARAMS.door_side_clearance;
+  for (const a of anchors) for (const o of openings) {
+    if (a.location === 'island' || o.type !== 'door' || o.wall !== a.wall) continue;
+    if (overlaps(a.at, a.at + a.width, o.at - doorGap, o.at + o.width + doorGap) && !overlaps(a.at, a.at + a.width, o.at, o.at + o.width))
+      problems.push(`${a.item} is within ${doorGap}mm of a door on wall ${o.wall} (door-side-clearance)`);
+  }
+  // fridge-clear-of-door-swing: a fridge on a door's hinge side (behind it, or in its swing
+  // round the corner) keeps fridge_door_swing_gap between its nearest side and the door's edge.
+  // o.flip: 0/1 swing in (hinge at start/end), 2/3 swing out; sliding and doorless doors have no swing.
+  const fridge = anchors.find((a) => a.item === 'fridge' && a.location !== 'island');
+  const order = j.walls.map((w) => w.id);
+  if (fridge) for (const o of openings) {
+    const f = ((o.flip || 0) % 4 + 4) % 4;
+    if (o.type !== 'door' || f > 1 || ['sliding', 'doorless'].includes(o.variant)) continue;
+    const i = order.indexOf(o.wall), prev = order[(i - 1 + order.length) % order.length], next = order[(i + 1) % order.length];
+    const sides = o.variant === 'double' ? ['start', 'end'] : [f === 0 ? 'start' : 'end'];
+    let gap = Infinity;
+    for (const side of sides) {
+      if (side === 'start' && fridge.wall === o.wall && fridge.at + fridge.width <= o.at) gap = Math.min(gap, o.at - (fridge.at + fridge.width));
+      if (side === 'start' && fridge.wall === prev && prev !== o.wall) gap = Math.min(gap, o.at + wall[prev].length - (fridge.at + fridge.width));
+      if (side === 'end' && fridge.wall === o.wall && fridge.at >= o.at + o.width) gap = Math.min(gap, fridge.at - (o.at + o.width));
+      if (side === 'end' && fridge.wall === next && next !== o.wall) gap = Math.min(gap, wall[o.wall].length - (o.at + o.width) + fridge.at);
+    }
+    if (gap < RULE_PARAMS.fridge_door_swing_gap)
+      problems.push(`fridge is in a door swing on wall ${fridge.wall}: ${Math.round(gap)}mm from the door, needs ${RULE_PARAMS.fridge_door_swing_gap}mm (fridge-clear-of-door-swing)`);
+  }
+  for (const a of anchors) if (a.item === 'fridge' && a.location !== 'island') for (const c of columns)
+    if (c.wall === a.wall && overlaps(a.at, a.at + a.width, c.at, c.at + c.width))
+      problems.push(`fridge is in front of a column on ${c.wall} (fridge-not-at-column)`);
 
   const sink = anchors.find((a) => a.item === 'sink');
   if (hob && sink && hob.location!=='island' && sink.location!=='island') {

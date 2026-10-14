@@ -1,36 +1,29 @@
 // ui/presales-pdf.js — the pre-sales presentation deck ("Pre-sales PDF" on the quote step).
-// Laid out like the sales team's PowerPoint deck (960×540 slides): the brand pages are images
-// cut from that deck (assets/presales/pNN.jpg); the client page, plan, elevations, renders and
-// accessories are drawn from the active room. No prices — the estimate is its own PDF.
+// Follows the PG-2 template (16:9, drawn at 960×540): brand pages 1–9 and the closing page are
+// images cut from that PDF (assets/presales/pgNN); the client page, 2D layout, elevations and
+// perspective views (each a full landscape page) and the QR page are drawn from the active room.
+// No prices — the estimate is its own PDF.
 (function(root){
-  const PW=960, PH=540;
+  const PW=960, PH=540, CREAM=[241,237,226], GREEN=[26,59,46], MUTED=[85,98,90];
+  const QR_URL='https://magppie.com';   // "Explore Our Kitchen Designs" page
   const asset=p=>(root.API||'')+'/assets/'+p;
   const load=src=>new Promise(r=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>r(i); i.onerror=()=>r(null); i.src=src; });
-  // an SVG string → PNG data URL on a white sheet (jsPDF can't take SVG)
-  const svgPng=(svg,w,h)=>load('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)).then(i=>{ if(!i) return null;
-    const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
-    x.fillStyle='#fff'; x.fillRect(0,0,w,h); x.drawImage(i,0,0,w,h); return c.toDataURL('image/jpeg',0.92); });
-  const dims=s=>typeof s==='string'?load(s):Promise.resolve(s);
-  // Generated designs name accessories differently from the Excel master, so match by keyword
-  // to its photos (data/accessories-master/media, served at /accessory-media/). First hit wins.
-  const MASTER_IMG=[[/glass rolling|rolling shutter/i,'image7.png'],[/chakla|rolling/i,'image19.jpg'],
-    [/cutlery.*(small|600)/i,'image12.jpg'],[/cutlery/i,'image23.png'],[/pulse/i,'image17.jpg'],
-    [/spice.*(small|600)/i,'image21.jpg'],[/spice|masala/i,'image10.jpg'],[/pot.*pan/i,'image11.jpg'],
-    [/divider/i,'image1.jpg'],[/onion|potato/i,'image5.jpg'],[/lehman|le ?mans/i,'image2.jpg'],
-    [/waste ?bin/i,'image24.jpg'],[/bottle.*150/i,'image9.jpg'],[/bottle/i,'image4.jpg'],
-    [/detergent.*(single|1 basket)/i,'image18.jpg'],[/detergent/i,'image25.jpg'],[/magic/i,'image14.jpg'],
-    [/1200.*shelf|shelf.*1200/i,'image22.jpg'],[/stone shelf/i,'image8.jpg'],[/kubos/i,'image13.png'],
-    [/tandem|pantry/i,'image6.jpg'],[/5 drawer|five drawer/i,'image15.jpg'],[/tark/i,'image3.jpg'],[/ceiling hanging/i,'image16.jpg']];
-  const accImg=n=>{ const own=cfgImg(n)||hobAccImg(n); if(own) return asset(own.replace(/^assets\//,''));
-    const m=MASTER_IMG.find(([re])=>re.test(n)); return m?(root.API||'')+'/accessory-media/'+m[1]:null; };
+  const url=u=>u?((root.API?root.API+'/':'')+u):null;
+  // any image (SVG string, URL) → JPEG data URL on a white sheet (jsPDF can't take SVG)
+  const toJpeg=(i,w,h)=>{ if(!i) return null; const c=document.createElement('canvas'); c.width=w||i.naturalWidth; c.height=h||i.naturalHeight;
+    const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(i,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.9); };
+  const svgPng=(svg,w,h)=>load('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)).then(i=>toJpeg(i,w,h));
+  const swatch=u=>u?load(u).then(i=>{ if(!i) return null; const k=Math.min(1,200/Math.max(i.naturalWidth,i.naturalHeight));
+    return toJpeg(i,Math.round(i.naturalWidth*k),Math.round(i.naturalHeight*k)); }):null;
 
   // asks for the people on the deck's client page; remembered on the project
-  function askDetails(){
+  function askDetails(revision){
     const p=S.project, d=document.createElement('dialog');
     d.style.cssText='border:none;border-radius:16px;padding:24px 26px;width:360px;font-family:inherit;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)';
     const f=(k,l,v)=>`<label style="display:block;font-size:12px;font-weight:600;color:#6B675E;margin-top:12px">${l}<input name="${k}" class="tf" style="margin-top:6px" value="${esc(v||'')}"></label>`;
     d.innerHTML=`<div style="font-size:18px;font-weight:500">Pre-sales PDF</div>
-      ${f('relationship','Relationship Person',p.relationship)}${f('designer','Designer',p.designer||p.architect)}${f('revision','Revision',p.revision||'00')}
+      ${f('relationship','Relationship Person',p.relationship)}${f('designer','Designer',p.designer||p.architect)}
+      <div style="font-size:12px;font-weight:600;color:#6B675E;margin-top:12px">Revision <span style="margin-left:6px;color:#1C1B18">${String(revision).padStart(2,'0')}</span></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button data-ok="" class="btn ghost" style="padding:10px 16px">Cancel</button><button data-ok="1" class="btn" style="padding:10px 18px">Download</button></div>`;
     document.body.appendChild(d);
     // resolved from the buttons / Esc, not the dialog's close event (not fired in every webview)
@@ -45,96 +38,106 @@
   async function presalesPdf(){
     if(!root.jspdf){ showToast('PDF library did not load — check the internet connection and reload.'); return; }
     if(!S.plan){ showToast('Generate a design first.'); return; }
-    if(!await askDetails()) return;
+    const revision=root.presalesRevNumber?presalesRevNumber():1;
+    if(!await askDetails(revision)) return;
     showToast('Building the pre-sales PDF…');
-    const P=S.project, room=activeRoom(), now=new Date();
+    const P=S.project, now=new Date(), rev=String(revision).padStart(2,'0');
     const date=[now.getDate(),now.getMonth()+1,now.getFullYear()].map(n=>String(n).padStart(2,'0')).join('-');
-    const HH={...((S.rulesCfg&&S.rulesCfg.heights)||{}),...(S.plan.geometry||{})}, height=(HH.wallTop||2500)+'MM';
-    const finish=(S.options.lookName||seriesLabel(room.seriesId)||'').toUpperCase(), theme=(S.options.finish||'Modern').toUpperCase();
-    const plan={...S.plan,openings:S.plan.openings||S.openings}, ceil=S.options.ceiling||3100;
+    const client=P.client||'Client';
+
+    // Material & Finishes rows: [label, value, swatch image URL]
+    const finish=root.currentFinishEntry?currentFinishEntry():null, handle=root.handleCode?handleCode(S.handle):S.handle;
+    const counterImg=S.options.counterImg||(finish&&finish.countertop&&finish.countertop.img)||(finish&&finish.img);
+    const materials=[
+      ['Countertop',S.options.counterName||'Matched to finish',url(counterImg)],
+      ['Cabinet Fronts',[S.options.lookName,S.options.finish].filter(Boolean).join(', ')||'-',url(finish&&finish.img)],
+      ['Backsplash',S.options.backsplashName||S.options.counterName||'Matched to countertop',url(S.options.backsplashImg||counterImg)],
+      ['Hardware',handle?`${handle} handles`:'-',null],
+    ];
 
     // everything that has to load or render, in parallel
     draw2d();   // the plan SVG is only filled while the Review tab has drawn it
     const planSvg=$('view2d')&&$('view2d').innerHTML;
-    const accNames=[...new Set((S.plan.placedAccessories||[]).map(a=>a.name)
-      .concat((S.sink&&S.sink.accessories)||[],(S.fridge&&S.fridge.accessories)||[]))];
-    const archFile=S.upload&&S.upload.file&&/^image\//.test(S.upload.file.type)?S.upload.file:null;
-    const [statics,logo,planImg,elevs,views,accImgs,arch]=await Promise.all([
-      Promise.all([1,2,3,4,5,6,7,8,9,20,21].map(n=>load(asset(`presales/p${String(n).padStart(2,'0')}.jpg`)))),
-      load(asset('presales/logo.png')),
+    const plan={...S.plan,openings:S.plan.openings||S.openings}, ceil=S.options.ceiling||3100, runs=S.plan.runs||[];
+    const [statics,planImg,views,swatches,elevs]=await Promise.all([
+      Promise.all(['pg01.jpg','pg02.jpg','pg03.jpg','pg04.jpg','pg05.jpg','pg06.jpg','pg07.jpg','pg08.jpg','pg09.png','pg15.jpg']
+        .map(f=>load(asset('presales/'+f)).then(i=>toJpeg(i)))),
       planSvg?svgPng(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 520" width="2040" height="1560">${planSvg}</svg>`,2040,1560):null,
-      Promise.all((S.plan.runs||[]).map(r=>root.renderElevation?root.renderElevation(plan,S.walls,r.key,{ceil}).catch(()=>null):null)),
-      S.snapshots&&S.snapshots.length?S.snapshots.map(s=>s.rendered||s.img):(root.renderPerspectives?root.renderPerspectives(scenePlan(),S.walls).catch(()=>[]):[]),
-      // shrunk to 600px on a white tile: the master photos are multi-MB originals
-      Promise.all(accNames.map(n=>{ const u=accImg(n); return u?load(u).then(i=>{ if(!i) return null;
-        const k=Math.min(1,600/Math.max(i.naturalWidth,i.naturalHeight)), c=document.createElement('canvas'), x=c.getContext('2d');
-        c.width=Math.round(i.naturalWidth*k); c.height=Math.round(i.naturalHeight*k);
-        x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(i,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.85); }):null; })),
-      archFile?new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(null); fr.readAsDataURL(archFile); }):null,
+      // rendered at the page's 16:9 so each view fills a landscape page
+      S.snapshots&&S.snapshots.length?S.snapshots.map(s=>s.rendered||s.img):(root.renderPerspectives?root.renderPerspectives(scenePlan(),S.walls,{w:1920,h:1080}).catch(()=>[]):[]),
+      Promise.all(materials.map(m=>swatch(m[2]))),
+      Promise.all(runs.map(r=>root.renderElevation?root.renderElevation(plan,S.walls,r.key,{ceil,px:2400}).catch(()=>null):null)),
     ]);
-    const deck=Object.fromEntries([1,2,3,4,5,6,7,8,9,20,21].map((n,i)=>[n,statics[i]]));
 
     const doc=new root.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:[PW,PH]});
     let first=true;
-    const page=(dark)=>{ if(!first) doc.addPage([PW,PH],'landscape'); first=false;
-      doc.setFillColor(...(dark?[0,0,0]:[255,255,255])).rect(0,0,PW,PH,'F'); };
+    const page=()=>{ if(!first) doc.addPage([PW,PH],'landscape'); first=false; doc.setFillColor(...CREAM).rect(0,0,PW,PH,'F'); };
     const full=img=>{ page(); if(img) doc.addImage(img,'JPEG',0,0,PW,PH); };
-    const brand=()=>{ if(logo) doc.addImage(logo,'PNG',866,516,87,17); };
-    // spaced capitals like the deck's headings (Goudy → the nearest built-in serif, Times)
-    const sp=(t,x,y,size,{c=255,cs=size*0.18,center=true,bold=false}={})=>{
-      doc.setFont('times',bold?'bold':'normal').setFontSize(size).setTextColor(c);
-      const w=doc.getTextWidth(t)+cs*(t.length-1); doc.text(t,center?x-w/2:x,y,{charSpace:cs}); };
-    const title=t=>{ sp(t,14,26,16,{c:0,center:false,bold:true}); doc.setDrawColor(0).setLineWidth(.8).line(14,32,14+t.length*12,32); };
-    // contain an image inside a box
-    const fit=async(src,x,y,w,h,fmt='JPEG')=>{ const i=await dims(src); if(!i) return;
+    const font=(size,bold=false,color=GREEN)=>doc.setFont('helvetica',bold?'bold':'normal').setFontSize(size).setTextColor(...color);
+    const bar=()=>doc.setFillColor(...GREEN).rect(0,0,PW,12,'F');
+    const footer=()=>{ doc.setDrawColor(...GREEN).setLineWidth(.6).line(20,521,812,521); font(15,true); doc.text('MAGPPIE',940,526,{align:'right'}); };
+    const heading=(t,sub)=>{ font(34,true); doc.text(t,24,50); if(sub){ font(16,true); doc.text(sub,26,74); } };
+    // contain an image inside a box; cover fills the box and crops the overflow evenly
+    const fit=async(src,x,y,w,h,cover=false)=>{ const i=typeof src==='string'?await load(src):src; if(!i) return;
+      if(cover){ const k=Math.max(w/i.naturalWidth,h/i.naturalHeight), sw=w/k, sh=h/k, c=document.createElement('canvas');
+        c.width=Math.round(sw); c.height=Math.round(sh);
+        c.getContext('2d').drawImage(i,(i.naturalWidth-sw)/2,(i.naturalHeight-sh)/2,sw,sh,0,0,c.width,c.height);
+        doc.addImage(c.toDataURL('image/jpeg',0.9),'JPEG',x,y,w,h); return; }
       const k=Math.min(w/i.naturalWidth,h/i.naturalHeight), iw=i.naturalWidth*k, ih=i.naturalHeight*k;
-      doc.addImage(src,fmt,x+(w-iw)/2,y+(h-ih)/2,iw,ih); };
+      doc.addImage(toJpeg(i),'JPEG',x+(w-iw)/2,y+(h-ih)/2,iw,ih); };   // renders may be PNG
+    const caption=t=>{ font(9,true); const w=doc.getTextWidth(t)+16; doc.setFillColor(...CREAM).rect(0,PH-22,w,22,'F'); doc.text(t,8,PH-8); };
+    const residence=`${client} Residence`;
 
-    [1,2,3,4,5,6,7,8,9].forEach(n=>full(deck[n]));
+    statics.slice(0,9).forEach(full);
 
-    // client page
-    page(true);
-    sp('KITCHEN DESIGNED EXCLUSIVELY FOR',PW/2,178,20);
-    sp((P.client||'Client').toUpperCase(),PW/2,248,30);
-    [['Date of Design : ',date],['Relationship Person : ',P.relationship||'-'],['Designer : ',P.designer||'-'],['Revised Drawing : ',P.revision||'00'],['Revised Date : ',P.revision&&P.revision!=='00'?date:'00']]
-      .forEach(([k,v],i)=>sp(k+v,12,388+i*32,14,{center:false,cs:2}));
-    brand();
+    // 10 · client page
+    page(); bar();
+    font(36,true); doc.text('Kitchen Designed Exclusively For',PW/2,150,{align:'center'}); doc.text(client,PW/2,205,{align:'center'});
+    font(24);
+    [['Date of Design',date],['Relationship Person',P.relationship||'-'],['Designer',P.designer||'-'],['Revised Drawing',rev],['Revised Date',date]]
+      .forEach(([k,v],i)=>doc.text(`${k} : ${v}`,29,356+i*33));
+    footer();
 
-    if(arch){ page(); title('ARCHITECT LAYOUT'); await fit(arch,40,48,880,468,arch.startsWith('data:image/png')?'PNG':'JPEG'); brand(); }
+    // 11 · 2D layout: plan on the left, legend and materials on the right
+    page(); bar(); heading('Kitchen Design, 2D Layout',residence);
+    doc.setDrawColor(...GREEN).setLineWidth(.8).rect(29,92,915,400);
+    if(planImg) await fit(planImg,34,97,696,390);
+    const lx=740; doc.setDrawColor(200,196,186).setLineWidth(.5).line(lx-6,104,lx-6,480);
+    font(20); doc.text('LEGEND',lx,124);
+    const legend=[['Base / tall cabinet',(x,y)=>doc.setDrawColor(40).setLineWidth(.7).setLineDashPattern([],0).rect(x,y,16,10)],
+      ['Upper cabinet',(x,y)=>doc.setDrawColor(68,79,188).setLineWidth(.7).setLineDashPattern([2,1.5],0).rect(x,y,16,10)],
+      ['Filler / panel',(x,y)=>{ doc.setLineDashPattern([],0).setDrawColor(120).setLineWidth(.5).rect(x,y,16,10); for(let k=3;k<16;k+=4) doc.line(x+k,y+10,x+k+3,y); }],
+      ['Dimensions in mm',(x,y)=>{ doc.setLineDashPattern([],0).setDrawColor(165,65,57).setLineWidth(.7).line(x,y+5,x+16,y+5).line(x,y+2,x,y+8).line(x+16,y+2,x+16,y+8); }]];
+    legend.forEach(([t,draw],i)=>{ draw(lx,136+i*18); font(11,false,[40,40,40]); doc.text(t,lx+24,145+i*18); });
+    doc.setLineDashPattern([],0);
+    font(17); doc.text('Material & Finishes',lx,232);
+    materials.forEach(([k,v],i)=>{ const y=246+i*58;
+      if(swatches[i]) doc.addImage(swatches[i],'JPEG',lx,y,36,36); else doc.setDrawColor(200).setLineWidth(.5).rect(lx,y,36,36);
+      font(11,true,[40,40,40]); doc.text(k+':',lx+44,y+11);
+      font(9.5,false,MUTED); doc.text(doc.splitTextToSize(v,150).slice(0,3),lx+44,y+24); });
+    footer();
 
-    if(planImg){ page(); title('PROPOSED LAYOUT');
-      doc.setFont('times','normal').setFontSize(10).setTextColor(0);
-      doc.text(`Kitchen: ${room.name}`,14,48); doc.text(`Kitchen Theme: ${S.options.finish||'Modern'} Style`,14,61); doc.text(`Height Considered: ${HH.wallTop||2500}mm`,14,74);
-      await fit(planImg,150,40,660,470); brand(); }
+    // elevations, one wall to a full landscape page: as large as the wall's proportions allow
+    // (never cropped), on the render's own background so the page reads edge to edge
+    for(const [i,img] of elevs.entries()){ if(!img) continue;
+      page(); doc.setFillColor(248,245,239).rect(0,0,PW,PH,'F'); await fit(img,0,0,PW,PH);
+      const a=(runs[i].segments||[]).find(s=>s.kind==='anchor');
+      caption(`Elevation · Wall ${runs[i].key}${a?' · '+a.label:''}`); }
 
-    // elevations, up to four walls a page
-    const el=elevs.map((u,i)=>[u,(S.plan.runs[i]||{}).key]).filter(e=>e[0]);
-    for(let i=0;i<el.length;i+=4){ page(); title('PROPOSED ELEVATIONS');
-      const set=el.slice(i,i+4), cols=set.length>1?2:1, rows=Math.ceil(set.length/cols), cw=(PW-60)/cols, ch=(PH-90)/rows;
-      for(let j=0;j<set.length;j++){ const x=30+(j%cols)*cw, y=50+Math.floor(j/cols)*ch;
-        await fit(set[j][0],x+6,y,cw-12,ch-18);
-        doc.setFont('times','normal').setFontSize(9).setTextColor(60).text(`Wall ${set[j][1]}`,x+cw/2,y+ch-6,{align:'center'}); }
-      brand(); }
+    // perspective views, each filling a full landscape page
+    for(const v of views){ page(); await fit(v,0,0,PW,PH,true); caption(`Perspective View · ${residence}`); }
 
-    // renders
-    if(views.length){
-      page(true); sp('PROPOSED IMAGES',PW/2,200,30); sp(theme+' THEME',PW/2,268,19); brand();
-      for(const v of views){ page(true);
-        await fit(v,0,0,PW,PH-26);
-        sp('PROPOSED IMAGE',4,PH-17,6,{center:false,cs:1}); sp('FINISHES: '+finish,4,PH-10,5,{center:false,cs:1}); sp('CONSIDERED HEIGHT: '+height,4,PH-3,5,{center:false,cs:1});
-        brand(); }
-    }
+    // QR page
+    page(); font(34,true); doc.text('Explore Our Kitchen Designs',24,50);
+    font(18,false,[60,60,60]); doc.text(['To see the beautiful kitchens designed and executed by Magppie,','scan the QR code and explore various combinations and layouts'],26,82);
+    if(root.qrcode){ const q=qrcode(0,'M'); q.addData(QR_URL); q.make(); const n=q.getModuleCount(), s=300/(n+8), x0=PW/2-150, y0=180;
+      doc.setFillColor(255,255,255).rect(x0,y0,300,300,'F').setFillColor(0,0,0);
+      for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) doc.rect(x0+(c+4)*s,y0+(r+4)*s,s+.15,s+.15,'F');
+      font(10,false,MUTED); doc.text(QR_URL.replace(/^https?:\/\//,''),PW/2,500,{align:'center'}); }
 
-    // accessories, eight to a page
-    for(let i=0;i<accNames.length;i+=8){ page(); title('PROPOSED KITCHEN ACCESSORIES');
-      for(let j=0;j<8&&i+j<accNames.length;j++){ const x=40+(j%4)*225, y=60+Math.floor(j/4)*235, img=accImgs[i+j];
-        doc.setDrawColor(150).setLineWidth(.6).rect(x,y,150,150);
-        if(img) await fit(img,x+4,y+4,142,142); else doc.setFont('times','italic').setFontSize(9).setTextColor(150).text('Image not available',x+75,y+78,{align:'center'});
-        doc.setFont('times','normal').setFontSize(10).setTextColor(0).text(doc.splitTextToSize(accNames[i+j],170),x+75,y+168,{align:'center'}); }
-      brand(); }
-
-    full(deck[20]); full(deck[21]);
-    doc.save(`PreSales_${(P.client||'Client').replace(/[^\w]+/g,'_')}_${date}.pdf`);
+    full(statics[9]);
+    doc.save(`PreSales_${client.replace(/[^\w]+/g,'_')}_R${rev}_${date}.pdf`);
+    if(root.presalesRevIssued) presalesRevIssued();
     return doc;
   }
   root.presalesPdf=presalesPdf;

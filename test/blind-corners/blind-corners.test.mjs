@@ -6,8 +6,10 @@ import {cornerArrangements} from '../../core/planner.mjs';
 const walls=[{id:'A',dir:'E',length:4000},{id:'B',dir:'S',length:4000},{id:'C',dir:'W',length:4000},{id:'D',dir:'N',length:4000}];
 const base=(wall,at,role='blind corner')=>({wall,at,width:1150,role});
 const upper=(wall,at)=>({wall,at,width:900,role:'wall blind corner'});
+// every wall carries uppers end to end, so each base blind needs its matching wall blind
+const uppersEverywhere={wall:walls.map(w=>({wall:w.id,from:0,to:w.length}))};
 
-test('a complete L layout fits with synchronized corners and rejects a window blocking the matching upper',()=>{
+test('a complete L layout fits with synchronized corners; a window at the corner leaves it without uppers',()=>{
   const input={height:'8ft',handle:'CJ',lockAnchors:true,lockZones:true,dishwasher:false,
     walls:[{id:'A',dir:'E',length:6000},{id:'B',dir:'S',length:5000},{id:'C',dir:'W',length:6000},{id:'D',dir:'N',length:5000}],
     anchors:[{item:'sink',wall:'A',at:1100,width:900},{item:'hob',wall:'B',at:2000,width:900},{item:'fridge',wall:'C',at:2005,width:600}],
@@ -21,17 +23,21 @@ test('a complete L layout fits with synchronized corners and rejects a window bl
   const singleResult=layout(singleUpper,catalog);
   assert.equal(singleResult.placed.wall.find(p=>p.role==='wall blind corner').wall,'A');
   assert.deepEqual(blindCornerProblems(singleUpper,singleResult.placed),[]);
+  // window-near-corner: a window reaching the corner means no wall cabinet there on either wall,
+  // so the base blind needs no matching upper (and none moves to the adjacent wall)
   input.openings=[{type:'window',wall:'A',at:5100,width:900,sill:900}];
   const blocked=layout(input,catalog);
-  assert.match(blocked.problems.join(),/matching wall blind cabinet is missing/);
+  assert.doesNotMatch(blocked.problems.join(),/matching wall blind cabinet is missing/);
   assert.ok(!blocked.placed.wall.some(p=>p.role==='wall blind corner'&&p.wall==='B'));
+  assert.ok(!blocked.placed.wall.some(p=>p.wall==='B'&&p.code&&p.at<200),'wall B keeps 200mm clear at the corner');
+  // relaxed 2026-10-13: no upper zone on the blind's wall, so the base blind stands alone
   input.openings=[];input.zones.wall=[];
-  assert.match(layout(input,catalog).problems.join(),/matching wall blind cabinet is missing/);
+  assert.doesNotMatch(layout(input,catalog).problems.join(),/matching wall blind cabinet is missing/);
 });
 
 test('blind corners match on either wall, including LeMans and reversed room winding',()=>{
   for(const reversed of [false,true])for(const side of ['A','B'])for(const role of ['blind corner','LeMans corner']){
-    const input={walls:structuredClone(walls)};
+    const input={walls:structuredClone(walls),zones:uppersEverywhere};
     if(reversed)for(const w of input.walls)w.dir=({E:'W',W:'E',N:'N',S:'S'})[w.dir];
     const placed={base:[base(side,side==='A'?2850:0,role)],wall:[upper(side,side==='A'?3100:0)]};
     assert.deepEqual(blindCornerProblems(input,placed),[]);
@@ -40,15 +46,18 @@ test('blind corners match on either wall, including LeMans and reversed room win
     placed.wall=[];
     assert.match(blindCornerProblems(input,placed).join(),/matching wall blind cabinet is missing/);
     assert.equal(gate({problems:blindCornerProblems(input,placed)}).verdict,'REJECTED');
+    // the blind's own wall has no upper zone into this corner: nothing to match
+    input.zones={wall:uppersEverywhere.wall.filter(z=>z.wall!==side)};
+    assert.deepEqual(blindCornerProblems(input,placed),[]);
   }
 });
 
 test('each corner is checked separately and a second blind on the adjacent wall is rejected',()=>{
   const placed={base:[base('B',0),base('B',2850)],wall:[upper('B',0)]};
-  assert.equal(blindCornerProblems({walls},placed).length,1);
-  placed.wall.push(upper('B',3100));assert.deepEqual(blindCornerProblems({walls},placed),[]);
-  placed.wall.push(upper('A',3100));assert.match(blindCornerProblems({walls},placed)[0],/wall A/);
-  assert.deepEqual(blindCornerProblems({walls},{base:[],wall:[]}),[]);
+  assert.equal(blindCornerProblems({walls,zones:uppersEverywhere},placed).length,1);
+  placed.wall.push(upper('B',3100));assert.deepEqual(blindCornerProblems({walls,zones:uppersEverywhere},placed),[]);
+  placed.wall.push(upper('A',3100));assert.match(blindCornerProblems({walls,zones:uppersEverywhere},placed)[0],/wall A/);
+  assert.deepEqual(blindCornerProblems({walls,zones:uppersEverywhere},{base:[],wall:[]}),[]);
 });
 
 // blind-dead-space-absorbs-filler: 1150 | 500 | 300 | 77 filler | sink on wall A, blind at the 'from' end.
@@ -75,4 +84,24 @@ test('absorption stops at 100mm and leaves a legal filler; an anchor in the chai
   const blocked=dead(cab(1150,500),sink(1650),cab(2250,300),gapFiller(2550,77));
   assert.equal(blocked.find(p=>p.code==='BB').at,0);
   assert.equal(blocked.find(p=>p.role==='gap filler').width,77);
+});
+
+test('a column in a corner: the blind cabinets stand against it and the space beside it is concealed',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const {fitKitchen}=await import('../../core/fitting.mjs');
+  const input=JSON.parse(readFileSync('verification/alignment-3600.json')).input, L2=input.walls.find(w=>w.id==='2').length;
+  input.columns=[...(input.columns||[]),{wall:'3',at:0,width:250,depth:250},{wall:'2',at:L2-250,width:250,depth:250}];
+  const r=(await fitKitchen(input,loadCatalog().ok,{proposals:false})).result;
+  assert.deepEqual(r.problems,[]);
+  for(const tier of ['base','wall']){
+    const blind=r.placed[tier].find(p=>p.corner?.id==='2:3'&&!p.blocker);
+    assert.equal(blind.at+blind.width,L2-250,`${tier} blind stands against the column face`);
+    assert.equal(blind.corner.column,250);
+    assert.ok(r.placed[tier].some(p=>p.wall==='2'&&p.at===L2-250&&p.width===250&&p.role==='concealed corner space'));
+  }
+  // a column deeper than the cabinets still blocks the corner as before
+  const big=JSON.parse(readFileSync('verification/alignment-3600.json')).input;
+  big.columns=[{wall:'3',at:0,width:600,depth:600},{wall:'2',at:L2-600,width:600,depth:600}];
+  const rb=(await fitKitchen(big,loadCatalog().ok,{proposals:false}))?.result;
+  assert.ok(!rb||!rb.placed.base.some(p=>p.corner?.id==='2:3'&&p.corner.column));
 });

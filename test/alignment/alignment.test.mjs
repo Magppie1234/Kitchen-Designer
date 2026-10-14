@@ -35,4 +35,12 @@ test('shared endpoint validator catches a shortened base beneath a complete wall
   const placed={base:[{wall:'a',at:0,width:1150}],wall:[{wall:'a',at:0,width:1280}],tall:[]};
   assert.match(wallBaseEndProblems(input,placed).join(),/base run is unfinished/);
   placed.base[0].width=1280;assert.deepEqual(wallBaseEndProblems(input,placed),[]);
+  placed.wall[0]={wall:'a',at:100,width:1180};
+  assert.match(wallBaseEndProblems(input,placed).join(),/run from must align at 0mm; wall run is unfinished/);
+});
+
+test('wall zones split beside a window do not have to reach the base run end',()=>{
+  const input={zones:{base:[{wall:'a',from:0,to:1280}],wall:[{wall:'a',from:0,to:500},{wall:'a',from:900,to:1280}],tall:[]}};
+  const placed={base:[{wall:'a',at:0,width:1280}],wall:[{wall:'a',at:0,width:500},{wall:'a',at:900,width:380}],tall:[]};
+  assert.deepEqual(wallBaseEndProblems(input,placed),[]);
 });

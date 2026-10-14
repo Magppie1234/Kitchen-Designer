@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { loadCatalog, readWorkbook } from '../../core/loadCatalog.mjs';
 import '../../ui/cabinet-catalog.js';
+import '../../ui/detailed-plan.js';
+import '../../ui/geometry.js';
 const { cabinetQuote, profilesFor, validEntries, groupTree, shortDesc } = globalThis.CabinetCatalog;
 
 const wb = readWorkbook();
@@ -86,7 +88,7 @@ function builder() {
   const S = { modules: [{ run: 'W0', segTier: 'base', seg: 0, code: seg.code, label: 'shelf', W: 600, H: 720, D: 560 }],
     plan: { runs: [{ key: 'W0', segments: [seg] }], tiers: {} }, view: '2d' };
   const ctx = vm.createContext({ S, $, esc: String, inr: String, showToast() {}, draw2d() {}, drawElevation() {}, resultPlanFullscreen: null,
-    CabinetCatalog: globalThis.CabinetCatalog, seriesRate: () => 7900 });
+    CabinetCatalog: globalThis.CabinetCatalog, KitchenGeometry: globalThis.KitchenGeometry, seriesRate: () => 7900 });
   vm.runInContext([
     between('S.selModRef=null;   // {run', '/*__RELOCATE_CORE_START__*/'),
     between('function showModule', '// Elevation dispatcher'),
@@ -172,13 +174,13 @@ test('By width lists every cabinet in a folder; the ones that cannot go in the s
   assert.equal(whyInvalid(e({ category: 'wall720' }), opts), 'wall cabinet — this is a base space');
   assert.equal(whyInvalid(e({ inSeries: false }), opts), 'not in this series');
   assert.equal(whyInvalid(e({ profiles: ['MD2'] }), opts), 'not offered in shutter profile MD1');
-  // the builder: width mode keeps the non-fitting ones (with a reason); family mode drops them
+  // the builder: both modes list every modelled cabinet; a mismatch is a warning and Use stays enabled
   const html = readFileSync('ui/builder.html', 'utf8');
-  assert.match(html, /S\.libBrowse==='width'\s*\n?\s*\? lib\.entries\.filter\(e=>e\.path\)\.map\(e=>\(\{\.\.\.e,reason:CabinetCatalog\.whyInvalid\(e,opts\)\}\)\)/);
-  assert.match(html, /\$\{e\.reason\?`disabled title=/, 'a cabinet that cannot go there has its Use button disabled');
+  assert.match(html, /const entries=lib\.entries\.filter\(e=>e\.path\)\.map\(e=>\(\{\.\.\.e,reason:CabinetCatalog\.whyInvalid\(e,opts\)\}\)\)/);
+  assert.doesNotMatch(html, /\$\{e\.reason\?`disabled/, 'Use is never disabled');
 });
 
-test('a hob or sink anchor is replaced only by its own kind of cabinet and stays the anchor', () => {
+test('any cabinet can replace a hob; only a hob cabinet keeps it the hob anchor', () => {
   const { whyInvalid } = globalThis.CabinetCatalog;
   const family = { re: /^BC-HO-/, name: 'hob' };
   const opts = { cats: ['base'], maxW: 900, profile: null, cross: true, family };
@@ -187,8 +189,100 @@ test('a hob or sink anchor is replaced only by its own kind of cabinet and stays
   const { ctx, S } = builder();
   S.plan.runs[0].segments = [{ kind: 'anchor', label: 'hob', func: 'hob', code: 'BC-HO-CJ-ST-2LB-1HB-XXX-900-720-560-15', width: 900, x0: 0, x1: 900 }];
   S.editing = true; S.libData = { entries: [] }; S.selModRef = { run: 'W0', tier: 'base', idx: 0 };
-  ctx.editReplacePick('BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15', 900, 720, 0);
-  assert.equal(S.plan.runs[0].segments[0].code, 'BC-HO-CJ-ST-2LB-1HB-XXX-900-720-560-15', 'a drawer cabinet cannot replace the hob');
   ctx.editReplacePick('BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15', 900, 720, 0);
   assert.deepEqual([S.plan.runs[0].segments[0].kind, S.plan.runs[0].segments[0].label, S.plan.runs[0].segments[0].code], ['anchor', 'hob', 'BC-HO-CJ-ST-XXX-2HB-XXX-900-720-560-15']);
+  ctx.editReplacePick('BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15', 900, 720, 0);
+  assert.deepEqual([S.plan.runs[0].segments[0].kind, S.plan.runs[0].segments[0].code], ['cabinet', 'BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15'], 'a drawer cabinet takes the hob slot as a plain cabinet');
+});
+
+test('an anchor moves like a cabinet, pushing neighbours aside; corners still stop a drop', () => {
+  const ctx = vm.createContext({});
+  vm.runInContext(between('/*__RELOCATE_CORE_START__*/', '/*__RELOCATE_CORE_END__*/') + ';this.relocateCore=relocateCore;this.relocateApply=relocateApply;', ctx);
+  const hob = { kind: 'anchor', label: 'hob', width: 900 }, cab = { kind: 'cabinet', width: 600 };
+  const list = [{ kind: 'corner', width: 1000 }, hob, cab, { kind: 'filler', width: 400 }];
+  const plan = ctx.relocateCore(list, hob, 2000);   // drop past the cabinet
+  assert.ok(plan.ok);
+  ctx.relocateApply(list, hob, plan);
+  assert.deepEqual(list.map((s) => [s.kind, s.width]), [['corner', 1000], ['filler', 400], ['cabinet', 600], ['anchor', 900]]);
+  assert.equal(ctx.relocateCore(list, hob, 100).ok, false, 'the corner is still a barrier');
+});
+
+test('open spaces side by side merge into one, and a filler of any width can go into one', () => {
+  const { ctx, S } = builder();
+  S.editing = true;
+  S.plan.runs[0].segments = [{ kind: 'filler', open: true, label: 'open space', width: 610, x0: 0, x1: 610 },
+    { kind: 'filler', open: true, label: 'open space', tier: 'tall', width: 450, height: 2400, x0: 610, x1: 1060 },
+    { kind: 'filler', open: true, label: 'open space', width: 305, x0: 1060, x1: 1365 },
+    { kind: 'filler', width: 25, x0: 1365, x1: 1390 }];
+  ctx.normalizeReservedSpaces(S.plan);
+  const segs = S.plan.runs[0].segments;
+  assert.deepEqual(segs.map((x) => [x.open ?? false, x.tier ?? 'base', x.width]), [[true, 'tall', 1365], [false, 'base', 25]], 'one open tall space; the solid filler stays');
+  S.selModRef = { run: 'W0', tier: 'base', idx: 0 };
+  ctx.editAddFiller('65', 'right');
+  assert.deepEqual(segs.map((x) => [x.kind, x.open ?? false, x.width]), [['filler', true, 1300], ['filler', false, 65], ['filler', false, 25]], 'a filler in tall space is tall: it stays apart from the base filler');
+  S.selModRef = { run: 'W0', tier: 'base', idx: 0 };
+  ctx.editAddFiller(40, 'left');
+  assert.deepEqual(segs.map((x) => [x.open ?? false, x.width]), [[false, 40], [true, 1260], [false, 65], [false, 25]]);
+});
+
+test('a corner cabinet slides into the dead space beside it and stops at a corner column', () => {
+  const { ctx, S } = builder();
+  vm.runInContext(between('// Columns and beams within', '// Columns and beams seen') + between('// A blind / LeMans corner cabinet slides', '// The ± buttons'), ctx);
+  S.editing = true;
+  S.walls = [{ a: [0, 0], b: [4000, 0] }];
+  S.structures = [{ type: 'column', x: 125, y: 125, w: 250, d: 250 }];   // 250 mm column in the corner at the wall start
+  const lemans = { kind: 'corner', code: 'BC-AC-LMC', width: 1050, corner: { end: 'from' }, shutter: { x0: 634, x1: 1610, width: 976 } };
+  S.plan.runs[0].segments = [{ kind: 'gap', label: 'unresolved corner reservation', width: 560 }, lemans, { kind: 'cabinet', code: 'X', width: 600 }];
+  S.selModRef = { run: 'W0', tier: 'base', idx: 1 };
+  ctx.recalcPositions();
+  assert.equal(ctx.slideCorner(-1000), true);
+  const segs = S.plan.runs[0].segments;
+  assert.deepEqual(segs.map((x) => [x.kind, x.open ?? false, x.width]), [['gap', false, 250], ['corner', false, 1050], ['filler', true, 310], ['cabinet', false, 600]],
+    'it stops at the column face; the space it left is open; the cabinet beside it does not move');
+  ctx.recalcPositions(); assert.equal(lemans.x0, 250);
+  assert.deepEqual([lemans.shutter.x0, lemans.shutter.x1], [634, 1300], 'the shutter keeps its start, its end follows the cabinet');
+  assert.equal(ctx.slideCorner(-50), false, 'already against the column');
+});
+
+test('a wider cabinet takes its width from empty space in the run, never growing past the wall; an extend area fills from the run side', () => {
+  const { ctx, S } = builder();
+  S.editing = true; S.libData = { entries: [] };
+  const segs = S.plan.runs[0].segments = [{ kind: 'gap', width: 1000 }, { kind: 'cabinet', code: 'A', width: 600 }, { kind: 'cabinet', code: 'B', width: 600 }];
+  ctx.recalcPositions();
+  S.selModRef = { run: 'W0', tier: 'base', idx: 2 };
+  ctx.editReplacePick('W', 900, 720, 0);   // 300 wider than its slot, no filler beside it
+  assert.deepEqual(segs.map((x) => [x.kind, x.width]), [['gap', 700], ['cabinet', 600], ['cabinet', 900]]);
+  assert.equal(segs.reduce((n, x) => n + x.width, 0), 2200, 'the run length is unchanged');
+  S.selModRef = { run: 'W0', tier: 'base', idx: 0 };
+  ctx.editReplacePick('C', 450, 720, 0);   // into the extend area: against the run, the rest stays free
+  assert.deepEqual(segs.map((x) => [x.kind, x.code ?? null, x.width]), [['gap', null, 250], ['cabinet', 'C', 450], ['cabinet', 'A', 600], ['cabinet', 'W', 900]]);
+  const { emptyKind } = globalThis.DetailedPlan;
+  assert.equal(emptyKind({ kind: 'gap', width: 250 }), 'free');
+  assert.equal(emptyKind({ kind: 'gap', width: 100 }), 'dead', 'too narrow for any cabinet');
+  assert.equal(emptyKind({ kind: 'gap', width: 400, label: 'concealed corner space' }), 'dead');
+  assert.equal(emptyKind({ kind: 'gap', width: 560, label: 'perpendicular cabinet footprint' }), 'occupied');
+});
+
+test('no-run-past-wall-end: a replacement wider than the free space on the wall is refused and nothing changes', () => {
+  const { ctx, S } = builder();
+  S.editing = true; S.libData = { entries: [] };
+  S.walls = [{ a: [0, 0], b: [3200, 0], length: 3200 }];
+  const segs = S.plan.runs[0].segments = [{ kind: 'filler', width: 770 }, { kind: 'cabinet', code: 'H', width: 900 }, { kind: 'cabinet', code: 'D', width: 900 }, { kind: 'cabinet', code: 'S', width: 500 }, { kind: 'filler', width: 40 }, { kind: 'gap', width: 90 }];
+  ctx.recalcPositions();
+  const before = JSON.stringify(segs);
+  let message = ''; ctx.showToast = (m) => { message = m; };
+  S.selModRef = { run: 'W0', tier: 'base', idx: 0 };
+  ctx.editReplacePick('LEMANS', 1050, 720, 0);   // 280 wider than its slot; only the 90mm gap is free (the 40mm filler is solid)
+  assert.equal(JSON.stringify(S.plan.runs[0].segments), before);
+  assert.match(message, /doesn't fit — it needs 190mm more/);
+});
+
+test('a saved run that an edit pushed past its wall is pulled back from its empty space when opened', () => {
+  const { ctx, S } = builder();
+  S.walls = [{ a: [0, 0], b: [3000, 0], length: 3000 }];
+  S.plan.runs[0].segments = [{ kind: 'gap', width: 1065 }, { kind: 'filler', open: true, label: 'open space', width: 1287 }, { kind: 'cabinet', code: 'A', width: 800 }];
+  ctx.normalizeReservedSpaces(S.plan);
+  const segs = S.plan.runs[0].segments;
+  assert.equal(segs.reduce((n, x) => n + x.width, 0), 3000);
+  assert.equal(segs.at(-1).x1, 3000);
 });

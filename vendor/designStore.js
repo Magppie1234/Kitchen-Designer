@@ -39,11 +39,11 @@ export async function listProjects() {
   const projects = await rest('project_summaries?order=updated_at.desc');
   if (!projects.length) return [];
   const rooms = await rest(`rooms?project_id=in.(${projects.map((p) => p.id).join(',')})&deleted_at=is.null`
-    + '&select=id,project_id,name,category,series_id,sort,value,updated_at&order=sort,created_at');
+    + '&select=id,project_id,name,category,series_id,sort,value,updated_at,presales_rev:state->presalesRev->n&order=sort,created_at');
   const byProject = new Map();
   for (const r of rooms) {
     if (!byProject.has(r.project_id)) byProject.set(r.project_id, []);
-    byProject.get(r.project_id).push({ ...roomSummary(r), value: r.value });
+    byProject.get(r.project_id).push({ ...roomSummary(r), value: r.value, presalesRev: +r.presales_rev || 0 });
   }
   return projects.map((p) => {
     const rs = byProject.get(p.id) || [];
@@ -51,7 +51,8 @@ export async function listProjects() {
       id: p.id, name: p.name, details: p.details || {},
       owner: { id: p.owner_id, name: p.owner_name, email: p.owner_email },
       status: p.status || 'assigned', submittedAt: p.submitted_at,
-      revisionCount: p.revision_count, value: rs.reduce((a, r) => a + (r.value || 0), 0),
+      // a revision = a pre-sales PDF version of a room (builder presalesRev), not a stored snapshot
+      revisionCount: rs.reduce((a, r) => a + (r.presalesRev || 0), 0), value: rs.reduce((a, r) => a + (r.value || 0), 0),
       designedRooms: rs.filter((r) => r.value != null).length,
       createdAt: p.created_at, updatedAt: p.updated_at,
       rooms: rs,
@@ -87,7 +88,6 @@ export async function projectObservability(projectId) {
   return Promise.all(rooms.map(async (r) => {
     const cur = r.state || {}, curPlan = cur.plan || {};
     const [gen] = await rest(`revisions?room_id=eq.${q(r.id)}&reason=in.(generate,redesign)&select=number,state,created_at&order=number.desc&limit=1`);
-    const revs = await rest(`revisions?room_id=eq.${q(r.id)}&select=id`);
     const genPlan = gen ? (gen.state?.plan || {}) : null;
     const bomDelta = (a = {}, b = {}) => {
       const codes = new Set([...Object.keys(a), ...Object.keys(b)]);
@@ -101,7 +101,7 @@ export async function projectObservability(projectId) {
       moduleChanges: genPlan ? bomDelta(genPlan.bom, curPlan.bom) : 0,
       edits: edits.length,
       remarks: edits.flatMap((e) => e.remarks || []),
-      revisionCount: revs.length,
+      revisionCount: cur.presalesRev?.n || 0,
     };
   }));
 }

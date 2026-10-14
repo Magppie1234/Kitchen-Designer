@@ -29,9 +29,10 @@ export const RULES = {
     defaultCeiling: 3100,
   },
 
-  // Door/window keep-out. rules.json has no client-side clearance number; the engine owns
-  // opening handling, so this is only what the browser draws as a hint.
-  openings: { doorClearEachSide: 400, endpointTol: 80 },
+  // Door keep-out each side, for drawing zones: rules.json door_side_clearance, the same 50mm
+  // the engine reserves beside every door. A window blocks only the upper/tall tiers, and only
+  // across the glass itself.
+  openings: { doorClearEachSide: RULE_PARAMS.door_side_clearance, endpointTol: 80 },
 
   // Narrowest unit the browser will let a drawn zone band be. The engine's own fill()
   // decides real widths from the catalogue.

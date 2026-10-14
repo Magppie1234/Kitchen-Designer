@@ -49,7 +49,7 @@ test('cancelled accessories do not appear automatically or block a valid design'
 });
 
 test('100mm allowance improves an already valid layout and does not accumulate on regeneration',async()=>{
-  const j=runEndFixture();j.zones.tall=[{wall:'C',from:0,to:3000}];Object.assign(j.anchors.find(a=>a.item==='fridge'),{wall:'C',at:1150});
+  const j=runEndFixture();j.zones.tall=[{wall:'C',from:0,to:3000}];Object.assign(j.anchors.find(a=>a.item==='fridge'),{wall:'C',at:1160});   // 240mm of closure pieces as drawn; a 20mm slide gets it to 90
   const saved=JSON.stringify(j),before=await planKitchen(j,cat),fitted=await fitKitchen(j,cat,{proposals:false});
   assert.deepEqual(before.problems,[]);assert.deepEqual(fitted.result.problems,[]);
   assert.ok(fitQuality(fitted.result)[4]<fitQuality(before)[4],'fewer millimetres of avoidable closure pieces');
@@ -62,4 +62,31 @@ test('100mm allowance improves an already valid layout and does not accumulate o
   }
   assert.deepEqual(geometryProblems(fitted.input,fitted.result.placed,cat),[]);
   const again=await fitKitchen(j,cat,{proposals:false});assert.deepEqual(again.input.anchors,fitted.input.anchors);
+});
+
+test('bottle pullouts are capped by base run (1 / 2 / 3) and grain trolleys at 2; extras become plain cabinets, never fillers',async()=>{
+  const {storageCaps,capStorage}=await import('../../core/engine.mjs');
+  const caps=len=>storageCaps({zones:{base:[{from:0,to:len}]}})['bottle pullout'];
+  assert.deepEqual([caps(2999),caps(3000),caps(5000),caps(5001)],[1,2,2,3]);
+  const code=(fam,w,spec)=>cat.find(c=>c.zone==='BC'&&c.handle==='CJ'&&c.family===fam&&c.width===w&&(!spec||c.spec.includes(spec))).code;
+  const u=(role,at,width,c)=>({wall:'A',at,width,role,code:c});
+  const placed={base:[u('hob',0,900,'hob'),u('bottle pullout',900,300,code('AC',300,'BPO')),u('shutter',1200,450,code('SH',450)),
+    u('bottle pullout',1650,150,code('AC',150,'BPO')),u('grain trolley',1800,600,code('GD',600)),u('grain trolley',2400,450,code('GD',450)),u('grain trolley',2850,600,code('GD',600))],wall:[],tall:[]};
+  capStorage({handle:'CJ',zones:{base:[{wall:'A',from:0,to:2800}]}},placed,cat);   // 2.8 m: one bottle pullout
+  const roles=placed.base.map(p=>`${p.role}:${p.width}`);
+  assert.deepEqual(roles.filter(r=>r.startsWith('bottle')),['bottle pullout:300'],'the one beside the hob stays');
+  assert.ok(roles.includes('shutter:600'),'450 shutter + 150 BPO -> one 600 cabinet');
+  assert.ok(!roles.some(r=>r.startsWith('gap filler')),'never leaves a filler');
+  assert.equal(placed.base.filter(p=>p.role==='grain trolley').length,2);
+});
+
+test('tandem pantry and microwave + oven only go in as a pair; no fridge in front of a column',async()=>{
+  const {check}=await import('../../core/checkInput.mjs');
+  const j=JSON.parse(readFileSync('verification/alignment-3600.json')).input;
+  const r=(await fitKitchen(j,cat,{proposals:false})).result;
+  const has=role=>r.placed.tall.some(p=>p.role===role);
+  assert.equal(has('tandem pantry'),has('microwave + oven'));
+  const f=j.anchors.find(a=>a.item==='fridge');
+  const atCol={...j,columns:[{wall:f.wall,at:f.at+100,width:300,depth:300}]};
+  assert.ok(check(atCol).some(e=>e.endsWith('(fridge-not-at-column)')));
 });

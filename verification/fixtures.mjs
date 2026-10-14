@@ -9,8 +9,8 @@ export function fixtures(){
   for(const zs of Object.values(u.zones))for(const z of zs)if(z.to===4275)z.to=4225;
   u.zones.base.find(z=>z.wall==='CC').to=1450;u.zones.tall[0].from=1450;
   u.anchors.find(a=>a.item==='fridge').at=2670;
-  // The symmetric 550mm wall flanks leave an exposed 25mm end panel.
-  u.zones.wall.find(z=>z.wall==='BB').to=2725;
+  // The symmetric 550mm wall flanks leave an exposed 20mm end panel (params.panel_width).
+  u.zones.wall.find(z=>z.wall==='BB').to=2720;
   // Explicitly request the known physical solution in the centre-based UI. The
   // original bench request remains separately tested for its reported repair.
   Object.assign(u.anchors.find(a=>a.item==='hob'),{at:1500,width:600});

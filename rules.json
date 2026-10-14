@@ -43,8 +43,9 @@
       "id": "base-wall-blind-corner-synchronization",
       "status": "stated",
       "hard": true,
-      "statement": "At each kitchen corner, the base blind cabinet (including LeMans) and its wall blind cabinet must be on the same wall. If the base blind cabinet is on wall A, the wall blind cabinet must also be on wall A, never on adjacent wall B. Every base blind corner requires its matching wall blind cabinet. If it cannot fit or the upper cabinet area is missing, report a problem instead of moving it to the adjacent wall.",
-      "note": "Match each physical corner separately. Base and wall cabinets retain their own catalogue widths and depths."
+      "statement": "At each kitchen corner, the base blind cabinet (including LeMans) and its wall blind cabinet must be on the same wall. If the base blind cabinet is on wall A, the wall blind cabinet must also be on wall A, never on adjacent wall B. A base blind corner requires its matching wall blind cabinet only where its own wall has a wall cabinet zone running into that corner; if that wall has no upper zone there, the base blind stands alone and nothing is reported. Where the upper zone exists and the wall blind cannot fit, report a problem instead of moving it to the adjacent wall.",
+      "note": "Match each physical corner separately. Base and wall cabinets retain their own catalogue widths and depths. Relaxed by the designer 2026-10-13: a missing upper zone on the blind's wall no longer blocks the corner.",
+      "implementation": "core/engine.mjs blindCornerProblems() checks only base blinds whose wall has a wall zone reaching the corner; corners() places the wall blind on the owner wall when that zone exists. Test: test/blind-corners/blind-corners.test.mjs."
     },
     {
       "id": "run-tiles-exactly",
@@ -184,6 +185,12 @@
       "note": "Do not force the bottle pullout between the hob and a designer-selected flanking cabinet. At least one must occupy an allowed position."
     },
     {
+      "status": "stated",
+      "hard": true,
+      "id": "bottle-pullout-count",
+      "statement": "Bottle pullouts by kitchen size, measured as the total length of the drawn base zones: under 3000mm exactly one; 3000-5000mm at most two; over 5000mm at most three. An extra one becomes a plain cabinet of its width, or merges with the plain cabinet beside it when the two make exactly one plain width. It never leaves a filler behind (no-filler-between-cabinets); when neither works it stays and a warning says so. The one beside the hob is kept."
+    },
+    {
       "id": "runs-labelled-sequentially",
       "status": "confirmed",
       "hard": false,
@@ -270,7 +277,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Visible panels are exactly 25mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead; the refrigerator's own sides are exempt (no-filler-beside-fridge). Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
+      "statement": "Visible panels are exactly 20mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead; the refrigerator's own sides are exempt (no-filler-beside-fridge). Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
       "note": "The 30mm minimum applies to ordinary gap fillers. Wall fillers at concealed tall sides are exactly 40mm. Automatic corner fillers remain 40-100mm; manually specified corner fillers may be up to 150mm.",
       "reconciles": [
         "panel (outdated): P1 27, P2 20/30, P3 20, P4 20/30",
@@ -299,7 +306,7 @@
       "hard": false,
       "seen_in": [],
       "statement": "Maximise usable cabinet storage across each complete run and minimise avoidable filler after satisfying all hard constraints. Compare combinations of catalogue widths, not a greedy largest-cabinet-first arrangement. Replacing a 900mm cabinet with 600mm plus 450mm is better when it uses 150mm of otherwise wasted filler and all clearances remain valid.",
-      "note": "Compare both sides of the refrigerator together, including the pantry and oven bank. Test the bank on either side, preserve included appliance functions, and use permitted anchor adjustments up to 100mm from the original positions. Required 25mm panels and 40mm wall fillers are not wasted space. Prefer less movement when storage and filler are equal."
+      "note": "Compare both sides of the refrigerator together, including the pantry and oven bank. Test the bank on either side, preserve included appliance functions, and use permitted anchor adjustments up to 100mm from the original positions. Required 20mm panels, 30mm countertop dropdowns and 40mm wall fillers are not wasted space. Prefer less movement when storage and filler are equal."
     },
     {
       "id": "hob-largest-that-fits",
@@ -478,7 +485,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "An exposed base run end requires a fixed 25mm countertop dropdown. At a base/tall junction, use one fixed 25mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 25mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 25mm visible panel; a refrigerator at the end of a tall run needs neither (no-filler-beside-fridge). Reserve corner footprints before treating run ends.",
+      "statement": "An exposed base run end requires a fixed 30mm countertop dropdown. At a base/tall junction, use one fixed 20mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 20mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 20mm visible panel; a refrigerator at the end of a tall run needs neither (no-filler-beside-fridge). Reserve corner footprints before treating run ends.",
       "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm."
     },
     {
@@ -638,6 +645,26 @@
       "note": "Because the designer places these by hand, this is an INPUT VALIDATION rule — reject the placement with an error, do not silently move it."
     },
     {
+      "id": "door-side-clearance",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-10"
+      ],
+      "statement": "Never place a cabinet or the refrigerator right beside a door: leave at least 50mm of bare wall on each side of every door, in the base, wall and tall rows. The 50mm stays bare: no filler or panel goes there.",
+      "implementation": "core/engine.mjs reserves a 'door side clearance' blocker on each side of a door in every tier (drawn as open wall); core/checkInput.mjs rejects an appliance within 50mm of a door, which the corrector slides clear. The zone tool keeps out the same 50mm (vendor/rules.js openings.doorClearEachSide reads it; it was a hard-coded 400mm, which stopped zones being drawn closer). Param door_side_clearance."
+    },
+    {
+      "id": "fridge-clear-of-door-swing",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-10"
+      ],
+      "statement": "If the refrigerator is behind a door or within its swing, its nearest side is at least 800mm from the door's edge, measured along the wall (around the corner when the fridge is on the next wall). The swing side is the door's hinge side; sliding, doorless and outward-opening doors have no swing into the kitchen.",
+      "implementation": "core/checkInput.mjs (input validation); core/correct.mjs slides the fridge clear when it can, otherwise draws it with the rule listed as broken. Param fridge_door_swing_gap."
+    },
+    {
       "id": "window-rules-by-anchor",
       "status": "stated",
       "hard": true,
@@ -646,12 +673,34 @@
       "note": "Also input validation, same as the door rule."
     },
     {
+      "status": "stated",
+      "hard": true,
+      "id": "no-wall-cabinet-at-window",
+      "statement": "Wall and tall cabinets are never placed in front of a window."
+    },
+    {
+      "status": "stated",
+      "hard": true,
+      "id": "window-near-corner",
+      "statement": "When a normal window (sliding or openable) ends less than 360mm from an inside corner, the adjoining wall takes no wall cabinet within 200mm of that corner; its wall cabinets start 200mm from the corner. Full-length and corner windows do not trigger this. That corner has no wall blind cabinet, so its base blind cabinet needs no matching upper.",
+      "seen_in": [
+        "Designer, 2026-10-10: replaces the earlier 536mm (336mm depth + 200mm) trigger and reservation."
+      ],
+      "implementation": "core/engine.mjs windowCornerClearance(); params window_corner_trigger, window_corner_clearance"
+    },
+    {
+      "status": "stated",
+      "hard": true,
+      "id": "fridge-not-at-column",
+      "statement": "The refrigerator is never placed in front of a structural column. The designer cannot drop it there; if a setup has it there, the correction moves it, and if it cannot, the rule is listed as broken."
+    },
+    {
       "id": "zones-drawn-per-tier",
       "status": "stated",
       "hard": true,
       "seen_in": [],
       "statement": "The designer draws the area where cabinets go, snapped to the wall edges, and draws it SEPARATELY for each tier — base, wall and tall. The engine fills within those zones and never outside them.",
-      "note": "Supersedes the missing wall-selection and zone-assignment rules: which walls carry runs, and which zone sits where, are both given. It also makes aisle width implicit — the drawn zones define the walkway."
+      "note": "Base and wall zones usually go together: drawing one on a wall adds the other over the same span when that wall has none of it yet. Either can then be adjusted or removed on its own."
     },
     {
       "id": "kitchen-height-options",
@@ -681,7 +730,7 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "At least one grain trolley is required in every kitchen. Its position is flexible: it may be after two or three cabinets from the hob, or elsewhere in the kitchen. It does not have to touch the hob. Prefer a second when space permits.",
+      "statement": "At least one grain trolley is required in every kitchen, and at most two. Its position is flexible: it may be after two or three cabinets from the hob, or elsewhere in the kitchen. It does not have to touch the hob. Prefer a second when space permits.",
       "catalog": [
         "BC-GD-CJ-ST-1BL-1HF-XXX-600-720-560-15"
       ],
@@ -701,6 +750,12 @@
       ]
     },
     {
+      "status": "stated",
+      "hard": false,
+      "id": "tandem-with-microwave",
+      "statement": "The tandem pantry and the microwave + oven tall unit are preferred, and only ever as a pair: if one cannot be placed, neither is."
+    },
+    {
       "id": "talls-cluster-at-fridge",
       "status": "stated",
       "hard": false,
@@ -713,8 +768,15 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Where a structural column intrudes into a run, low-depth cabinets (336) must be used, and the countertop steps in with them. This is why the low-depth zones exist — BCL, BBL and TCL.",
+      "statement": "Where a structural column intrudes into a run, low-depth cabinets (336) must be used. This is why the low-depth zones exist — BCL, BBL and TCL. For a column partway along a wall, the low-depth cabinet stands forward so its front lines up with the full-depth (560mm) cabinets beside it, leaving a gap behind it; it only stands further out if the column is deeper than that gap. Only a corner column is measured from its own face (column-in-corner).",
+      "implementation": "core/engine.mjs geometryProblems(): offset = max(column depth, 560 - cabinet depth) for a mid-wall column, column depth for a corner column. Tested in test/geometry/geometry.test.mjs.",
       "note": "Two consequences. (1) Depth is NOT constant along a run: 560 normally, 336 at a column, so the engine carries depth per segment, not per run. (2) The countertop follows that stepped profile, so its area is the sum of per-segment length x depth — never overall length x 560. Column positions come in with the room like doors and windows; P1's architect drawing marks them as C2."
+    },
+    {
+      "status": "stated",
+      "hard": true,
+      "id": "column-in-corner",
+      "statement": "When a column stands flush in an inside corner and is shallower than the cabinet depth on both walls (560mm base, 336mm wall), the corner is measured from the column face: the blind or LeMans cabinet and its wall blind stand against the column, the adjoining run keeps its usual return, and the strip beside the column is concealed corner space. The designer may also slide a corner cabinet along its wall into empty space, up to a column. A bigger column blocks the corner as before."
     },
     {
       "id": "fridge-clear-of-hob-and-sink",
@@ -729,8 +791,15 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Fit catalogue cabinets first and close remaining visible spaces with separate gap fillers of at least 30mm. If a remainder is smaller than 30mm, change packing or adjust anchors within their authorized tolerance; do not create a thinner filler or widen a panel. Required wall fillers are 40mm and corner fillers at least 40mm. Reserved cabinet footprints, openings and concealed blind-corner space remain empty.",
+      "statement": "Fit catalogue cabinets first and close remaining visible spaces with separate gap fillers of at least 30mm, placed only where no-filler-between-cabinets allows. If a remainder is smaller than 30mm, change packing or adjust anchors within their authorized tolerance; do not create a thinner filler or widen a panel. Required wall fillers are 40mm and corner fillers at least 40mm. Reserved cabinet footprints, openings and concealed blind-corner space remain empty.",
       "note": "Ordinary gap fillers remain smaller than the narrowest eligible cabinet. Concealed space up to 100mm behind blind corners is exempt; moving a blind cabinet must not leave a visible filler below 30mm."
+    },
+    {
+      "id": "no-filler-between-cabinets",
+      "status": "stated",
+      "hard": true,
+      "statement": "A gap filler is never placed between two cabinets, in the base or the wall row, and never beside the sink. A filler may only sit at a run end: against a wall, a corner filler, a tall unit, a door or window, or reserved space. Leftover space is moved there by sliding the ordinary cabinets; beside a blind or LeMans corner it is hidden in the concealed corner space (up to 100mm); otherwise the hob, sink or refrigerator moves within its 100mm tolerance so the run closes exactly. If none of that closes it, no filler is placed: the gap is reported for the designer.",
+      "note": "Replaces the earlier practice of fillers on both sides of the sink. Tall runs keep their own rules (wall filler, visible panel, no-filler-beside-fridge)."
     },
     {
       "id": "zone-boundary-tolerance",
@@ -774,7 +843,51 @@
       "hard": true,
       "seen_in": [],
       "statement": "Where a base and wall zone share a run end, their finished runs must reach that same boundary. A packing failure must not silently leave one tier shorter.",
-      "note": "Align the overall run ends. Individual door seams and the independent corner footprints are not required to match. Deliberately separate wall zones beside windows remain separate."
+      "note": "Align the overall run ends. Individual door seams and the independent corner footprints are not required to match. Deliberately separate wall zones beside windows remain separate.",
+      "implementation": "core/engine.mjs wallBaseEndProblems(), run on every layout; a mismatch is reported as a problem naming the unfinished tier. Tested in test/alignment/alignment.test.mjs."
+    },
+    {
+      "id": "edit-any-cabinet-anywhere",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "In editing, the designer may place any cabinet type in any space, whatever zone was drawn there: a tall cabinet in a base zone, a base cabinet in a tall zone, a wall cabinet where no wall zone was drawn. Structures still win: no cabinet may run into a column or reach up into a beam's drop.",
+      "note": "The picked cabinet decides what it becomes, not the zone. A tall cabinet stands on the floor, so it is placed from the base row, and the wall cabinets and lofts over its span are removed. Doors and windows keep their wall.",
+      "implementation": "ui/builder.html editReplacePick() with structureClash() and clearUpperOver(); drawPlanElev() offers open upper slots while editing; relocateSelected() lets tall units be dragged and applies the same structure check. Tested in test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "opening-min-width",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "A door or window of any type can be as narrow as 500mm.",
+      "implementation": "ui/builder.html OPENING_MIN (placing, resizing and corner-window legs); replaces the old per-type door minimums (900-1200mm) and the 400mm window minimum."
+    },
+    {
+      "id": "structure-size-up-to-room",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "A column's width and depth, and a beam's width, can be anything up to the room's own size. A column or beam standing against a wall shows the space left on each side of it, and that space can be set like a door's or window's.",
+      "implementation": "ui/builder.html structMax() (room extent along x/y), computeGapsForWall() + moveStructByDelta(). Tested in test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "draw-wall-inside-room",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "On the layout page the designer can draw extra walls inside the room. A drawn wall stays inside the room, runs straight, stops at the first wall it meets, and its ends snap onto room walls or other drawn walls, so two drawn walls can close off an area. A drawn wall is solid floor to ceiling: no cabinet may stand in it.",
+      "note": "Horizontal or vertical, whichever way the drag leans; 115mm thick; at least 200mm long.",
+      "implementation": "ui/builder.html toggleWallDraw()/wallDrawStart()/wallDrawEnd()/commitWallDraw(), stored as a structure of type 'partition'; server.mjs projects it onto any room wall it touches like a column; drawn solid in the 2D plan and as plain wall in 3D. Tested in test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "no-extend-area-in-occupied-corner",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "Empty space on a wall is not offered as an extend area where a cabinet on another wall already stands, or where a cabinet there would block that cabinet's doors or drawers. A leftover too narrow for a corner filler plus the narrowest cabinet is not offered either.",
+      "note": "Front access is taken as deep as the adjoining cabinet itself. A blind corner's concealed section has no doors, so only its footprint counts. Recomputed after every edit, so the space frees up again when the other cabinet moves or is deleted.",
+      "implementation": "ui/builder.html markOccupiedSpace(), run from recalcPositions() and normalizeReservedSpaces(); params corner_filler_min and the 150mm narrowest base cabinet. Tested in test/ui-state/ui-state.test.mjs."
     },
     {
       "id": "island-optional",
@@ -968,6 +1081,71 @@
       "statement": "Countertop and backsplash stone are both ₹551/sqft (material, Section A). Installation is billed separately in Section B: countertop ₹780/sqft, backsplash ₹300/sqft, cabinets ₹280/sqft. Cabinet installation is measured on the same carcass net sqft the cabinets are priced on, never on shutter area. Material and installation are never combined in one line, so nothing is charged twice. Backsplash area is the dado only: along each wall, wherever a countertop runs under a wall cabinet (or the hob's chimney slot), the wall from the countertop top to that cabinet's underside. No backsplash behind tall units, doors, windows or open wall.",
       "params_ref": "params.quote_rates",
       "note": "The live values are read from data/rates.json (rows by item); test/pricing checks that file against params.quote_rates."
+    },
+    {
+      "id": "run-end-against-wall",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-13"
+      ],
+      "statement": "A base or wall run that reaches the end of its wall where a solid perpendicular wall stands is closed by that wall, not exposed, even when the perpendicular wall carries no cabinets there. It gets no countertop dropdown or end panel and leaves no open wall: cabinets run up to the wall and any leftover is a gap filler against the wall.",
+      "implementation": "core/engine.mjs solve(): after corners are resolved, each base/wall zone end at offset 0 or the wall length whose side meets a non-open room wall (tallSideAgainstWall) is added to cornerEnds, so packing closes it with a gap filler and runEndProblems does not ask for a dropdown. Test: test/run-end/wall-closed-ends.test.mjs."
+    },
+    {
+      "id": "band-edge-at-wall-end-fixed",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-13"
+      ],
+      "statement": "A cabinet band the designer drew into a corner or up to a wall end stays there. Corrections (kitchen-always-drawn-with-corrections) may move an appliance or a band's inner edge, but never pull a band edge away from a wall end; what cannot be fixed that way is reported instead of leaving dead space in the corner.",
+      "implementation": "core/correct.mjs candidates(): a band edge at 0 or the wall length is never shifted. Test: test/run-end/wall-closed-ends.test.mjs."    },
+    {
+      "id": "no-run-past-wall-end",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-13"
+      ],
+      "statement": "A manual edit never pushes a cabinet run past the end of its wall. Replacing a cabinet with a wider one may use the open space in that run; if it still does not fit, the replacement is refused and the designer is told how many mm are missing.",
+      "implementation": "ui/builder.html editReplacePick(): the run is snapshotted, and the edit is rolled back with a message if the run would end beyond the wall length (an overrun saved by an older edit is not made worse). Move and corner slide already stay inside their run."    },
+    {
+      "id": "mid-wall-on-countertop",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "designer, 2026-10-14"
+      ],
+      "statement": "A mid-height wall cabinet stands on the countertop and rises to the top of the wall cabinets. It is usually near the fridge, but there is no placement condition. When the designer puts one in a wall-cabinet slot, it is placed on the countertop and the height variant (1290 / 1650) whose top meets the existing wall-cabinet top is used. Only mid-height wall cabinets stand on the countertop: any other wall cabinet put in the wall row (including where a mid cabinet was deleted) hangs level with the row's other wall cabinets, or 565 mm (the dado) above the countertop when there are none.",
+      "implementation": "ui/builder.html editReplacePick(): an MD-/MDW- code picked in the wall row gets z = countertop (heights.baseTop) and is swapped for the same code at the height that reaches the slot's (or the row's non-mid) wall-cabinet top; with no such variant it is placed and a warning names the mismatch. Any other wall-row pick gets z = the first other non-mid wall cabinet's z, else baseTop + dado. Test: test/ui-state/ui-state.test.mjs."    },
+    {
+      "id": "library-blind-is-a-corner",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "designer, 2026-10-14"
+      ],
+      "statement": "A base blind cabinet picked from the library during editing is treated like a generated blind corner: its concealed end is the end nearer the wall corner and its door starts past the adjoining run's front plus the blind shutter clearance. On the adjoining wall it occupies only the space its body stands in, not a door-front zone across its concealed part.",
+      "implementation": "ui/builder.html editReplacePick(): a BB-/BBL- code in the base row becomes kind 'corner' with corner.end and shutter {x0,x1} (base depth + params.blind_shutter_clearance from the nearer wall end); markOccupied() then uses the shutter span for the front zone. Test: test/ui-state/ui-state.test.mjs."    },
+    {
+      "id": "drag-empty-space-boundary",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "designer, 2026-10-14"
+      ],
+      "statement": "While editing, the edge between two neighbouring empty pieces of a base run (open space, extend area, dead space, a corner reservation or a filler) can be dragged to resize them, or dragged to the end to merge them into one space the designer can use however they want — e.g. to take a corner back for a blind corner on that wall. A cabinet standing on the adjoining wall still marks the space it occupies (and its open space) as occupied.",
+      "implementation": "ui/detailed-plan.js emptyJoint() + .emptyjoint handles; ui/builder.html startEmptyJointDrag()/moveEmptyBoundary(); markOccupied() also cuts open space. Test: test/ui-state/ui-state.test.mjs."    },
+    {
+      "id": "hob-flank-clear-of-corner",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-13"
+      ],
+      "statement": "Where base runs meet at an inside corner, the first 600mm of each wall (the 560mm return plus the corner filler) belongs to the corner, whichever wall the blind takes. Cabinets placed beside the hob (grain trolley, bottle pullout, or a flank the designer named) never go there. If a flank cannot fit outside it, the hob moves (within the correction limits) or the flank is reported; the corner is never given up for it.",
+      "implementation": "core/engine.mjs expand(): cornerKeep lists those spans and flankFits() rejects any hob flank overlapping one. core/correct.mjs tries appliance and band moves in 50mm steps (up to 300mm) so a hob can land in the narrow window that fits a flank beside the corner. Tests: test/engine/engine.test.mjs (cornered flank), test/run-end/wall-closed-ends.test.mjs."
     }
   ],
   "open_questions": [
@@ -975,8 +1153,8 @@
   ],
   "params": {
     "_note": "Every number in these rules is a tunable default, not a constant. Change it here.",
-    "panel_width": 25,
-    "tall_visible_panel_width": 25,
+    "panel_width": 20,
+    "tall_visible_panel_width": 20,
     "filler_min": 40,
     "filler_max": 100,
     "manual_filler_max": 150,
@@ -991,6 +1169,10 @@
       "8ft": 600
     },
     "hob_sink_min_gap": 350,
+    "door_side_clearance": 50,
+    "fridge_door_swing_gap": 800,
+    "window_corner_trigger": 360,
+    "window_corner_clearance": 200,
     "hob_widths": [
       600,
       900
@@ -1000,7 +1182,7 @@
       600,
       450
     ],
-    "countertop_return": 25,
+    "countertop_return": 30,
     "heights": {
       "7ft": {
         "design_height": 2140,

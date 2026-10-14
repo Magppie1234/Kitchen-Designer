@@ -125,10 +125,16 @@ assert.ok(!flanked.out.warnings.some(w=>/displaced/.test(w)));
 
 // one side only -> the other is still the engine's; required grain storage may be
 // relocated when the selected flank occupies its former immediate-neighbour bay.
-const half = withHob((h) => { h.flanks = { right: 'AC:TR' }; });
+const half = withHob((h) => { h.flanks = { left: 'AC:TR' }; });
 assert.ok(roleOn(half.out, 'BB', 'tray unit'), 'the named side is honoured');
 assert.ok(half.out.placed.base.some((p) => p.role === 'grain trolley'), 'the engine keeps required grain storage');
 assert.ok(!half.out.warnings.some(w=>/lost its place beside the hob/.test(w)));
+// hob-flank-clear-of-corner: on the right the 600mm tray would stand in the BB/CC corner's
+// return; the corner keeps its cabinet and the flank is reported, never the corner lost
+const cornered = withHob((h) => { h.flanks = { right: 'AC:TR' }; });
+assert.ok(cornered.out.problems.some((p) => /right-hand flank shape "AC:TR" does not fit/.test(p)));
+assert.ok(!cornered.out.problems.some((p) => /corner BB\/CC\/base: no corner unit/.test(p)));
+assert.ok(cornered.out.placed.base.some((p) => p.wall === 'BB' && p.role === 'corner void' && p.at + p.width === 3000));
 
 // a shape the catalogue cannot supply is a HARD failure naming the choice — never a swap
 const bogus = withHob((h) => { h.design = '9ZZ'; });
@@ -227,7 +233,7 @@ assert.match(overlapProblems({ base: [{ wall: 'X', at: 0, width: 600, role: 'a' 
   // a) a run that misses closing by a little is rescued by the smallest reported slide
   const near = runEndFixture();
   near.lockAnchors=false; near.lockZones=false;
-  near.anchors.find(a=>a.item==='hob').at+=25;
+  near.anchors.find(a=>a.item==='hob').at+=RULE_PARAMS.panel_width;   // one slide step out of place
   const rescued = layout(near, catalog);
   const move = rescued.notes.find((n) => /^(hob|sink|fridge) moved ([+-]\d+)mm along its wall/.test(n));
   assert.ok(move, `expected a reported anchor slide within tolerance, notes: ${rescued.notes.join(' | ')}`);

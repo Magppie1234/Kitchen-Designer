@@ -13,12 +13,12 @@ import { check } from './checkInput.mjs';
 const TIER = { hob: 'base', sink: 'base', veggie: 'base', fridge: 'tall' };
 const NAME = { hob: 'Hob', sink: 'Sink', veggie: 'Veggie sink', fridge: 'Refrigerator' };
 const BAND = { base: 'Base cabinet band', wall: 'Wall cabinet band', tall: 'Tall cabinet band' };
-const MAX_SHIFT = 300, SHIFTS = [-300, -200, -100, 100, 200, 300];
+const MAX_SHIFT = 300, SHIFTS = [-300, -250, -200, -150, -100, -50, 50, 100, 150, 200, 250, 300];
 const clone = structuredClone;
 
 // Input errors a correction can resolve. Anything else (walls, handle, island setup) is a
 // missing designer choice, not a layout that failed, and is still reported as such.
-const FIXABLE = /^(anchor (hob|sink|veggie|fridge): must be fully inside|anchors \w+ and \w+ overlap|(hob|sink|veggie|fridge) is in front of a (door|window)|hob and sink are -?\d+mm apart|(base|wall|tall) zones overlap|tall zones overlap)/;
+const FIXABLE = /^(anchor (hob|sink|veggie|fridge): must be fully inside|anchors \w+ and \w+ overlap|(hob|sink|veggie|fridge) is in front of a (door|window)|(hob|sink|veggie|fridge) is within \d+mm of a door|fridge is in a door swing|hob and sink are -?\d+mm apart|(base|wall|tall) zones overlap|tall zones overlap)/;
 export const fixableInput = (errors) => errors.length > 0 && errors.every((e) => FIXABLE.test(e));
 
 // Fallback only, for a room whose zone tool was never used: every wall long enough to
@@ -136,6 +136,8 @@ function* candidates(s, original) {
   for (const t of ['base', 'wall', 'tall']) for (const [zi, z] of j.zones[t].entries()) for (const edge of ['from', 'to'])
     for (const d of SHIFTS) {
       const at = z[edge] + d, len = j.walls.find((w) => w.id === z.wall).length;
+      // band-edge-at-wall-end-fixed: a band drawn into a corner or up to a wall end stays there
+      if (z[edge] === 0 || z[edge] === len) break;
       if (at < 0 || at > len) continue;
       const k = { j: clone(j), derived: false };
       k.j.zones[t][zi][edge] = at;
@@ -201,7 +203,7 @@ export async function correctKitchen(start, catalog, { original = start, derived
   // Still breaking a placement rule the limits cannot fix (an appliance in front of a door or
   // window, hob too close to the sink): draw it anyway with that rule waived, and hand the
   // broken rules back so they are listed for the designer.
-  const errors = check(best.j), waived = [...new Set(errors.map((e) => e.match(/\((anchors-never-in-front-of-door|window-rules-by-anchor|hob-sink-min-gap)\)$/)?.[1]).filter(Boolean))];
+  const errors = check(best.j), waived = [...new Set(errors.map((e) => e.match(/\((anchors-never-in-front-of-door|door-side-clearance|fridge-clear-of-door-swing|window-rules-by-anchor|hob-sink-min-gap|fridge-not-at-column)\)$/)?.[1]).filter(Boolean))];
   if (waived.length) best.j.waived = waived;
   return { input: best.j, result: await planKitchen(best.j, catalog), waived: errors.filter((e) => waived.some((r) => e.endsWith(`(${r})`))) };
 }

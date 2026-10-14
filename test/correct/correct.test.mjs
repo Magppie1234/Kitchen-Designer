@@ -24,7 +24,7 @@ test('a sink 200mm into a door is slid clear on its own wall and the kitchen fit
   assert.deepEqual(check(c.input), []);
   assert.deepEqual(c.waived ?? [], []);
   const sink = corrections.find((x) => x.item === 'sink');
-  assert.match(sink.description, /^Sink on wall W3 moved (100|200|300) mm/);
+  assert.match(sink.description, /^Sink on wall W3 moved (50|100|150|200|250|300) mm/);
   assert.ok(withinLimits(input, c.input));
   assert.equal(fabric(c.input), fabric(input), 'walls, doors, windows and structures never move');
 });

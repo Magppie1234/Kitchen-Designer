@@ -41,3 +41,22 @@ test('plan distinguishes the veggie sink and shows both 50mm fridge clearances',
   assert.match(svg,/x="200"[^>]*width="5"/);
   assert.match(svg,/x="295"[^>]*width="5"/);
 });
+
+test('every dimension sits outside the wall, none inside the room',()=>{
+  // this room winds positively, so in each wall's own frame the room is +y and outside is -y
+  const svg=DetailedPlan.render(state,tf);
+  const dims=[...svg.matchAll(/<g class="plan-dimension"[\s\S]*?<\/g>/g)].map(m=>m[0]);
+  assert.ok(dims.length>4);
+  for(const d of dims)for(const [,y] of d.matchAll(/ y[12]?="(-?[\d.]+)"/g))assert.ok(+y<=0,`dimension inside the room: ${d.slice(0,120)}`);
+});
+
+test('doors and windows sit in the wall, not half inside the room',()=>{
+  const s=structuredClone(state);s.plan.openings=[{wall:'W0',off:1500,width:900,type:'window'}];
+  const calls=[];const svg=DetailedPlan.render(s,tf,(w,o,t,wallPx)=>{calls.push(wallPx);return '<g data-opening="true"/>';});
+  const ww=125*tf.sc;
+  assert.deepEqual(calls,[ww],'symbol is drawn at the plan wall thickness');
+  // W0 runs along +x with the room at +y: the symbol moves out to the wall's centre, -ww/2
+  assert.ok(svg.includes(`translate(0,${-ww/2})"><g data-opening`));
+  const cut=svg.match(/<rect x="105" y="(-?[\d.]+)" width="90" height="([\d.]+)" fill="white"/);
+  assert.ok(cut&&+cut[1]+ +cut[2]<=0.5,'the wall gap does not reach into the room');
+});

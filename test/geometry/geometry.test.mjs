@@ -17,13 +17,11 @@ for(const [name,j] of Object.entries(fixtures()))test('full pipeline: '+name,()=
   if(['p5','p6'].includes(name)){
     assert.equal(plan.verdict,'REJECTED');assert.ok(result.problems.some(p=>/corner|physical overlap/.test(p)));return;
   }
-  const missingUpper=['u','seven','concave','reflected'].includes(name);
-  if(missingUpper) {
-    assert.equal(result.problems.length,1);
-    assert.match(result.problems[0],/matching wall blind cabinet is missing/);
-  } else assert.deepEqual(result.problems,[]);
+  // base-wall-blind-corner-synchronization (relaxed 2026-10-13): u/seven/concave/reflected have no
+  // upper zone on their blind's wall, so the base blind stands alone and the plan is clean
+  assert.deepEqual(result.problems,[]);
   assert.deepEqual(collisions(measuredVolumes(input,result.placed)),[],'independent world volumes cannot intersect');
-  assert.equal(plan.verdict,missingUpper?'REJECTED':'FEASIBLE','missing upper blind cabinets block release; cancelled accessories do not');
+  assert.equal(plan.verdict,'FEASIBLE','cancelled accessories do not block release');
   const hob=result.placed.base.find(p=>p.role==='hob'),asked=input.anchors.find(a=>a.item==='hob');
   assert.ok(Math.abs(hob.at+hob.width/2-asked.center)<=100,'width selection must preserve centre within reported tolerance');
   const expected=Object.values(result.placed).flat().filter(p=>p.code&&!p.blocker);
@@ -36,8 +34,9 @@ for(const [name,j] of Object.entries(fixtures()))test('full pipeline: '+name,()=
 });
 test('default fixture: physical return reservations and bounded repair',()=>{
   const j=JSON.parse(readFileSync('data/default-kitchen.json')),r=layout(j,cat);
-  assert.equal(gate(r).verdict,'REJECTED','gap fillers do not waive missing synchronized upper cabinets');
-  assert.ok(r.problems.some(p=>/matching wall blind cabinet is missing/.test(p)));
+  // its blind corner wall carries no upper zone into the corner, so no matching wall blind is owed
+  assert.equal(gate(r).verdict,'FEASIBLE');
+  assert.ok(!r.problems.some(p=>/matching wall blind cabinet is missing/.test(p)));
   assert.ok(!r.problems.some(p=>/tall visible panel/.test(p)));
   assert.deepEqual(collisions(measuredVolumes(j,r.placed)),[]);
   assert.ok(r.notes.some(n=>/hob moved -\d+mm/.test(n)));
@@ -95,4 +94,12 @@ test('share view leaves gaps empty and prices real depths/heights',()=>{
   assert.equal((livePlanSvg({walls,plan}).match(/<polygon/g)||[]).length,2,'only room and real cabinet');
   assert.equal((liveElevSvg({walls,plan}).match(/<rect/g)||[]).length,1);
   const m=enumerateModules(plan);assert.equal(m.counterMm2,600*336);assert.equal(m.specs[0].D,336);
+});
+test('a shallow column partway along a wall: the low-depth cabinet still lines up with the 560mm fronts',()=>{
+  const low=cat.find(c=>c.group==='base'&&c.depth===336&&c.width===600&&c.handle==='CJ');
+  const run=(x)=>{ const req=uiRequest(fixtures().straight);req.options.structures=[{type:'column',x,y:75,w:600,d:150}];
+    const {input}=toEngineInput(req.anchors,req.options),c=input.columns[0],p={wall:'0',at:c.at,width:600,code:low.code,role:'low cabinet'};
+    assert.deepEqual(geometryProblems(input,{base:[p],wall:[],tall:[]},cat),[]);return p; };
+  const mid=run(3000);assert.equal(mid.offset,224);assert.equal(mid.depth+mid.offset,560,'front in line with the full-depth cabinets');
+  const corner=run(300);assert.equal(corner.offset,150,'a corner column is still measured from its face');
 });

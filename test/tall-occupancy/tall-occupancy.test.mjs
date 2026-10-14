@@ -7,6 +7,7 @@ import {loadCatalog} from '../../core/loadCatalog.mjs';
 import {runEndFixture} from '../../verification/run-end-fixtures.mjs';
 import {measuredVolumes,collisions} from '../../verification/fixtures.mjs';
 import {fitKitchen} from '../../core/fitting.mjs';
+import {RULE_PARAMS} from '../../core/config.mjs';
 const cat=loadCatalog().ok;
 
 test('saved W4/W5 collision: reserve the short return before filling it, independent of zone order',()=>{
@@ -20,7 +21,7 @@ test('saved W4/W5 collision: reserve the short return before filling it, indepen
     assert.ok(!r.placed.tall.some(p=>p.wall==='5'&&!p.blocker));
     assert.ok(r.placed.tall.some(p=>p.wall==='5'&&p.blocker&&p.at===0&&p.width===410));
     assert.ok(r.placed.tall.filter(p=>p.role==='wall filler').every(p=>p.width===40));
-    assert.ok(Object.values(r.placed).flat().filter(p=>p.role?.startsWith('panel')).every(p=>p.width===25));
+    assert.ok(Object.values(r.placed).flat().filter(p=>p.role?.startsWith('panel')).every(p=>p.width===RULE_PARAMS.panel_width));
     const hood=r.placed.wall.find(p=>p.role==='chimney');
     const flanks=r.placed.wall.filter(p=>p.code&&(p.at+p.width===hood.at||p.at===hood.at+hood.width)&&p.wall===hood.wall);
     assert.equal(flanks.length,2);assert.equal(flanks[0].width,flanks[1].width);
@@ -52,14 +53,16 @@ test('exposed tall side gets 25mm, a side against a wall gets 40mm; undersized f
   assert.equal(tallSideAgainstWall(j,'A',9000),false);
   assert.equal(tallSideAgainstWall(j,'A',11970),true);
   assert.equal(tallSideAgainstWall({...j,openWalls:['B']},'A',11970),false,'an open threshold does not conceal the cabinet side');
-  assert.ok(r.placed.tall.some(p=>p.at===9000&&p.tallVisiblePanel&&p.width===25));
+  assert.ok(r.placed.tall.some(p=>p.at===9000&&p.tallVisiblePanel&&p.width===RULE_PARAMS.tall_visible_panel_width));
   assert.ok(r.placed.tall.some(p=>p.at+p.width===11970&&p.role==='wall filler'&&p.width===40));
   const bad=structuredClone(r.placed);bad.base.push({wall:'A',at:0,width:29,role:'gap filler',trim:true});
   assert.match(runEndProblems(j,bad).join(),/at least 30mm/);
 });
 
 test('anchor fitting can make a 10mm adjustment to satisfy the new fixed wall filler',async()=>{
-  const j=JSON.parse(readFileSync('verification/filler-3600-input.json')),before=JSON.stringify(j);
+  // With 20mm panels and 30mm dropdowns the saved setup fits as drawn; set the fridge 10mm off so a nudge is needed.
+  const j=JSON.parse(readFileSync('verification/filler-3600-input.json'));j.anchors.find(a=>a.item==='fridge').at+=10;
+  const before=JSON.stringify(j);
   const fitted=await fitKitchen(j,cat,{proposals:false});
   assert.equal(JSON.stringify(j),before);assert.deepEqual(fitted.result.problems,[]);
   assert.ok(fitted.adjustments.some(a=>a.item==='fridge'&&a.delta!==0));

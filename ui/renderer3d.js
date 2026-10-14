@@ -420,7 +420,10 @@ function buildKitchen(plan, walls){
   const structureModel=(type,re)=>{ const all=haveModels?modelsOf('structure','structure',type):[]; return (re&&all.find(e=>re.test(e.name)))||all[0]||null; };
   // ---- structures: columns (full-height dark stone) & beams (overhead lighter timber) ----
   for(const st of ((window.S&&window.S.structures)||[])){
-    if(st.type==='beam'){ const bh=st.h||300; const m=box(st.w,bh,st.d||230,0xC9BCA3,{roughness:0.85});
+    // a drawn wall: the same finish as the room walls, no column model
+    if(st.type==='partition'){ const ph=st.h||WALL_H;
+      const m=box(st.w,ph,st.d||st.w,wallColor,wallOpts); m.position.copy(world(st.x,st.y,ph/2)); g.add(m); }
+    else if(st.type==='beam'){ const bh=st.h||300; const m=box(st.w,bh,st.d||230,0xC9BCA3,{roughness:0.85});
       m.position.copy(world(st.x,st.y,WALL_H-bh/2)); g.add(m);
       fitModel(structureModel('beam'),st.w,bh,st.d||230,world(st.x,st.y,WALL_H-bh),0,m); }
     else { const ch=st.h||WALL_H; const m=box(st.w,ch,st.d||st.w,0x8C867A,{roughness:0.9,metalness:0.02});

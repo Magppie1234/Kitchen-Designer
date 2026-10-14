@@ -14,7 +14,7 @@ const between=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)))
 const plain=x=>JSON.parse(JSON.stringify(x));
 function editor(){
   const S={walls:[{length:6000},{length:6000}],openings:[],anchors:[],suggested:[],sink:{veggie:false},fridge:{width:600},hob:{size:900},options:{},steps:{}};
-  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,FRIDGE_PICKS:[],isOpenWall:()=>false,sinkWidth:()=>900});
+  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,FRIDGE_PICKS:[],isOpenWall:()=>false,sinkWidth:()=>900,structSpansOnWall:()=>[]});
   for(const n of ['markInProcess','syncSinkStep','renderStepModal','renderEditorLeft','renderPos'])c[n]=()=>{};
   c.showToast=m=>c.message=m;
   vm.runInContext(between('function suggestedOff(', 'function offOnWall('),c);
@@ -108,4 +108,17 @@ test('900mm fridge reserves a 1000mm opening throughout layout and rendering dat
   assert.equal(seg.code,null,'an appliance opening is not a resized catalogue cabinet');
   j.anchors.find(a=>a.item==='fridge').width=900;
   assert.match(check(j).join(),/50mm clearance/);
+});
+
+test('the sink snaps to a window centre when dragged near it; the fridge cannot stand in front of a column',()=>{
+  const S={walls:[{a:[0,0],b:[4000,0],length:4000}],openings:[{type:'window',wall:'W0',off:2000,width:1200,sill:900}],anchors:[],
+    structures:[{type:'column',x:3500,y:150,w:300,d:300}],rulesCfg:null};
+  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,isOpenWall:()=>false,fxWidthMm:()=>600});
+  vm.runInContext(between('function fxDropValid(','// nearest VALID offset')+between('// Columns and beams within','// Columns and beams seen'),c);
+  assert.equal(c.snapSinkToWindow('sink',0,1880,900),2000,'within 150mm: snaps to the window centre');
+  assert.equal(c.snapSinkToWindow('sink',0,1800,900),1800,'further away: stays where it is dragged');
+  assert.equal(c.snapSinkToWindow('hob',0,1950,900),1950);
+  assert.equal(c.fxDropValid('fridge',0,3400,700),false,'in front of the column');
+  assert.equal(c.fxDropValid('fridge',0,800,700),true);
+  assert.equal(c.fxDropValid('hob',0,3400,700),true,'only the fridge is kept off the column');
 });
