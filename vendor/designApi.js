@@ -57,7 +57,9 @@ export async function handleDesigns(req, res) {
       if (q.get('observability')) return json(res, 200, { rooms: await store.projectObservability(q.get('observability')) });
       // Project list + the workload summary the dashboard shows. A designer gets their own
       // projects; the admin gets every designer's, each tagged with its owner.
-      const projects = await store.listProjects();
+      // Coder's (dhruvgarg1107@gmail.com) test projects are hidden from the admin dashboard.
+      const projects = (await store.listProjects())
+        .filter((p) => !(me.role === 'admin' && p.owner?.email === 'dhruvgarg1107@gmail.com'));
       const bucket = (s) => projects.filter((p) => p.status === s);
       return json(res, 200, {
         me: { email: me.email, name: me.name, role: me.role },
