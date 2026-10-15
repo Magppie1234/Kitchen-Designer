@@ -7815,14 +7815,14 @@ function renderDeskHead(me){
 function designerSummaryHtml(projects){
   const by=new Map();
   for(const p of projects){ const k=p.owner&&p.owner.id||'?';
-    if(!by.has(k)) by.set(k,{who:p.owner&&(p.owner.email||p.owner.name)||'Unknown',n:0,revs:0,a:0,ip:0,sub:0,value:0,last:''});
+    if(!by.has(k)) by.set(k,{who:p.owner&&(p.owner.name||p.owner.email)||'Unknown',mail:p.owner&&p.owner.email||'',n:0,revs:0,a:0,ip:0,sub:0,value:0,last:''});
     const d=by.get(k); d.n++; d.revs+=p.revisionCount||0; d.value+=p.value||0;
     d[{assigned:'a','in-process':'ip',submitted:'sub'}[p.status]||'a']++; if(p.updatedAt>d.last) d.last=p.updatedAt; }
   const td='padding:9px 10px;border-bottom:1px solid var(--line);text-align:right', th=td+';font-size:11px;color:var(--muted2);font-weight:600';
   return `<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 8px;margin-bottom:8px;overflow-x:auto;flex:1 1 100%">
     <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:640px">
       <tr><th style="${th};text-align:left">Designer</th><th style="${th}">Projects</th><th style="${th}">Revisions</th><th style="${th}">Assigned</th><th style="${th}">In process</th><th style="${th}">Submitted</th><th style="${th}">Value</th><th style="${th}">Last active</th></tr>
-      ${[...by.values()].sort((x,y)=>y.last.localeCompare(x.last)).map(d=>`<tr><td style="${td};text-align:left;font-weight:600">${esc(d.who)}</td><td style="${td}">${d.n}</td><td style="${td}">${d.revs}</td><td style="${td}">${d.a}</td><td style="${td}">${d.ip}</td><td style="${td}">${d.sub}</td><td style="${td}">${inr(d.value)}</td><td style="${td}">${d.last?new Date(d.last).toLocaleDateString():'—'}</td></tr>`).join('')
+      ${[...by.values()].sort((x,y)=>y.last.localeCompare(x.last)).map(d=>`<tr><td style="${td};text-align:left;font-weight:600" title="${esc(d.mail)}">${esc(d.who)}</td><td style="${td}">${d.n}</td><td style="${td}">${d.revs}</td><td style="${td}">${d.a}</td><td style="${td}">${d.ip}</td><td style="${td}">${d.sub}</td><td style="${td}">${inr(d.value)}</td><td style="${td}">${d.last?new Date(d.last).toLocaleDateString():'—'}</td></tr>`).join('')
         ||`<tr><td colspan="8" style="${td};text-align:left;color:var(--muted2)">No designer has created a project yet.</td></tr>`}
     </table></div>`;
 }
@@ -7854,7 +7854,7 @@ async function renderDesk(){
         <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
           <span style="font-family:'Spectral',serif;font-size:17px">${esc(p.name)}</span>
           <span style="font-size:11px;color:var(--muted2)">${esc(d.client||'')}${d.city?' · '+esc(d.city):''}</span>
-          ${admin&&p.owner?`<span style="font-size:11px;font-weight:600;color:var(--sage)">${esc(p.owner.email||p.owner.name||'')}</span>`:''}</div>
+          ${admin&&p.owner?`<span style="font-size:11px;font-weight:600;color:var(--sage)" title="${esc(p.owner.email||'')}">${esc(p.owner.name||p.owner.email||'')}</span>`:''}</div>
         <div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted2)">
           <span style="font-weight:600;padding:2px 9px;border-radius:14px;background:${M.bg};color:${M.fg}">${M.label}</span>
           <span>${p.rooms.length} room${p.rooms.length===1?'':'s'} · ${p.designedRooms} designed</span>
