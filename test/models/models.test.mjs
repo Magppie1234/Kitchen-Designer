@@ -18,8 +18,8 @@ test('model entries carry a fingerprint so an updated handle variant cannot be s
   const titus = man.models.find((m) => m.code === 'BC-GD-TTS-ST-1BL-1HF-XXX-600-720-560-15');
   assert.match(cAndJ.path, /C & J Profile Cabinets/);
   assert.match(titus.path, /External Handle/);
-  assert.match(cAndJ.version, /^\d+-\d+$/);
-  assert.match(titus.version, /^\d+-\d+$/);
+  assert.match(cAndJ.version, /^[0-9a-f]{16}$/);
+  assert.match(titus.version, /^[0-9a-f]{16}$/);
   assert.notEqual(cAndJ.version, titus.version);
 });
 

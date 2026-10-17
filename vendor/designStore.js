@@ -244,10 +244,10 @@ export async function getRevision(revisionId) {
 // a 'share' revision first, so the link always reproduces exactly what was shared.
 // ---------------------------------------------------------------------------
 
-export async function createShare(roomId, state, { includeEstimate = true, expiryDays = 14 } = {}) {
+export async function createShare(roomId, state, { includeEstimate = true, expiryDays = 14, expiresAt = null } = {}) {
   const rev = await createRevision(roomId, 'share', state);
   const token = (randomUUID() + randomUUID()).replace(/-/g, '').slice(0, 32);
-  const expiresAt = new Date(Date.now() + expiryDays * 864e5).toISOString();
+  expiresAt ||= new Date(Date.now() + expiryDays * 864e5).toISOString();
   await rest('shares', { method: 'POST',
     body: { token, room_id: roomId, revision_id: rev.id, include_estimate: !!includeEstimate, expires_at: expiresAt } });
   await audit('share.create', { roomId, detail: { revision: rev.number, expiresAt } });

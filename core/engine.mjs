@@ -6,6 +6,15 @@
 // layout. fitting.mjs also combines bounded anchor movements to reduce filler.
 import { loadCatalog } from './loadCatalog.mjs';
 import { RULE_PARAMS } from './config.mjs';
+// window-clear-of-wall-cabinets: wall cabinets hang from counter + backsplash up to the design
+// height. A window whose sill + height leaves it wholly below or above that band is no obstacle
+// to them (base and tall cabinets keep their own window rules).
+export const windowClearOfWall = (o, height) => {
+  if (o.type !== 'window' || o.sill == null || o.winH == null) return false;
+  const lo = RULE_PARAMS.counter_height + RULE_PARAMS.backsplash, hi = RULE_PARAMS.heights[height]?.design_height ?? Infinity;
+  return o.sill + o.winH <= lo || o.sill >= hi;
+};
+const windowHitsTier = (o, tier, height) => tier === 'tall' || (tier === 'wall' && !windowClearOfWall(o, height));
 // The anchor-tolerance repair pass re-validates each candidate with the SAME guard the
 // designer's own input passes through, so a nudge can never be laxer than a hand placement.
 import { check, outline } from './checkInput.mjs';
@@ -122,7 +131,7 @@ export function geometryProblems(input, placed, cat) {
     if (!KitchenGeometry.containsRect(box,ws)) problems.push(`${p.wall}/${tier}: "${p.role}" footprint is outside the room`);
     if (input.ceiling != null && box.z1>input.ceiling) problems.push(`${p.wall}/${tier}: "${p.role}" exceeds the ceiling`);
     for (const o of input.openings ?? []) if (o.wall===p.wall && spansHit(p,o)
-      && (o.type==='door'||tier!=='base'||p.role==='hob'||(o.sill??900)<RULE_PARAMS.counter_height))
+      && (o.type==='door'||windowHitsTier(o,tier,input.height)||p.role==='hob'||(o.sill??900)<RULE_PARAMS.counter_height))
       problems.push(`${p.wall}/${tier}: "${p.role}" obstructs a ${o.type}`);
     for (const st of input.structures ?? []) if (KitchenGeometry.intersects(box,st)
       && Math.min(box.z1,st.z1)>Math.max(box.z0,st.z0))
@@ -211,7 +220,7 @@ function expand(input, cat) {
     .some((z) => z.wall === wall && at >= z.from && at + width <= z.to);
   const openingFree = (tier, wall, at, width) => !(input.openings ?? []).some((o) => {
     if (o.wall !== wall || Math.min(at + width, o.at + o.width) <= Math.max(at, o.at)) return false;
-    return o.type === 'door' || (o.type === 'window' && tier !== 'base');
+    return o.type === 'door' || (o.type === 'window' && windowHitsTier(o, tier, input.height));
   });
   const fits = (tier, wall, at, width) => zoneFor(tier, wall, at, width) && openingFree(tier, wall, at, width);
   const anchorFree = (wall, at, width, except) => !input.anchors.some((a) => a !== except && a.wall === wall
@@ -257,11 +266,21 @@ function expand(input, cat) {
         return { side, family, spec, width: width ?? null, at: width ? at(width) : null, offered: widths };
       };
       const chosenFit = (hobW) => ['left', 'right'].map((s) => chosenFlank(s, hobW)).filter(Boolean);
+      // anchor-at-zone-end: a hob flush with the end of its base zone has no flank on that side —
+      // the run ends there. Its chimney may hang past the wall zone by its own overhang
+      // (chimney_wider_than_hob_by / 2), over bare wall: never over an opening or a tall zone.
+      const hobZone = (input.zones.base ?? []).find((z) => z.wall === a.wall && a.at >= z.from && a.at < z.to);
+      const atZoneEnd = (s, hobW) => !!hobZone && (s === 'left' ? a.at === hobZone.from : a.at + hobW === hobZone.to);
+      const wallLenA = input.walls.find((w) => w.id === a.wall)?.length ?? Infinity;
+      const chimneyFits = (w) => fits('wall', a.wall, a.at - P.chimneyHalf, w + P.chimneyOver)
+        || (zoneFor('wall', a.wall, a.at, w) && openingFree('wall', a.wall, a.at - P.chimneyHalf, w + P.chimneyOver)
+          && a.at - P.chimneyHalf >= 0 && a.at + w + P.chimneyHalf <= wallLenA
+          && !(input.zones.tall ?? []).some((z) => z.wall === a.wall && z.from < a.at + w + P.chimneyHalf && z.to > a.at - P.chimneyHalf));
 
       // Direct storage neighbours remain one valid option. Ordinary flanking
       // cabinets are another; required storage can be fitted farther out.
       const sidePlan = (hobW) => {
-        const free = ['left', 'right'].filter((s) => !chosen[s]);
+        const free = ['left', 'right'].filter((s) => !chosen[s] && !atZoneEnd(s, hobW));
         if (!free.length) return { grainW: 0, bpoW: 0, side: null, skip: true };
         if (input._solveHobSides?.flankW) {
           const w=input._solveHobSides.flankW;
@@ -285,7 +304,7 @@ function expand(input, cat) {
       const hobWidth = hobChoices.find((w) =>
         hobSpecs.some((s) => findSpec(cat, { zone: 'BC', family: 'HO', width: w, handle: input.handle }, s))
         && fits('base', a.wall, a.at, w)
-        && fits('wall', a.wall, a.at - P.chimneyHalf, w + P.chimneyOver)
+        && chimneyFits(w)
         && chosenFit(w).every((f) => f.width)
         && sidePlan(w)) ?? a.width;
       const hob = hobSpecs.map((s) => findSpec(cat, { zone: 'BC', family: 'HO', width: hobWidth, handle: input.handle }, s)).find(Boolean);
@@ -312,7 +331,7 @@ function expand(input, cat) {
       if (hobSides?.skip) {
         // Both choices are preserved. Storage is fitted after the remaining runs.
       } else if (hobSides?.flankW) {
-        for (const side of ['left','right']) if (!chosen[side]) {
+        for (const side of ['left','right']) if (!chosen[side] && !atZoneEnd(side, hobWidth)) {
           const w=hobSides.flankW, at=side==='left'?a.at-w:a.at+hobWidth;
           const unit=cat.find(c=>c.zone==='BC'&&c.family==='DW'&&c.width===w&&c.handle===input.handle)
             ?? cat.find(c=>c.zone==='BC'&&c.family==='SH'&&c.width===w&&c.handle===input.handle);
@@ -323,7 +342,7 @@ function expand(input, cat) {
         const want = { left: side === 'grain-left' ? 'grain' : 'bpo', right: side === 'grain-left' ? 'bpo' : 'grain' };
         const place = { grain: grainW, bpo: bpoW };
         for (const s of ['left', 'right']) {
-          if (chosen[s]) continue;
+          if (chosen[s] || atZoneEnd(s, hobWidth)) continue;
           const what = want[s];
           const w = place[what];
           const at = s === 'left' ? a.at - w : a.at + hobWidth;
@@ -336,7 +355,7 @@ function expand(input, cat) {
       } else problems.push(`${a.wall}/base: the selected cabinets do not fit beside the hob`);
 
       const chim = hobWidth + P.chimneyOver;
-      put('wall', a.wall, a.at - P.chimneyHalf, chim, 'chimney', null);
+      put('wall', a.wall, a.at - P.chimneyHalf, chim, 'chimney', null, {zoneOverhang: true});
 
       const flankWidths=out.base.filter(p=>p.wall===a.wall&&(p.at+p.width===a.at||p.at===a.at+hobWidth))
         .map(p=>p.width).filter(w=>P.flankToWall[w]);
@@ -446,7 +465,7 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
     if(tier==='tall' && za && zb && Math.min(za.to-za.from,zb.to-zb.from)<depth+P.cornerFiller)continue;
     const clear = (wall,at,width,ignore=[]) => !occupied(placed,tier,wall,at,width)
       && !(input.openings||[]).some(o=>o.wall===wall && spansHit({at,width},o)
-        && (o.type==='door'||tier!=='base'||(o.sill??900)<RULE_PARAMS.counter_height))
+        && (o.type==='door'||windowHitsTier(o,tier,input.height)||(o.sill??900)<RULE_PARAMS.counter_height))
       && !(input.columns||[]).some(c=>!ignore.includes(c)&&c.wall===wall && spansHit({at,width},c));
     // the column's own stretch on the cabinet's wall: concealed corner space, as behind any blind
     const columnSpace=(leg,col,wall,own)=>col&&placeInto(placed,tier,{wall,at:leg==='a'?own.to-col:own.from,width:col,
@@ -727,7 +746,7 @@ export function wallBaseEndProblems(input,placed){
     const edge=upper[end],base=zones.base.find(b=>b.wall===upper.wall&&b[end]===edge);
     if(!base)continue;
     const touches=p=>p.wall===upper.wall&&(end==='from'?p.at===edge:p.at+p.width===edge);
-    const b=placed.base.some(touches),w=placed.wall.some(touches);
+    const b=placed.base.some(touches),w=placed.wall.some(p=>touches(p)||(p.role==='chimney'&&p.wall===upper.wall&&p.at<edge&&p.at+p.width>edge));
     if(b!==w)problems.push(`${upper.wall}: base and wall run ${end} must align at ${edge}mm; ${b?'wall':'base'} run is unfinished`);
   }
   return problems;
@@ -751,7 +770,7 @@ export function runEndProblems(input, placed, cornerEnds = new Set()) {
     const edge=z[end],piece=placed.tall.find(p=>p.wall===z.wall&&(end==='from'?p.at===edge:p.at+p.width===edge));
     if(piece?.blocker)continue;
     // no-filler-beside-fridge: an appliance needs no finish piece on its outer side.
-    const nearest=placed.tall.filter(p=>!p.blocker&&p.wall===z.wall&&(end==='from'?p.at>=edge:p.at+p.width<=edge))
+    const nearest=placed.tall.filter(p=>!p.blocker&&!p.trim&&p.wall===z.wall&&(end==='from'?p.at>=edge:p.at+p.width<=edge))
       .sort((a,b)=>end==='from'?a.at-b.at:(b.at+b.width)-(a.at+a.width))[0];
     if(nearest?.role==='refrigerator')continue;
     const concealed=tallSideAgainstWall(input,z.wall,edge,piece?.depth??560);
@@ -782,7 +801,8 @@ export function runEndProblems(input, placed, cornerEnds = new Set()) {
     if(open)edge=end==='from'?open.at+open.width:open.at;
     const touches=p=>end==='from'?p.at<=edge&&p.at+p.width>edge:p.at<edge&&p.at+p.width>=edge;
     if(on.some(p=>(p.blocker||/corner/.test(p.role))&&touches(p)))continue;
-    if(!on.some(p=>!p.blocker&&/^countertop return/.test(p.role)&&touches(p)))
+    const outside=p=>p.zoneOverhang&&(end==='from'?p.at+p.width===edge:p.at===edge);   // anchor-at-zone-end
+    if(!on.some(p=>!p.blocker&&/^countertop return/.test(p.role)&&(touches(p)||outside(p))))
       problems.push(`${z.wall}/base: exposed run ${end} at ${edge} requires a countertop dropdown`);
   }
   return problems;
@@ -832,11 +852,12 @@ function solve(input, cat) {
     }
   }
 
-  // Wall and tall cabinets never sit in front of a window; base cabinets may. Pushing the
+  // Wall and tall cabinets never sit in front of a window (a wall cabinet may, when the window is
+  // wholly below or above it: window-clear-of-wall-cabinets); base cabinets may. Pushing the
   // window in as a blocker makes the gap finder route around it with no special casing.
   for (const o of input.openings ?? []) {
     const tiers = o.type === 'door' || (o.sill ?? 900) < RULE_PARAMS.counter_height ? ['base', 'wall', 'tall'] : ['wall', 'tall'];
-    for (const tier of tiers)
+    for (const tier of tiers.filter(t => o.type === 'door' || t === 'base' || windowHitsTier(o, t, input.height)))
       placeInto(placed, tier, { wall: o.wall, at: o.at, width: o.width, role: `${o.type} (no cabinet)`, code: null, blocker: true });
   }
   // door-side-clearance: bare wall on both sides of a door, in every tier.
@@ -923,7 +944,14 @@ function solve(input, cat) {
           const empty = b - a < narrow
             && ((a === z.from && on.some(p => p.role === 'refrigerator' && p.at === b))
               || (b === z.to && on.some(p => p.role === 'refrigerator' && p.at + p.width === a)));
-          if (empty) placeInto(placed, tier, { wall: z.wall, at: a, width: b - a, role: 'empty space beside refrigerator', code: null, blocker: true, emptySpace: true });
+          // fridge-wall-filler: a refrigerator at the very end of its wall may stand up to
+          // manual_filler_max (150mm) off that wall; the space is closed by a gap filler so the
+          // end reads clean. A narrower or wider sliver, or one at a free end, stays empty.
+          const edge = a === z.from ? a : b, w = b - a;
+          const toWall = empty && (edge === 0 || edge === wallLen[z.wall]) && tallSideAgainstWall(input, z.wall, edge)
+            && w >= RULE_PARAMS.gap_filler_min && w <= P.manualFillerMax;
+          if (toWall) placeInto(placed, tier, { wall: z.wall, at: a, width: w, role: 'gap filler', code: null, trim: true });
+          else if (empty) placeInto(placed, tier, { wall: z.wall, at: a, width: w, role: 'empty space beside refrigerator', code: null, blocker: true, emptySpace: true });
           return !empty;
         });
       }
@@ -1131,6 +1159,19 @@ function solve(input, cat) {
   capStorage(input,placed,cat,warnings);
   fillTier('wall');
   arrangeBlindFronts(input,placed,cat,notes);
+  // anchor-at-zone-end: an appliance (hob, sink, veggie sink) may sit flush with a free end of its
+  // base zone. No packing gap is left there for the countertop dropdown, so it goes just outside
+  // the zone, where the wall is clear; otherwise runEndProblems still reports the missing dropdown.
+  for(const z of input.zones.base)for(const end of ['from','to']){
+    const edge=z[end];
+    if(cornerEnds.has(`base:${z.wall}:${end}`)||junctions.some(j=>j.wall===z.wall&&j.edge===edge))continue;
+    const flush=placed.base.find(p=>p.wall===z.wall&&['hob','sink','veggie sink'].includes(p.role)&&(end==='from'?p.at===edge:p.at+p.width===edge));
+    if(!flush)continue;
+    const w=P.countertopReturn,at=end==='from'?edge-w:edge;
+    if(at<0||at+w>wallLen[z.wall])continue;
+    if(!placeInto(placed,'base',{wall:z.wall,at,width:w,role:'countertop return',code:null,trim:true,zoneOverhang:true}))
+      notes.push(`${z.wall}/base: ${flush.role} sits at the zone ${end==='from'?'start':'end'}; its ${w}mm countertop dropdown is just outside the zone`);
+  }
   problems.push(...runEndProblems(input,placed,cornerEnds));
   problems.push(...wallBaseEndProblems(input,placed));
   // Nothing may occupy the same millimetre twice. An overlap here is not a rounding slip —
@@ -1197,7 +1238,7 @@ function solve(input, cat) {
       problems.push(`${p.wall}/${tier}: "${p.role}" spans ${p.at}..${p.at + p.width}, outside wall 0..${len}`);
     if (!p.blocker) {
       const inZone = (input.zones[tier] ?? []).some((z) => z.wall === p.wall && p.at >= z.from && p.at + p.width <= z.to);
-      if (!inZone) problems.push(`${p.wall}/${tier}: "${p.role}" is outside its ${tier} zone`);
+      if (!inZone && !p.zoneOverhang) problems.push(`${p.wall}/${tier}: "${p.role}" is outside its ${tier} zone`);
       if (p.role === 'corner filler' && (p.width < P.cornerFiller || p.width > P.fillerMax))
         problems.push(`${p.wall}/${tier}: automatic corner filler must be ${P.cornerFiller}-${P.fillerMax}mm`);
       if (p.role === 'filler' && (p.width < P.fillerMin || p.width > P.manualFillerMax))
@@ -1367,7 +1408,7 @@ function windowCornerClearance(input, placed, notes) {
     const a = ws[i], b = ws[(i + 1) % ws.length];
     if ((a.dx * b.dy - a.dy * b.dx) * sign <= 0) continue;
     // only a normal window: sliding or openable (no variant = an engine fixture's plain window)
-    const win = (input.openings ?? []).filter(o => o.type === 'window' && [undefined, 'sliding', 'openable'].includes(o.variant));
+    const win = (input.openings ?? []).filter(o => o.type === 'window' && [undefined, 'sliding', 'openable'].includes(o.variant) && !windowClearOfWall(o, input.height));
     const spans = [];
     if (win.some(o => o.wall === a.id && a.length - (o.at + o.width) < trigger)) spans.push([b.id, 0]);
     if (win.some(o => o.wall === b.id && o.at < trigger)) spans.push([a.id, a.length - reach]);

@@ -278,7 +278,8 @@
       "hard": true,
       "seen_in": [],
       "statement": "Visible panels are exactly 20mm and must never be widened to absorb packing space. Use a visible panel on a tall cabinet only when its side is exposed to view, including the side above an adjoining base run. A tall side concealed against a wall uses a 40mm wall filler instead; the refrigerator's own sides are exempt (no-filler-beside-fridge). Ordinary gap fillers must be at least 30mm; corner fillers are at least 40mm. Panels and fillers are separate products.",
-      "note": "The 30mm minimum applies to ordinary gap fillers. Wall fillers at concealed tall sides are exactly 40mm. Automatic corner fillers remain 40-100mm; manually specified corner fillers may be up to 150mm.",
+      "note": "The 30mm minimum applies to ordinary gap fillers. Wall fillers at concealed tall sides are exactly 40mm. Automatic corner fillers remain 40-100mm; manually specified corner fillers may be up to 150mm. The designer may turn any filler into a visible panel (and back) from the edit sidebar: the panel is always exactly panel_width at the chosen end, and a wider filler keeps the remainder as a filler.",
+      "implementation": "ui/builder.html editFillerToPanel() (sidebar 'Make visible panel' / 'Change to filler'); normalizeList() never merges a panel into a neighbouring filler. Param panel_width.",
       "reconciles": [
         "panel (outdated): P1 27, P2 20/30, P3 20, P4 20/30",
         "filler: P1 60/75/90, P2 60/90, P3 90/100, P4 50/64/70/90/100 — all within 40-100"
@@ -493,11 +494,11 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "The refrigerator is an appliance, not a cabinet, so it never gets a wall filler, visible panel or gap filler on its outer side. When the refrigerator is the last item at the end of a tall run, whether that end is a free end or faces a wall, nothing is placed beside it. If a leftover space between the refrigerator and that end is too small to hold any tall cabinet, it stays empty; it still counts as unused space when layouts are compared, so the refrigerator is not slid off the wall just to hide it. The tall cabinet on the refrigerator's other side is finished by its own rules as usual.",
+      "statement": "The refrigerator is an appliance, not a cabinet, so it never gets a wall filler, visible panel or gap filler on its outer side. When the refrigerator is the last item at the end of a tall run, whether that end is a free end or faces a wall, nothing is placed beside it. The one exception is a refrigerator at the very end of its wall, against a room wall: it may stand up to 150mm (manual_filler_max) off that wall, and a gap filler (at least gap_filler_min) closes the space so the end looks seamless and clean (designer, 2026-10-17). Otherwise, if a leftover space between the refrigerator and that end is too small to hold any tall cabinet, it stays empty; it still counts as unused space when layouts are compared, so the refrigerator is not slid off the wall just to hide it. The tall cabinet on the refrigerator's other side is finished by its own rules as usual.",
       "evidence": [
         "Designer, 2026-10-04: a filler was drawn between the refrigerator and the wall although the refrigerator sat between a tall cabinet and that wall."
       ],
-      "note": "Exception to panel-vs-filler and run-end-treatment. A base/tall junction panel is unchanged. The engine marks the empty sliver with a non-rendered blocker (role 'empty space beside refrigerator', emptySpace) so fit scoring counts it as waste."
+      "note": "Exception to panel-vs-filler and run-end-treatment. A base/tall junction panel is unchanged. The engine marks the empty sliver with a non-rendered blocker (role 'empty space beside refrigerator', emptySpace) so fit scoring counts it as waste. Wall-end exception: core/engine.mjs fillTier('tall') places a 'gap filler' for a 30-150mm sliver at offset 0 / wall length where tallSideAgainstWall(); runEndProblems() skips trims when finding the refrigerator. Test: test/engine/engine.test.mjs."
     },
     {
       "id": "chimney-over-hob",
@@ -1146,6 +1147,36 @@
       ],
       "statement": "Where base runs meet at an inside corner, the first 600mm of each wall (the 560mm return plus the corner filler) belongs to the corner, whichever wall the blind takes. Cabinets placed beside the hob (grain trolley, bottle pullout, or a flank the designer named) never go there. If a flank cannot fit outside it, the hob moves (within the correction limits) or the flank is reported; the corner is never given up for it.",
       "implementation": "core/engine.mjs expand(): cornerKeep lists those spans and flankFits() rejects any hob flank overlapping one. core/correct.mjs tries appliance and band moves in 50mm steps (up to 300mm) so a hob can land in the narrow window that fits a flank beside the corner. Tests: test/engine/engine.test.mjs (cornered flank), test/run-end/wall-closed-ends.test.mjs."
+    },
+    {
+      "id": "plan-upload-prefill",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-16"
+      ],
+      "statement": "An uploaded PDF or image plan is read with Gemini 3.8 Flash: the kitchen is found on the sheet, then a close-up of it is read. A plan that shows only structure (walls, doors, windows, columns, open sides) opens on the Layout page pre-filled with that structure, to be checked. A plan that also shows cabinetry opens on the same pre-filled Layout page, and Continue to fixtures shows the base/wall/tall zones and the hob, sink and fridge where the plan draws them. Anything that cannot stand where the plan shows it (keep-outs, clearances) or that is not against a wall (island, peninsula) is named in a note, never forced in.",
+      "implementation": "plan-read.mjs findKitchens() (/api/kitchen-detect) + readKitchen()/toDraft() (/api/vision-extract), model gemini-3.8-flash; ui/builder.html pdfPageImages() (pdf.js), runKitchenDetection(), routeDecisionForPage() (one kitchen goes straight to the read), lockKitchenRegion() -> applyVisionExtract() -> applyDrawnCabinetry() (addZoneSplit, nearestValidFxOff, ensure*Defaults). Test: test/plan-read/plan-read.test.mjs."
+    },
+    {
+      "id": "anchor-at-zone-end",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-17"
+      ],
+      "statement": "A hob, sink or veggie sink may sit flush with the end of its cabinet zone. No cabinet is required beside it on that side (a hob is flanked only on its other side), its countertop dropdown sits just outside the zone where the wall is clear, and a hob's chimney may hang past the wall zone by its own overhang over bare wall, never over an opening or a tall zone. No rule may keep an appliance away from a zone end.",
+      "implementation": "core/engine.mjs expand(): atZoneEnd() drops the flank on a side flush with the base zone end; chimneyFits() allows the chimney overhang (zoneOverhang flag skips the in-zone check). solve(): a flush hob/sink end gets its 'countertop return' outside the zone; runEndProblems() and wallBaseEndProblems() accept it and the overhanging chimney. Test: test/engine/engine.test.mjs."
+    },
+    {
+      "id": "window-clear-of-wall-cabinets",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "designer, 2026-10-17"
+      ],
+      "statement": "Wall cabinets hang from counter_height + backsplash up to the kitchen's design height. A window whose sill height plus window height leaves it wholly below or wholly above that band does not block wall cabinets: a wall zone may be drawn across it and wall cabinets may be placed in front of it. A window that overlaps the band still keeps wall cabinets out, and tall cabinets never stand in front of a window.",
+      "implementation": "core/engine.mjs windowClearOfWall()/windowHitsTier() used by openingFree(), the opening blockers, geometryProblems(), corners() and windowCornerClearance(); ui/builder.html windowClearOfWall() in zoneBlocksOn(). Test: test/engine/engine.test.mjs."
     }
   ],
   "open_questions": [

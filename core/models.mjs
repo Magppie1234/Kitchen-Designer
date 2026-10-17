@@ -11,6 +11,7 @@
 //   Structure/ room fabric — beam, column, door, window
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, sep } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const ROOT = join(import.meta.dirname, '..');
 export const MODEL_ROOTS = [join(ROOT, 'Models'), join(ROOT, 'ui', 'models')];
@@ -51,6 +52,16 @@ function codeFor(name, byCode) {
   return null;
 }
 
+// The folder is rescanned per request, so the hash is only recomputed when mtime or size moves.
+const hashes = new Map();
+function contentVersion(file) {
+  const { mtimeMs, size } = statSync(file), stamp = `${mtimeMs}-${size}`, hit = hashes.get(file);
+  if (hit?.stamp === stamp) return hit.version;
+  const version = createHash('sha1').update(readFileSync(file)).digest('hex').slice(0, 16);
+  hashes.set(file, { stamp, version });
+  return version;
+}
+
 export function modelManifest(catalog) {
   const byCode = new Map(catalog.map((c) => [c.code, c]));
   const models = [], seen = new Set(), fronts = applianceFronts();
@@ -59,12 +70,12 @@ export function modelManifest(catalog) {
     for (const rel of readdirSync(root, { recursive: true })) {
       if (!/\.glb$/i.test(rel)) continue;
       const path = rel.split(sep).join('/'), name = path.split('/').pop().replace(/\.glb$/i, '');
-      // A GLB can be replaced without its catalogue code changing.  Expose a stable
-      // fingerprint so the renderer never reuses yesterday's model for today's SKU.
-      const stat = statSync(join(root, rel));
-      const version = `${Math.floor(stat.mtimeMs)}-${stat.size}`;
       if (seen.has(path)) continue;   // Models wins over ui/models for the same path
       seen.add(path);
+      // A GLB can be replaced without its catalogue code changing.  The version is a hash of
+      // the file's bytes, so it survives a fresh git checkout (new mtimes) and the browser can
+      // cache /models/<path>?v=<version> forever (vercel.json).
+      const version = contentVersion(join(root, rel));
       const code = codeFor(name, byCode), unit = code && byCode.get(code);
       if (unit) models.push({ code, category: categoryOf(unit), w: unit.width, h: unit.height, d: unit.depth, path, name, version });
       else if (/^Additional Items\//i.test(path))

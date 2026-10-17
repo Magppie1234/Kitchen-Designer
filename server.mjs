@@ -31,6 +31,7 @@ import { priceSaleable } from './vendor/saleablePricing.js';
 import { specOf } from './core/engine.mjs';
 import {suggestIslands} from './core/island.mjs';
 import { renderSnapshot } from './render.mjs';
+import { findKitchens, readKitchen } from './plan-read.mjs';
 import { modelManifest, modelFile, MODEL_ROOTS } from './core/models.mjs';
 import { requestUser, supabaseEnv, userFromToken } from './vendor/supabase.js';
 
@@ -434,8 +435,6 @@ function suggestAnchors(ex) {
 // Endpoints the original backend served that this project deliberately does not implement.
 // A clear 501 beats a silent empty response that makes the UI look broken for no reason.
 const NOT_WIRED = {
-  '/api/vision-extract': 'AI floor-plan reading is not part of this project',
-  '/api/kitchen-detect': 'AI kitchen detection is not part of this project',
   '/api/dwg-extract': 'DWG/DXF import is not part of this project',
 };
 
@@ -455,10 +454,11 @@ export async function handler(req, res) {
   let user = null;
   try {
     if (path === '/api/auth-config') { const { url: sbUrl, anon } = supabaseEnv(); return send(res, 200, { url: sbUrl, anonKey: anon }); }
-    if (path.startsWith('/api/') && !(path === '/api/share' && req.method === 'GET')) {
+    // public GETs: a share link, and the model manifest its 3D viewer needs (filenames only — the GLBs are public anyway)
+    if (path.startsWith('/api/') && !(req.method === 'GET' && (path === '/api/share' || path === '/api/models'))) {
       user = await userFromToken(req.headers.authorization?.replace(/^Bearer /i, ''));
       if (!user) return send(res, 401, { error: 'Sign in required.' });
-      if (user.role === 'admin' && path === '/api/render') return send(res, 403, { error: 'Admin accounts are view-only.' });
+      if (user.role === 'admin' && ['/api/render', '/api/kitchen-detect', '/api/vision-extract'].includes(path)) return send(res, 403, { error: 'Admin accounts are view-only.' });
     }
   } catch (e) { return send(res, e?.status ?? 500, { error: String(e?.message ?? e) }); }
   return requestUser.run(user, () => route(req, res, url, path));
@@ -484,6 +484,12 @@ async function route(req, res, url, path) {
     if(path==='/api/render'){
       if(req.method!=='POST')return send(res,405,{error:'POST {image, aspectRatio, references}'});
       try{return send(res,200,await renderSnapshot(await readBody(req)));}
+      catch(e){return send(res,e.status||500,{error:e.message});}
+    }
+    // Uploaded plan -> Gemini (plan-read.mjs): find the kitchen(s), then read one close-up.
+    if(path==='/api/kitchen-detect'||path==='/api/vision-extract'){
+      if(req.method!=='POST')return send(res,405,{error:path==='/api/kitchen-detect'?'POST {pages:[imageDataUrl]}':'POST {imageDataUrl}'});
+      try{const body=await readBody(req);return send(res,200,await (path==='/api/kitchen-detect'?findKitchens(body):readKitchen(body)));}
       catch(e){return send(res,e.status||500,{error:e.message});}
     }
     if (path === '/api/build') {
@@ -668,6 +674,6 @@ if (process.argv[1]?.endsWith('server.mjs')) {
     console.log(`\n  MAI builder on this project's rule file (rules.json)`);
     console.log(`  http://localhost:${PORT}`);
     console.log(`  ${CATALOG.length} cabinets · dashboard, 2D, 3D, library, pricing and share are live`);
-    console.log(`  ${Object.keys(NOT_WIRED).length} endpoints return 501 (AI floor-plan read, DWG import)\n`);
+    console.log(`  ${Object.keys(NOT_WIRED).length} endpoints return 501 (DWG import)\n`);
   });
 }

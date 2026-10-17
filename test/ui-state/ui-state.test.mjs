@@ -366,3 +366,13 @@ test('draw wall: ends snap onto walls, a wall stops at the first wall it meets, 
   assert.equal(S.structures.length,3);
   draw(1000,500,1100,500);assert.equal(S.structures.length,3);assert.match(ctx.message,/at least 200mm/);
 });
+
+test('a cabinet can be dragged into free empty space; moving leaves open space, not a filler',()=>{
+  const ctx=vm.createContext({});vm.runInContext(between('function relocateCore','/*__RELOCATE_CORE_END__*/'),ctx);
+  const cab={kind:'cabinet',width:600},list=[cab,{kind:'cabinet',width:450},{kind:'gap',width:1200}];
+  const plan=ctx.relocateCore(list,cab,1500);
+  assert.ok(plan.ok,plan.reason);
+  ctx.relocateApply(list,cab,plan);
+  assert.deepEqual(plain(list.map(s=>[s.kind,!!s.open,s.width])),[['filler',true,600],['cabinet',false,450],['filler',true,450],['cabinet',false,600],['filler',true,150]]);
+  assert.equal(ctx.relocateCore([cab,{kind:'gap',label:'concealed corner space',width:900}],cab,700).ok,false,'concealed corner space is not free');
+});

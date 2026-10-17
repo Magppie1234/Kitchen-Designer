@@ -1028,7 +1028,7 @@ function go(screen){
 // whichever one is open, or it's left floating over whatever screen Back
 // restores underneath it.
 function closeAllModals(){
-  ['modalSetup','modalStep','modalTemplate','modalRoom','modalMethod','modalRevisions','modalSeries','modalRuleLog','modalFinishes','modalSchedule','modalCompare','modalDeskObs','modalRpFinish','moreMenu','roomMenu'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
+  ['modalSetup','modalStep','modalTemplate','modalRoom','modalMethod','modalRevisions','modalSeries','modalRuleLog','modalFinishes','modalSchedule','modalCompare','modalShare','modalDeskObs','modalRpFinish','moreMenu','roomMenu'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
   S.activeStep=null;
 }
 // Back/Forward: restore the screen from history state instead of re-pushing it
@@ -1191,10 +1191,10 @@ function pickShapeUi(id){ S.shape=id; renderShape(); }
        (lib/convertDwg.js) and traces the actual kitchen walls/openings from the drawing
        (lib/extractKitchen.js) — real geometry, not a guess. Applied as an EDITABLE DRAFT
        via applyVisionExtract(), same as the AI photo path below.
-     · JPEG/PNG (or a scanned/non-vector PDF) -> sent to /api/vision-extract, which asks a
-       vision-capable LLM (via OpenRouter — see lib/visionExtract.js for the API key / model
-       env vars) to read the room outline, doors/windows and columns/beams straight off the
-       image, in millimeters. Applied as an EDITABLE DRAFT (applyVisionExtract) — every wall,
+     · PDF / JPEG / PNG -> Gemini 3.8 Flash (plan-read.mjs): /api/kitchen-detect finds the
+       kitchen on the page(s), /api/vision-extract reads a close-up of it — walls, open sides,
+       doors/windows, columns, and any cabinetry the plan shows (zones, hob, sink, fridge), in
+       millimeters. Applied as an EDITABLE DRAFT (applyVisionExtract) — every wall,
        opening and structure lands on the same Layout canvas with the same drag/edit tools as
        anything placed by hand, since a vision read of a photo can misjudge a dimension or miss
        a door and the user needs a fast way to fix that, not a black box.
@@ -1296,10 +1296,9 @@ async function handleUploadedFile(file){
 // several rooms in a row via withRoom().
 function applyVisionExtract(ex,opts){
   const navigate=!(opts&&opts.navigate===false);
-  const pts=ex.room.corners_mm;
-  const segOf=(a,b)=>({a,b,length:Math.hypot(b[0]-a[0],b[1]-a[1])});
-  S.walls=pts.map((p,i)=>segOf(p,pts[(i+1)%pts.length]));
-  S.room={walls:S.walls};
+  S.anchors=[]; S.openings=[]; S.structures=[]; S.zones=[];
+  S.room={}; rebuildWalls(ex.room.corners_mm); S.room.walls=S.walls;   // rebuildWalls also sets bbox + dims
+  S.openWalls=(ex.openWalls||[]).filter(i=>S.walls[i]); S.roomMode=S.openWalls.length?'open':'enclosed';
   S.openings=(ex.openings||[]).map(o=>{
     const w=S.walls[o.wallIndex]; if(!w) return null;
     const width=Math.max(300,Math.min(o.width_mm||(o.type==='door'?900:1200),w.length-80));
@@ -1314,13 +1313,37 @@ function applyVisionExtract(ex,opts){
     w:s.width_mm||(s.type==='beam'?3000:200), d:s.depth_mm||300,
     h:s.type==='beam'?400:(S.options.ceiling||3100), dir:'h',
   }));
-  S.suggested=[]; S.anchors=[]; S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]};
-  S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false; S.islandInfo=computeIslandInfo();
+  S.suggested=[]; S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]};
+  S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false;
   S.placing=null; S.arm=null; S.selFx=null; S.method='upload-ai';
+  applyDrawnCabinetry(ex);
+  S.islandInfo=computeIslandInfo();
   if(!navigate) return;              // multi-kitchen pass: caller stashes + navigates once
   resetUpload(); refitView(); go('layout');
   const n=(ex.warnings||[]).length;
   showToast(`AI read the plan (${ex.confidence||'medium'} confidence)`+(n?` — ${n} note${n>1?'s':''}, check the plan`:'')+'.'+(n?' '+ex.warnings.join(' '):''));
+}
+// Cabinetry the plan itself shows (plan-read.mjs: zones + hob/sink/fridge), placed so the fixtures
+// screen opens already filled in; a plan of bare walls leaves both empty, as before. Every piece
+// goes through the same checks a hand placement does (zone keep-outs, fixture clearances); one
+// that cannot stand where the plan draws it is named in the toast instead of forced in.
+function applyDrawnCabinetry(ex){
+  const notes=ex.warnings=ex.warnings||[];
+  for(const z of ex.zones||[]){ const i=+String(z.wall).slice(1); if(S.walls[i]&&!isOpenWall(i)) addZoneSplit(i,z.tier,z.s,z.e); }
+  for(const f of ex.fixtures||[]){
+    const i=+String(f.wall).slice(1); if(!S.walls[i]) continue;
+    let elevation='A';
+    if(f.type==='hob'){ S.hob.size=f.width_mm>=750?900:600; elevation=S.hob.size===900?'A':'B'; }
+    else if(f.type==='sink'){ const dbl=f.width_mm>=750||ex.dishwasher;
+      S.sink.pick=!dbl?'600':ex.dishwasher?'900-1200-dw':'900-1200'; S.sink.type=dbl?'double':'compact';
+      S.sink.doubleSize=dbl?(f.width_mm>=1150?1200:900):null; elevation=dbl?'A':'B'; }
+    else if(f.type==='fridge'){ if(!S.fridge.type&&!S.fridge.pick) S.fridge.type='builtin'; }
+    else continue;
+    const off=nearestValidFxOff(i,f.off,fxWidthMm({type:f.type,elevation}),f.type);
+    if(off==null){ notes.push(`The ${f.type} drawn on the plan doesn't fit where it is shown — place it on the fixtures screen.`); continue; }
+    S.anchors.push({type:f.type,wall:'W'+i,off,elevation,src:'designer'});
+    ({hob:ensureHobDefaults,sink:ensureSinkDefaults,fridge:ensureFridgeDefaults})[f.type]();
+  }
 }
 // A rectangular room, scaled so its LONGER side equals the user-confirmed real-world length.
 function confirmUploadScale(){
@@ -1435,6 +1458,29 @@ function downscaleDataUrl(dataUrl,maxPx=1600){
   });
 }
 
+// A PDF's pages (first 6) as JPEG data URLs, long side ~5000 px so a kitchen that is a small
+// part of a whole-house sheet still crops to a sharp close-up. pdf.js loads on first use.
+function loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=base+'pdf.min.js';
+    s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js'; res(pdfjsLib); };
+    s.onerror=()=>rej(new Error('the PDF reader could not load — check the internet connection'));
+    document.head.appendChild(s); });
+}
+async function pdfPageImages(file,maxPages=6,longSide=5000){
+  const doc=await (await loadPdfJs()).getDocument({data:await file.arrayBuffer()}).promise, out=[];
+  for(let i=1;i<=Math.min(doc.numPages,maxPages);i++){
+    const page=await doc.getPage(i), v1=page.getViewport({scale:1});
+    const vp=page.getViewport({scale:longSide/Math.max(v1.width,v1.height)});
+    const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+    const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height);
+    await page.render({canvasContext:ctx,viewport:vp,intent:'print'}).promise;   // 'print' avoids rAF pacing stalls in a background tab
+    out.push(c.toDataURL('image/jpeg',0.9));
+  }
+  return out;
+}
+
 const KDETECT_RATE_LIMIT=5;   // soft, client-side only (sessionStorage) — see plan's Known Limitations: not a hard server-enforced cap
 function kdetectRateLimitOk(){
   const n=parseInt(sessionStorage.getItem('kdetectCount')||'0',10);
@@ -1452,16 +1498,14 @@ async function runKitchenDetection({kind,file,dataUrl}){
   }
   S.upload={stage:'kitchen-detecting',file,kind:null,bbox:null,msg:null}; renderUploadBox();
   try{
-    let res;
-    if(kind==='pdf'){
-      const buf=await file.arrayBuffer();
-      res=await fetch(API+'/api/kitchen-detect',{method:'POST',headers:{'content-type':'application/octet-stream','x-filename':file.name},body:buf});
-    }else{
-      const url=dataUrl||await readAsDataUrl(file);
-      res=await fetch(API+'/api/kitchen-detect',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({imageDataUrl:url})});
-    }
+    // Pages become images here in the browser: full resolution is kept for the close-up crop,
+    // a smaller copy goes to Gemini to find the kitchen (plan-read.mjs findKitchens).
+    const full=kind==='pdf'?await pdfPageImages(file):[dataUrl||await readAsDataUrl(file)];
+    const small=await Promise.all(full.map(u=>downscaleDataUrl(u,2000)));
+    const res=await fetch(API+'/api/kitchen-detect',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pages:small})});
     const result=await res.json();
     if(!res.ok) throw new Error(result&&result.error||('server '+res.status));
+    result.pages.forEach(p=>{ p.imageDataUrl=full[p.pageIndex]; });
     afterKitchenDetect(result);
   }catch(err){
     // 7.1: no dead ends — image falls back to the existing $0 trace-over background; a PDF has
@@ -1490,7 +1534,7 @@ function routeDecisionForPage(i){
   // If the model located an actual kitchen region, always route through a visual confirm/pick
   // step — NEVER silently auto-commit (spec 3.2 "never auto-commit past this screen regardless
   // of confidence" is the stronger rule). One candidate -> confirm-on-the-page; several -> picker.
-  if(d.candidates.length===1){ openKitchenConfirm(d.candidates[0]); return; }   // 3.1 (dedicated) + 3.2 collapse into one confirm
+  if(d.candidates.length===1){ lockKitchenRegion(d.candidates[0]); return; }   // one kitchen: read it; the Layout page is where it is checked
   if(d.candidates.length>=1){ openKitchenPick(); return; }                       // 3.3
   // Zero located regions. A "dedicated kitchen drawing" flag with NO candidate box is
   // contradictory/unreliable (seen in practice on real multi-room villa plans the model
@@ -1534,7 +1578,7 @@ function cropImageDataUrl(imageDataUrl,bbox){
       const sw=Math.max(1,Math.round(b.width*img.naturalWidth)), sh=Math.max(1,Math.round(b.height*img.naturalHeight));
       const c=document.createElement('canvas'); c.width=sw; c.height=sh;
       c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
-      resolve(c.toDataURL('image/png'));
+      resolve(c.toDataURL('image/jpeg',0.9));   // JPEG: a PNG close-up can pass the 4.5 MB request limit on Vercel
     };
     img.onerror=()=>reject(new Error('Could not load the page image to crop.'));
     img.src=imageDataUrl;
@@ -1588,7 +1632,7 @@ async function readKitchenDraft(page, candidate){
   // schedule, not on the plan). The bounding box is just a pin at the label word, so a vision
   // read of that sliver would be garbage — it has to be drawn by hand.
   if(candidate && candidate.textSource && !candidate.dims_mm) return {draft:null, cropDataUrl, needsManual:true};
-  const res=await fetch(API+'/api/vision-extract',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({imageDataUrl:await downscaleDataUrl(cropDataUrl)})});
+  const res=await fetch(API+'/api/vision-extract',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({imageDataUrl:await downscaleDataUrl(cropDataUrl,3000)})});
   const draft=await res.json();
   if(!res.ok) throw new Error(draft&&draft.error||('server '+res.status));
   return {draft, cropDataUrl};
@@ -1604,8 +1648,8 @@ async function lockKitchenRegion(candidate){
       openKitchenManual();
       return;
     }
-    S.kdetect.draft=out.draft;
-    showKitchenModal('dimension-confirm');
+    S.kdetect=null; $('modalKitchen').style.display='none';
+    applyVisionExtract(out.draft);   // straight to Layout, pre-filled — that page is the check
   }catch(err){
     // 7.1 again: a failed dimension read drops back into the manual picker, not a dead end.
     showToast('Could not read dimensions from that region ('+(err&&err.message||err)+') — pick or redraw the kitchen area.');
@@ -2995,6 +3039,14 @@ function doorClearMm(){ const o=(S&&S.rulesCfg&&S.rulesCfg.openings)||null; retu
 // nothing, and the designer never asked for it. (ZONE_MIN_MM is a different question: it asks
 // whether a DELIBERATE drag was a drag at all, not whether a cabinet fits in what is left.)
 function zoneMinUnitMm(){ const t=(S&&S.rulesCfg&&S.rulesCfg.tiling)||null; return (t&&t.minUnit)||MIN_UNIT_FALLBACK; }
+// window-clear-of-wall-cabinets (mirrors core/engine.mjs windowClearOfWall): wall cabinets hang
+// from counter + backsplash up to the kitchen's design height; a window whose sill + height leaves
+// it wholly below or above that band does not stop a wall zone.
+function windowClearOfWall(o){
+  const H=(S.rulesCfg&&S.rulesCfg.heights)||{}, sys=(S.rulesCfg?.params?.heights||{})[(S.options.kitchenHeightMm||2438)>=2300?'8ft':'7ft'];
+  const sill=o.sill??(o.variant==='fulllength'?50:900), top=sill+(o.winH??(o.variant==='fulllength'?2100:1200));
+  return top<=(H.baseTop??850)+(H.dado??565)||sill>=(sys?.design_height??Infinity);
+}
 function zoneBlocksOn(wallIdx,tier){
   const w=S.walls[wallIdx]; if(!w) return [];
   const key='W'+wallIdx, dc=doorClearMm(), raw=[];
@@ -3002,7 +3054,7 @@ function zoneBlocksOn(wallIdx,tier){
     if(o.wall!==key) continue;
     const half=(o.width||0)/2;
     if(o.type==='door') raw.push({s:o.off-half-dc, e:o.off+half+dc, kind:'door'});
-    else if(tier==='wall'||tier==='tall') raw.push({s:o.off-half, e:o.off+half, kind:'window'});
+    else if(tier==='tall'||(tier==='wall'&&!windowClearOfWall(o))) raw.push({s:o.off-half, e:o.off+half, kind:'window'});
   }
   // Base and wall bands are at separate heights, so they may share a span. A tall band is a
   // floor-to-ceiling cabinet bank and must be disjoint from both. Keeping this in the common
@@ -3277,12 +3329,22 @@ function onZoneDraw(ev){ if(!_zdraw) return; S._dragged=true;
   const t=tf(680,520,55), pt=svgPoint(activeSvg(),ev);   // S._tf is only the cached {sc,ox,oy}; tf() builds the live X/Y transform
   zoneDrawStep(pt,t);
   renderPos(); }
+// The segments a drag actually paints. At the end of a run that turned a corner, a stub no
+// longer than the corner square plus the narrowest cabinet is dropped: the band on the other wall
+// already covers that square, so the stub was only the pointer starting or stopping near the
+// corner — it would add a second, tiny zone where the designer drew one.
+function zoneDrawSegs(d){
+  const segs=d.segs||[], stub=zoneDepth(d.tier)+zoneMinUnitMm();
+  return segs.filter((s,i)=>{ const len=Math.abs(s.to-s.from);
+    if(len<ZONE_MIN_MM) return false;
+    return !(segs.length>1&&(i===0||i===segs.length-1)&&len<stub); });
+}
 function endZoneDraw(){ window.removeEventListener('mousemove',onZoneDraw); window.removeEventListener('mouseup',endZoneDraw);
   const d=_zdraw; _zdraw=null; if(!d) return;
   // One band per wall the drag ran along, each broken again at any door or window it crossed.
   // They stay separate rows in S.zones — a zone is an offset along ONE wall — but they were
   // drawn as a single run and meet at the corner.
-  const real=(d.segs||[]).filter(s=>Math.abs(s.to-s.from)>=ZONE_MIN_MM);
+  const real=zoneDrawSegs(d);
   if(real.length){ pushUndo(); let last=null, drawn=0, kept=0, paired=null; const kinds=new Set();
     for(const s of real){
       drawn+=Math.abs(s.to-s.from);
@@ -3536,7 +3598,7 @@ function renderPos(svgId){
       if(ze-zs<1) continue;
       bands.push({wall:zwi,tier:z.tier,s:zs,e:ze,opts:{active:!S.zoneTool||S.zoneTier===z.tier,sel:S.selZone===z.id}});
     }
-    if(_zdraw) for(const sg of _zdraw.segs){
+    if(_zdraw) for(const sg of zoneDrawSegs(_zdraw)){
       const lo=Math.min(sg.from,sg.to), hi=Math.max(sg.from,sg.to);
       if(hi-lo>=1) bands.push({wall:sg.wall,tier:_zdraw.tier,s:lo,e:hi,opts:{ghost:true}});
     }
@@ -6383,8 +6445,8 @@ Object.assign(window,{go,setProject,addRoom,editRoom,deleteRoom,duplicateRoom,op
   selectModule,editDelete,editMoveBy,editReplacePick,closeLibPanel,toggleLibCross,setLibBrowse,setShutterProfile,stopEditing,planElevPick,enterEditMode,bsToggle,bsSet,bsMove,bsUncut,bsDelete,
   setSegShutter,toggleRemark,toggleKeep,setKeepTol,releaseKeep,regenClean,
   openFinishes,closeFinishes,pickFinishRoom,setHandleGroup,setCounterFinish,setBacksplashFinish,
-  toggleMoreMenu,openSchedule,openCompare,shareNow,roomSwitch,pickRoomFromMenu,
-  openDesk,openProjectFromDesk,newProjectFromDesk,submitProjectUi,reopenProjectUi,openDeskObs,
+  toggleMoreMenu,openSchedule,openCompare,shareNow,createShareLink,roomSwitch,pickRoomFromMenu,
+  openDesk,openProjectFromDesk,newProjectFromDesk,submitProjectUi,reopenProjectUi,deleteProjectUi,openDeskObs,
   setCeilingH,setKitchenH,setKitchenPreset,setSelWidth,setSelSill,setSelWinH,setSelStructW,setSelStructD,setWallLength,setBeamDir,flipColumn,setBeamWidth,setBeamDrop});
 
 /* ====================================================================
@@ -6483,19 +6545,20 @@ function currentFinishEntry(){
   const name=S.options.lookName||S.look;
   return (name&&resolveFinishByName(name))||null;
 }
-function apply3DFinish(){
-  const entry=currentFinishEntry(); if(!entry||!window.setSceneFinish) return;
+function finishCfg(){
+  const entry=currentFinishEntry(); if(!entry) return null;
   const fm=S.finishMapping||{};
   const base=(u)=>u?((API?API+'/':'')+u):null;
   const counterImg=S.options.counterImg||(entry.countertop&&entry.countertop.img)||entry.img;
-  window.setSceneFinish({
+  return {
     cabinetImg: base(entry.img),
     counterImg: base(counterImg),
     backsplashImg: base(S.options.backsplashImg||counterImg),
     mapping: (fm.byName&&fm.byName[entry.name])||fm.default||'randomised',
     textureWorldMm: fm.textureWorldMm||1200,
-  });
+  };
 }
+function apply3DFinish(){ const cfg=finishCfg(); if(cfg&&window.setSceneFinish) window.setSceneFinish(cfg); }
 function ensureHandleGroups(){
   const s=seriesById(activeRoom().seriesId), types=(s&&s.handleTypes)||['CJ'];
   if(S.handle) selectHandleType(S.handle);
@@ -6695,18 +6758,54 @@ async function openCompare(){
       <table style="width:100%;border-collapse:collapse;font-size:11.5px"><tr style="color:var(--muted2)"><th style="text-align:left;padding:4px">When</th><th style="text-align:left">Action</th><th style="text-align:left">Wall</th><th style="text-align:left">Change</th></tr>${edits}</table>`:''}`;
   }catch(e){ $('cmpBody').innerHTML='Comparison failed: '+esc(e.message); }
 }
-async function shareNow(){
+// Everything renderer3d.js reads to draw this room, frozen into the share so the client's live
+// 3D / walkthrough (ui/share.html) is the scene the designer sees — not rebuilt from rules later.
+function shareSceneOf(){
+  const plan=scenePlan(); if(!plan) return null;
+  return { plan, walls:S.walls, finish:finishCfg(),
+    ctx:{ options:{ceiling:S.options.ceiling,kitchenHeightMm:S.options.kitchenHeightMm,handles:S.options.handles},
+      roomMode:S.roomMode, openWalls:S.openWalls, structures:S.structures,
+      rulesCfg:{params:S.rulesCfg?.params||{}, depths:depths()} } };
+}
+function shareNow(){
   if(!DS.on){ showToast('Offline — share links need the design store.'); return; }
   const r=activeRoom(); if(!isUuid(r.id)){ showToast('Room not in the store yet.'); return; }
+  if(!scenePlan()){ showToast('Generate the design first — the link shares its 3D walkthrough.'); return; }
+  let m=$('modalShare');
+  if(!m){ m=document.createElement('div'); m.id='modalShare';
+    m.style.cssText='position:fixed;inset:0;background:rgba(30,28,24,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.addEventListener('click',(e)=>{ if(e.target===m) m.style.display='none'; });
+    document.body.appendChild(m); }
+  const day=(n)=>{ const d=new Date(Date.now()+n*864e5); return d.toISOString().slice(0,10); };
+  m.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px 24px">
+    <div style="font-family:'Spectral',serif;font-size:20px;margin-bottom:4px">Share link for client</div>
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:14px">The client can rotate, zoom and walk through this design in 3D. Later edits don't change the link — share again to send them.</div>
+    <label style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2)">Link expires</label>
+    <div style="display:flex;gap:8px;margin:6px 0 16px">
+      <select id="shareExpPreset" onchange="document.getElementById('shareExpDate').style.display=this.value==='custom'?'block':'none'" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:9px;font:inherit">
+        <option value="1">In 1 day</option><option value="7">In 7 days</option><option value="14" selected>In 14 days</option><option value="30">In 30 days</option><option value="custom">On a date…</option></select>
+      <input id="shareExpDate" type="date" min="${day(1)}" max="${day(365)}" value="${day(14)}" style="display:none;flex:1;padding:7px;border:1px solid var(--line);border-radius:9px;font:inherit"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn ghost" onclick="document.getElementById('modalShare').style.display='none'" style="padding:8px 14px">Cancel</button>
+      <button class="btn" id="shareGo" onclick="createShareLink()" style="padding:8px 14px">Create & copy link</button></div></div>`;
+  m.style.display='flex';
+}
+async function createShareLink(){
+  const preset=$('shareExpPreset').value;
+  // a picked date runs to the end of that day, local time
+  const expiresAt=preset==='custom'?new Date($('shareExpDate').value+'T23:59:59'):new Date(Date.now()+(+preset)*864e5);
+  if(isNaN(expiresAt)||expiresAt<=new Date()){ showToast('Pick a future date.'); return; }
+  const r=activeRoom(); $('shareGo').disabled=true;
   stashRoom();
   try{
     const out=await fetch(API+'/api/share',{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify(await mapStrings({roomId:r.id,state:serializeRoomDesign(r)},offloadImage))}).then(x=>x.json());
+      body:JSON.stringify(await mapStrings({roomId:r.id,expiresAt:expiresAt.toISOString(),state:{...serializeRoomDesign(r),shareScene:shareSceneOf()}},offloadImage))}).then(x=>x.json());
     if(out.error) throw new Error(out.error);
+    $('modalShare').style.display='none';
     const url=(API||location.origin)+out.url;
     try{ await navigator.clipboard.writeText(url); showToast('Share link copied — pinned to revision '+out.revision.number+', expires '+new Date(out.expiresAt).toLocaleDateString()); }
     catch(_){ prompt('Client share link (revision '+out.revision.number+'):',url); }
-  }catch(e){ showToast('Share failed: '+e.message); }
+  }catch(e){ showToast('Share failed: '+e.message); $('shareGo').disabled=false; }
 }
 /* ---------- room switcher (Step 3.3) — out of the way on single-room projects ---------- */
 function roomSwitch(){
@@ -6835,7 +6934,7 @@ function normalizeList(list, track, openOnly){ let obj=track!=null?list[track]:n
   for(let i=list.length-2;i>=0;i--){ const a=list[i], b=list[i+1];
     if(a.kind!=='filler'||b?.kind!=='filler'||(b.x0!=null&&a.x0!=null&&a.x0+a.width!==b.x0)) continue;
     const open=a.open&&b.open;
-    if(!open&&(openOnly||a.open||b.open||!sameTier(a,b))) continue;
+    if(!open&&(openOnly||a.open||b.open||!sameTier(a,b)||isPanelSeg(a)||isPanelSeg(b))) continue;   // a panel stays 20mm
     if(open&&(a.tier==='tall'||b.tier==='tall')){ a.tier='tall'; a.height=Math.max(a.height||0,b.height||0)||undefined; }
     a.width+=b.width; if(a.x0!=null) a.x1=a.x0+a.width; list.splice(i+1,1); }
   return obj?list.indexOf(obj):-1; }
@@ -6918,6 +7017,23 @@ function editAddFiller(w,side){ if(!S.editing) return;
   const over=left>0?` — ${left}mm wider than the free space here, the run grows`:'';
   afterEdit('add filler',from,`filler ${w}mm (${side||'left'})${over}`);
   if(over) showToast(`Filler ${w}mm placed${over}.`);
+}
+// Designer's choice: a filler becomes a visible panel, or back. A panel is always exactly
+// panel_width (20mm, never widened — panel-vs-filler); a wider filler keeps the rest as a filler
+// on the other side of the panel.
+const isPanelSeg=s=>s?.kind==='filler'&&/^panel|visible panel/.test(s.label||'');
+function editFillerToPanel(side){ if(!S.editing) return;
+  const list=editableList(S.selModRef), s=selSeg(), P=S.rulesCfg?.params?.panel_width??20;
+  if(!list||!s||s.kind!=='filler'||s.open) return;
+  const from=segDesc(s);
+  if(isPanelSeg(s)){ s.label='filler panel'; afterEdit('panel to filler',from,`filler ${s.width}mm`); return; }
+  if(s.width<P){ showToast(`A visible panel is exactly ${P}mm — this filler is only ${s.width}mm.`); return; }
+  const li=S.selModRef.idx, x0=s.x0||0, panel={...s,label:'panel',width:P,x0:side==='right'?x0+s.width-P:x0};
+  delete panel.code; if(panel.x1!=null) panel.x1=panel.x0+P;
+  if(s.width===P) list[li]=panel;
+  else { s.width-=P; if(s.x1!=null) s.x1=(side==='right'?x0+s.width:s.x1); if(side==='right') list.splice(li+1,0,panel); else { s.x0=x0+P; list.splice(li,0,panel); } }
+  S.selModRef.idx=list.indexOf(panel);
+  afterEdit('filler to panel',from,`visible panel ${P}mm (${side||'left'})`);
 }
 // A base run never grows past its wall while it still has empty space: the extra width a wider
 // cabinet or filler needs comes out of the nearest free / open space (or gap filler) in the same
@@ -7067,7 +7183,10 @@ function startEmptyJointDrag(el,ev){ if(!S.editing) return;
 // Returns {ok:false,reason} or {ok:true, lo, bay:{i0,i1,start,end}, L, R, del, dragWasInBay}.
 function relocateCore(list, seg, targetX0){
   const W=seg.width;
-  const isBarrier=(s)=>s!==seg&&(!['cabinet','anchor','filler'].includes(s.kind)||!!s.kept);   // the dragged unit itself (even a tall one) is never its own barrier
+  // free empty space (an extend area) is room to move into, like a filler; space a corner or the
+  // next wall's cabinet already uses is not
+  const freeGap=(s)=>s.kind==='gap'&&!/footprint|corner void|corner reservation|concealed/.test(s.label||'');
+  const isBarrier=(s)=>s!==seg&&((!['cabinet','anchor','filler'].includes(s.kind)&&!freeGap(s))||!!s.kept);   // the dragged unit itself (even a tall one) is never its own barrier
   const runTotal=list.reduce((a,s)=>a+s.width,0);
   const targetC=Math.max(0,Math.min(runTotal,targetX0+W/2));
   const bays=[]; let cur=null,x=0;
@@ -7101,19 +7220,21 @@ function relocateCore(list, seg, targetX0){
   lo=Math.max(bay.start+sumL,Math.min(bay.end-W-sumR,lo));   // slide to fit — push, don't delete
   return {ok:true,lo:Math.round(lo),bay,L,R,del,dragWasInBay};
 }
-// Apply a relocateCore plan: rebuild the bay as [pad][L…][seg][R…][pad], deleted
-// cabinets simply not re-included; a cross-bay move leaves a filler in the old spot.
+// Apply a relocateCore plan: the moved unit lands at lo; every other cabinet in the bay stays
+// where it was unless the moved one pushes it (then it closes up against it). Deleted cabinets
+// are simply not re-included. Space left over, including a cross-bay move's old spot, is open
+// space — the designer adds a filler where one is wanted, as after a delete.
 function relocateApply(list, seg, plan){
   const {lo,bay,L,R,dragWasInBay}=plan, W=seg.width;
-  if(!dragWasInBay){ const oi=list.indexOf(seg); if(oi>=0) list.splice(oi,1,{kind:'filler',width:W}); }
-  const rebuilt=[];
-  const padL=lo-bay.start-L.reduce((a,c)=>a+c.w,0);
-  if(padL>0.5) rebuilt.push({kind:'filler',width:Math.round(padL)});
-  for(const c of L) rebuilt.push(c.s);
-  rebuilt.push(seg);
-  for(const c of R) rebuilt.push(c.s);
-  const padR=bay.end-lo-W-R.reduce((a,c)=>a+c.w,0);
-  if(padR>0.5) rebuilt.push({kind:'filler',width:Math.round(padR)});
+  const open=(width,tier)=>({kind:'filler',open:true,label:'open space',width,tier});
+  if(!dragWasInBay){ const oi=list.indexOf(seg); if(oi>=0) list.splice(oi,1,open(W,seg.kind==='tallBank'?'tall':seg.tier)); }
+  const at=[]; let cur=lo;
+  for(const c of [...L].reverse()){ const e=Math.min(c.c+c.w/2,cur); at.unshift({s:c.s,x:e-c.w}); cur=e-c.w; }
+  at.push({s:seg,x:lo}); cur=lo+W;
+  for(const c of R){ const x=Math.max(c.c-c.w/2,cur); at.push({s:c.s,x}); cur=x+c.w; }
+  const rebuilt=[]; let x=bay.start;
+  for(const p of at){ if(p.x-x>0.5) rebuilt.push(open(Math.round(p.x-x))); rebuilt.push(p.s); x=p.x+p.s.width; }
+  if(bay.end-x>0.5) rebuilt.push(open(Math.round(bay.end-x)));
   list.splice(bay.i0, bay.i1-bay.i0+1, ...rebuilt);
   return list;
 }
@@ -7314,7 +7435,7 @@ function renderLibPanelBody(){
   const list=editableList(ref), left=list[ref.idx-1], right=list[ref.idx+1];
   const slack=s.width+(left&&left.kind==='filler'&&sameTier(left,s)?left.width:0)+(right&&right.kind==='filler'&&sameTier(right,s)?right.width:0);
   box.innerHTML=`
-    <div style="font-size:15px;font-weight:600;line-height:1.35"><span id="libSelDesc">${esc(isGap?(DetailedPlan.emptyKind(s)==='free'?'Extend area':'Dead space'):isFiller?(s.open?'Open space (no filler)':'Filler'):s.func||(s.code?'':s.label||s.kind))}</span>${s.crossSeries?' <span style="font-size:10px;font-weight:700;color:#B4533A">CROSS-SERIES</span>':''}</div>
+    <div style="font-size:15px;font-weight:600;line-height:1.35"><span id="libSelDesc">${esc(isGap?(DetailedPlan.emptyKind(s)==='free'?'Extend area':'Dead space'):isFiller?(s.open?'Open space (no filler)':isPanelSeg(s)?'Visible panel':'Filler'):s.func||(s.code?'':s.label||s.kind))}</span>${s.crossSeries?' <span style="font-size:10px;font-weight:700;color:#B4533A">CROSS-SERIES</span>':''}</div>
     <div style="margin-top:6px;font-size:22px;font-weight:700;color:var(--ink)">${s.width} mm <span style="font-size:12px;font-weight:600;color:var(--muted)">wide${s.height||s.h?` · ${s.height||s.h} H`:''}${s.depth?` · ${s.depth} D`:''}</span></div>
     <div id="libSelPos" style="font-size:11.5px;color:var(--muted2);margin-top:2px">at ${s.x0}–${s.x1}mm on ${ref.run} (${ref.tier})</div>
     ${s.code?`<div title="${esc(s.code)}" style="font-size:10.5px;font-family:monospace;color:var(--muted2);margin-top:4px;overflow-wrap:anywhere">${esc(s.code)}</div>`:''}
@@ -7331,6 +7452,12 @@ function renderLibPanelBody(){
     ${s.open||isGap?'':`<div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn ghost" onclick="editDelete()" style="flex:1;padding:8px;font-size:12px;color:#B4533A;border-color:#D9A79A">${isFiller?'Delete filler (leave open space)':'Delete'}</button>
     </div>`}
+    ${s.kind==='filler'&&!s.open?(isPanelSeg(s)?`<div style="margin-top:8px"><button class="btn ghost" onclick="editFillerToPanel()" style="width:100%;padding:7px;font-size:11.5px">Change to filler</button></div>`
+      :`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Make visible panel · ${S.rulesCfg?.params?.panel_width??20}mm</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn ghost" onclick="editFillerToPanel('left')" style="flex:1;padding:7px;font-size:11.5px">◀ At left</button>
+        <button class="btn ghost" onclick="editFillerToPanel('right')" style="flex:1;padding:7px;font-size:11.5px">At right ▶</button>
+      </div></div>`):''}
     ${(!isFiller&&s.kind==='cabinet')?`<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div><div style="font-size:10.5px;color:var(--muted2);margin-bottom:3px">Shutter (this cabinet)</div>
         <select onchange="setSegShutter(this.value)" style="width:100%;padding:7px;border:1px solid var(--line2);border-radius:8px;font-size:12px;background:#fff">
@@ -7845,7 +7972,7 @@ async function renderDesk(){
   const W=S.workload;
   const stat=(n,label)=>`<div style="background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 18px;min-width:120px">
     <div style="font-size:22px;font-weight:600">${n}</div><div style="font-size:11px;color:var(--muted2)">${label}</div></div>`;
-  const admin=DS.readOnly;
+  const admin=DS.readOnly, coder=DS.me&&DS.me.email==='dhruvgarg1107@gmail.com';
   $('deskStats').innerHTML=(admin?designerSummaryHtml(S.projectsIndex):'')+stat(W.assigned,'assigned')+stat(W.inProcess,'in process')+stat(W.submitted,'submitted')
     +stat(W.designsMade,'designs made')+stat(W.totalRevisions,'revisions · total workload');
   const card=(p)=>{ const d=p.details||{}; const M=STATUS_META[p.status]||STATUS_META['assigned'];
@@ -7867,6 +7994,7 @@ async function renderDesk(){
         ${p.designedRooms?`<button class="btn ghost" onclick="openDeskObs('${p.id}')" title="Generated vs refined (OBS-01)" style="padding:9px 12px;font-size:12.5px">Observability</button>`:''}
         ${!admin&&p.status==='in-process'?`<button class="btn ghost" onclick="submitProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Submit</button>`:''}
         ${!admin&&p.status==='submitted'?`<button class="btn ghost" onclick="reopenProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px">Reopen</button>`:''}
+        ${coder?`<button class="btn ghost" onclick="deleteProjectUi('${p.id}')" style="padding:9px 12px;font-size:12.5px;color:var(--accent)">Delete</button>`:''}
       </div></div>`; };
   const bucket=(status)=>{ const list=(S.projectsIndex||[]).filter(p=>p.status===status); const M=STATUS_META[status];
     return `<div style="margin-bottom:26px">
@@ -7929,6 +8057,12 @@ async function submitProjectUi(id){
   try{ const out=await dsCall('submitProject',{projectId:id});
     showToast('Submitted — revisions '+out.revisions.join(', ')+' created.'); renderDesk();
   }catch(e){ showToast('Submit failed: '+e.message); }
+}
+async function deleteProjectUi(id){
+  const p=(S.projectsIndex||[]).find(x=>x.id===id);
+  if(!confirm(`Delete "${p?p.name:'this project'}"? It disappears from the dashboard.`)) return;
+  try{ await dsCall('deleteProject',{projectId:id}); showToast('Project deleted.'); renderDesk(); }
+  catch(e){ showToast('Delete failed: '+e.message); }
 }
 async function reopenProjectUi(id){
   try{ await dsCall('setProjectStatus',{projectId:id,status:'in-process'}); renderDesk(); }

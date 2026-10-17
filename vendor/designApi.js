@@ -16,6 +16,9 @@ import { readJsonBody } from './apiRuntime.js';
 import { requestUser } from './supabase.js';
 import * as store from './designStore.js';
 
+// Coder / Tester account: test projects hidden from admin; the only account allowed to delete projects.
+const CODER = "dhruvgarg1107@gmail.com";
+
 const json = (res, code, obj) => {
   res.writeHead(code, { 'content-type': 'application/json' });
   res.end(JSON.stringify(obj));
@@ -59,7 +62,7 @@ export async function handleDesigns(req, res) {
       // projects; the admin gets every designer's, each tagged with its owner.
       // Coder's (dhruvgarg1107@gmail.com) test projects are hidden from the admin dashboard.
       const projects = (await store.listProjects())
-        .filter((p) => !(me.role === 'admin' && p.owner?.email === 'dhruvgarg1107@gmail.com'));
+        .filter((p) => !(me.role === 'admin' && p.owner?.email === CODER));
       const bucket = (s) => projects.filter((p) => p.status === s);
       return json(res, 200, {
         me: { email: me.email, name: me.name, role: me.role },
@@ -78,6 +81,7 @@ export async function handleDesigns(req, res) {
       if (me.role === 'admin') return json(res, 403, { error: 'Admin accounts are view-only.' });
       // 32 MB cap: room state can legitimately carry snapshot images, but nothing sane is bigger.
       const body = await readJsonBody(req, 32 * 1024 * 1024);
+      if (body.action === 'deleteProject' && me.email !== CODER) return json(res, 403, { error: 'Only the Coder account can delete projects.' });
       const fn = ACTIONS[body.action];
       if (!fn) return json(res, 400, { error: `Unknown action '${body.action}'. One of: ${Object.keys(ACTIONS).join(', ')}` });
       return json(res, 200, await fn(body));

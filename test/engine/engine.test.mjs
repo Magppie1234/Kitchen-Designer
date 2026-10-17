@@ -257,3 +257,24 @@ assert.equal(gate({ unresolved: ['y'] }).releaseBlocked, true);
 assert.equal(gate({ warnings: ['soft'] }).verdict, 'FEASIBLE');
 assert.equal(gate({ warnings: ['soft'] }).releaseBlocked, false);
 console.log('gate: REJECTED / UNRESOLVED / FEASIBLE outcomes correct');
+
+// --- anchor-at-zone-end / fridge-wall-filler / window-clear-of-wall-cabinets ----------------
+{
+  const { windowClearOfWall } = await import('../../core/engine.mjs');
+  const j = JSON.parse(readFileSync(new URL('../../data/default-kitchen.json', import.meta.url), 'utf8'));
+  const bb = (t) => j.zones[t].find((z) => z.wall === 'BB');
+  bb('base').to = bb('wall').to = 2300;
+  j.anchors.find((a) => a.item === 'hob').at = 1400;      // flush with the zone end
+  j.lockAnchors = j.lockZones = true;
+  const r = layout(j, catalog);
+  assert.deepEqual(r.problems, [], 'a hob flush with its zone end builds');
+  assert.ok(r.placed.base.some((p) => p.role === 'countertop return' && p.wall === 'BB' && p.at === 2300), 'its dropdown sits just outside the zone');
+
+  const f = JSON.parse(readFileSync(new URL('../../data/default-kitchen.json', import.meta.url), 'utf8'));
+  f.anchors.find((a) => a.item === 'fridge').at = 3575;   // 100mm off the CC wall end
+  const fr = layout({ ...f, lockAnchors: true, lockZones: true }, catalog);
+  assert.ok(fr.placed.tall.some((p) => p.role === 'gap filler' && p.wall === 'CC' && p.at === 4175 && p.width === 100), 'fridge-to-wall gap up to 150mm is closed by a filler');
+
+  assert.equal(windowClearOfWall({ type: 'window', sill: 300, winH: 900 }, '8ft'), true, 'window wholly below the wall cabinets');
+  assert.equal(windowClearOfWall({ type: 'window', sill: 900, winH: 1200 }, '8ft'), false, 'window behind the wall cabinets');
+}

@@ -1134,4 +1134,4 @@ window.captureSnapshotPair=function(){
   return {photo,mask};
 };
 window.stopScene=function(){ teardown(); if(hint)hint.style.display='block'; };
-mountLogos();
+window.mountLogos?.();   // builder only — the share viewer has no logo mounts

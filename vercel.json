@@ -6,6 +6,9 @@
   "functions": {
     "api/index.mjs": { "includeFiles": "{rules.json,data/*.json}", "maxDuration": 300 }
   },
+  "headers": [
+    { "source": "/models/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/builder.html" },
     { "source": "/api/:path*", "destination": "/api/index" }

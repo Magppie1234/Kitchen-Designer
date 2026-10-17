@@ -2,7 +2,9 @@ import '../ui/island-rules.js';
 import '../ui/geometry.js';
 // lib/shareApi.js — client share links (Stage 9.4/9.6), one handler for both servers.
 //
-//   POST /api/share { roomId, state, includeEstimate? } -> { url, token, expiresAt, revision }
+//   POST /api/share { roomId, state, includeEstimate?, expiresAt? } -> { url, token, expiresAt, revision }
+//        expiresAt is the designer's pick; state.shareScene (the 3D scene) makes url the live
+//        viewer, ui/share.html?t=..., which reads GET /api/share?token=...&format=json.
 //        Creating a share first freezes the CURRENT state as a 'share' revision (Stage 8.8),
 //        then mints an expiring token pinned to that revision — later edits never change
 //        what the client sees at the link.
@@ -134,6 +136,24 @@ ${sh.includeEstimate && price ? `<div class="card"><h2>Estimate</h2>
 </div></body></html>`;
 }
 
+// The designer picks the link's expiry: an ISO time from now up to a year out. Absent -> null (server default).
+export function shareExpiry(v, now = Date.now()) {
+  if (v == null || v === '') return null;
+  const t = Date.parse(v);
+  if (!Number.isFinite(t) || t <= now || t > now + 366 * 864e5)
+    throw Object.assign(new Error('expiresAt must be a future date within a year.'), { status: 400 });
+  return new Date(t).toISOString();
+}
+
+// What the live 3D viewer (ui/share.html) gets: the scene frozen at share time. Prices leave
+// the payload unless the share includes the estimate — the client can read every byte of it.
+export function viewerPayload(sh) {
+  const scene = JSON.parse(JSON.stringify(sh.state?.shareScene || null));
+  if (scene?.plan && !sh.includeEstimate) delete scene.plan.price;
+  return { roomName: sh.roomName, revisionNumber: sh.revisionNumber, latestRevision: sh.latestRevision,
+    newerExists: sh.newerExists, expiresAt: sh.expiresAt, scene };
+}
+
 export async function handleShare(req, res) {
   try {
     if (req.method === 'POST') {
@@ -145,13 +165,20 @@ export async function handleShare(req, res) {
       const out = await createShare(b.roomId, b.state, {
         includeEstimate: b.includeEstimate ?? qc.shareIncludesEstimate,
         expiryDays: qc.shareExpiryDays,
+        expiresAt: shareExpiry(b.expiresAt),
       });
-      return json(res, 200, { ...out, url: `/api/share?token=${out.token}` });
+      // a share carrying a 3D scene opens the live viewer; older clients keep the static page
+      return json(res, 200, { ...out, url: b.state.shareScene ? `/share.html?t=${out.token}` : `/api/share?token=${out.token}` });
     }
     if (req.method === 'GET') {
-      const token = new URL(req.url, 'http://x').searchParams.get('token');
+      const q = new URL(req.url, 'http://x').searchParams, token = q.get('token');
       if (!token) return json(res, 400, { error: 'GET /api/share?token=...' });
       const sh = await getShare(token);
+      if (q.get('format') === 'json') {
+        if (!sh) return json(res, 404, { error: 'This share link does not exist.' });
+        if (sh.expired) return json(res, 410, { error: 'This share link has expired. Ask your designer to share a fresh one.' });
+        return json(res, 200, viewerPayload(sh));
+      }
       if (!sh) return html(res, 404, '<h1 style="font-family:sans-serif">This share link does not exist.</h1>');
       if (sh.expired) return html(res, 410, '<h1 style="font-family:sans-serif">This share link has expired.</h1><p style="font-family:sans-serif">Ask your designer to share a fresh one.</p>');
       return html(res, 200, sharePage(sh));

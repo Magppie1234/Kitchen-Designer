@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitchen walkthrough — Magppie</title>
+<!-- Client share link viewer: the designer's 3D / walkthrough, read-only. The scene was frozen
+     at share time (builder shareSceneOf) and is drawn by the SAME renderer3d.js as the builder. -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+  :root{ --accent:#B4533A; --paper:#F4F1EB; --ink:#1C1B18; --muted:#8A8579; --line:#E3DDD2; }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:system-ui,sans-serif}
+  body{display:flex;flex-direction:column}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff}
+  h1{font-size:18px;font-weight:600;margin:0}
+  .meta{font-size:12px;color:var(--muted)}
+  .tabs{display:flex;gap:4px;margin-left:auto;background:var(--paper);border-radius:10px;padding:3px}
+  .tabs button{border:0;background:none;padding:7px 14px;border-radius:8px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+  .tabs button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+  .note{background:#FBF1EC;color:var(--accent);font-size:12.5px;padding:8px 16px;border-bottom:1px solid #E8C9BE}
+  main{position:relative;flex:1;min-height:0}
+  #v3d,#vWalk,#vWalkCanvas{position:absolute;inset:0}
+  #v3d{cursor:grab}
+  #vWalkCanvas{cursor:pointer}
+  #vWalkHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#5b554a;font-size:13px;pointer-events:none}
+  .help{position:absolute;left:16px;bottom:14px;font-size:12px;color:var(--muted);pointer-events:none}
+  .msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:6px}
+  .msg h2{font-size:20px;font-weight:500;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <div><h1 id="room">Loading…</h1><div class="meta" id="meta"></div></div>
+  <div class="tabs" id="tabs" hidden>
+    <button data-mode="orbit" aria-pressed="true">3D</button>
+    <button data-mode="walk" aria-pressed="false">Walkthrough</button>
+  </div>
+</header>
+<div class="note" id="newer" hidden></div>
+<main>
+  <div id="v3d"></div>
+  <div id="vWalk" hidden>
+    <div id="vWalkCanvas"></div>
+    <div id="vWalkHint">Click to look around<br><span style="opacity:.7">W A S D move · mouse look · Esc release</span></div>
+  </div>
+  <div class="help" id="help"></div>
+  <div class="msg" id="msg" hidden></div>
+</main>
+<script src="geometry.js"></script>
+<script src="island-rules.js"></script>
+<script type="module">
+import './renderer3d.js';
+const $ = (id) => document.getElementById(id);
+const fail = (title, text) => { $('msg').hidden = false; $('msg').innerHTML = `<h2></h2><div class="meta"></div>`;
+  $('msg').firstChild.textContent = title; $('msg').lastChild.textContent = text || ''; $('room').textContent = 'Magppie Kitchen'; };
+
+const token = new URLSearchParams(location.search).get('t');
+let data;
+try {
+  const r = await fetch('/api/share?format=json&token=' + encodeURIComponent(token || ''));
+  data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'This link could not be opened.');
+  if (!data.scene) throw new Error('This link has no 3D view. Ask your designer to share it again.');
+} catch (e) { fail('This link can\'t be opened', e.message); throw e; }
+
+const { scene } = data;
+// renderer3d.js reads these builder globals; here they come from the frozen scene
+window.API = '';
+window.S = scene.ctx;
+window.WALL_MM = 230;
+window.depthOf = (tier) => scene.ctx.rulesCfg.depths[tier] || scene.ctx.rulesCfg.depths.base;
+// client view: no CAD lettering on the models, without flipping the stored preference
+// (a designer previewing their own link in the same browser keeps theirs)
+let pref = null; try { pref = localStorage.getItem('kd.hideModelLabels'); } catch {}
+window.setModelLabelsHidden(true);
+try { pref == null ? localStorage.removeItem('kd.hideModelLabels') : localStorage.setItem('kd.hideModelLabels', pref); } catch {}
+if (scene.finish) window.setSceneFinish(scene.finish);
+
+$('room').textContent = data.roomName;
+document.title = data.roomName + ' — Magppie Kitchen';
+$('meta').textContent = `Revision ${data.revisionNumber}` + (data.expiresAt ? ` · link expires ${new Date(data.expiresAt).toLocaleDateString()}` : '');
+if (data.newerExists) { $('newer').hidden = false;
+  $('newer').textContent = `A newer version of this design exists. This shows revision ${data.revisionNumber} as it was shared — ask your designer to share again for the latest.`; }
+$('tabs').hidden = false;
+
+const HELP = { orbit: 'Drag to rotate · scroll or pinch to zoom · right-drag to pan', walk: 'Walkthrough needs a mouse and keyboard' };
+function show(mode) {
+  for (const b of $('tabs').children) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+  $('v3d').hidden = mode !== 'orbit'; $('vWalk').hidden = mode !== 'walk';
+  $('help').textContent = HELP[mode];
+  window.startScene(scene.plan, scene.walls, mode, 'v3d', 'vWalkCanvas', 'vWalkHint');
+}
+$('tabs').addEventListener('click', (e) => { const m = e.target.dataset?.mode; if (m) show(m); });
+show('orbit');
+</script>
+</body>
+</html>

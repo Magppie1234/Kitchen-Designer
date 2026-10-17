@@ -30,3 +30,6 @@ Thumbs.db
 public/
 data/models-manifest.json
 .vercel/
+
+# Plan-reading trial inputs/outputs (client drawings)
+plan-test/
