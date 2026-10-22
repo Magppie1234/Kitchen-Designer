@@ -5819,6 +5819,9 @@ function drawDetailedPlan(){
   // Centre the plan on its drawing sheet without changing the underlying geometry.
   const bb=bounds();S._tf.ox=(680-(bb.b.x-bb.a.x)*t.sc)/2-bb.a.x*t.sc;
   S._tf.oy=(480-(bb.b.y-bb.a.y)*t.sc)/2-bb.a.y*t.sc;
+  if(S.editing&&S.planTier==='wall'){ const HH={baseTop:850,dado:565,wallTop:2500,...(S.rulesCfg?.heights||{}),...(S.plan.geometry||{})};
+    S.plan.tiers=S.plan.tiers||{};
+    for(const run of S.plan.runs||[]) addSpareWallSlots(run,S.plan.tiers[run.key]=S.plan.tiers[run.key]||{wall:[],loft:[]},HH.wallBottom??HH.baseTop+HH.dado,HH.wallTop); }
   svg.innerHTML=DetailedPlan.render(S,tf(680,490,80),drawOpeningSym,pushMod);
   $('resPlanWrap').style.background='#fff';
   svg.querySelectorAll('.mod').forEach(el=>{el.style.cursor='pointer';el.onclick=()=>selectModule(+el.dataset.mod);el.onmousedown=ev=>startModDrag(ev,+el.dataset.mod);});
@@ -8112,6 +8115,17 @@ function elevStructures(wi,xs,Y,k,ceil,R){
   }
   return s;
 }
+// While editing, every stretch of wall with nothing on it at upper height (no wall zone was
+// drawn there, or nothing fitted) is an open "spare" slot, so a wall cabinet can be added
+// anywhere. Tall units, doors and windows keep their wall. Spare slots draw only in editing.
+function addSpareWallSlots(run,t,WB,wallTop){ t.wall=t.wall||[];
+  const busy=[...t.wall,...run.segments.filter(sg=>sg.tier==='tall'||sg.kind==='tallBank'||sg.kind==='door'||sg.kind==='window'
+    ||(sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label)))].map(u=>[u.x0||0,(u.x0||0)+u.width]).sort((a,b)=>a[0]-b[0]);
+  let x=0; const free=[], L=run.total||0;
+  for(const [a,b] of busy){ if(a-x>=150) free.push([x,a]); x=Math.max(x,b); }
+  if(L-x>=150) free.push([x,L]);
+  for(const [a,b] of free) t.wall.push({kind:'filler',open:true,spare:true,label:'open space',width:b-a,x0:a,x1:b,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
+  if(free.length) t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); }
 function drawPlanElev(key){
   const svg=$('viewElev'); if(!svg||!S.plan) return;
   const run=(S.plan.runs||[]).find(r=>r.key===key); if(!run){ svg.innerHTML=''; return; }
@@ -8169,14 +8183,7 @@ function drawPlanElev(key){
     // While editing, every stretch of wall with nothing on it at upper height (no wall zone was
     // drawn there, or nothing fitted) is an open "spare" slot, so a wall cabinet can be added
     // anywhere. Tall units, doors and windows keep their wall. Spare slots draw only in editing.
-    if(S.editing){ t.wall=t.wall||[];
-      const busy=[...t.wall,...run.segments.filter(sg=>sg.tier==='tall'||sg.kind==='tallBank'||sg.kind==='door'||sg.kind==='window'
-        ||(sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label)))].map(u=>[u.x0||0,(u.x0||0)+u.width]).sort((a,b)=>a[0]-b[0]);
-      let x=0; const free=[];
-      for(const [a,b] of busy){ if(a-x>=150) free.push([x,a]); x=Math.max(x,b); }
-      if(L-x>=150) free.push([x,L]);
-      for(const [a,b] of free) t.wall.push({kind:'filler',open:true,spare:true,label:'open space',width:b-a,x0:a,x1:b,z:WB,height:HH.wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
-      if(free.length) t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); }
+    if(S.editing) addSpareWallSlots(run,t,WB,HH.wallTop);
     // Every wall cabinet has an editable loft slot above it: where no loft stands (loft off,
     // no loft of that width, or one deleted) an open space holds the place, so a loft can be
     // added there from the library. Open space draws nothing in 3D and costs nothing.

@@ -60,3 +60,9 @@ test('doors and windows sit in the wall, not half inside the room',()=>{
   const cut=svg.match(/<rect x="105" y="(-?[\d.]+)" width="90" height="([\d.]+)" fill="white"/);
   assert.ok(cut&&+cut[1]+ +cut[2]<=0.5,'the wall gap does not reach into the room');
 });
+test('an open wall slot is selectable in the Wall view while editing, so a wall cabinet can go there',()=>{
+  const s=structuredClone(state);s.plan.tiers.W0.wall[1]={kind:'filler',open:true,label:'open space',x0:3040,width:600,depth:336};
+  const pick=(st)=>{const ms=[];DetailedPlan.render(st,tf,()=>'',m=>ms.push(m)-1);return ms.filter(m=>m.segTier==='wall').map(m=>m.seg);};
+  assert.deepEqual(pick({...s,planTier:'wall',editing:true}),[0,1]);
+  assert.deepEqual(pick({...s,planTier:'wall'}),[0],'outside editing it is bare wall');
+});

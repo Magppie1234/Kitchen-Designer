@@ -169,7 +169,9 @@
         joints+=`<line class="emptyjoint" data-run="${key}" data-idx="${p.index}" data-sc="${t.sc}"${cab?` data-cab="${cab}"`:''} x1="${xp}" x2="${xp}" y1="${sign>0?0:-dep}" y2="${sign>0?dep:0}" stroke="#B4533A" stroke-width="4" stroke-opacity="${cab?'.4':'.75'}" vector-effect="non-scaling-stroke" style="cursor:ew-resize;touch-action:none"><title>${cab?'Drag to slide the cabinet into the empty space':'Drag to move this edge between empty spaces — drag it to the end to merge them'}</title></line>`;}
       if(mode!=='base')for(const {seg,index,x} of upper){
         if(!['wallSolid','wallGlass','wallBlind','chimney','filler','panel'].includes(seg.kind))continue;
-        if(seg.kind==='filler'&&seg.open)continue;   // an open upper slot is just bare wall
+        // an open upper slot is just bare wall; in the Wall view while editing it is clickable, so a
+        // wall cabinet can be placed there
+        if(seg.kind==='filler'&&seg.open){ if(mode==='wall'&&state.editing)draw(seg,index,x,'wall','wall','open'); continue; }
         draw(seg,index,x,'wall','wall');
       }
       // All cabinet widths are retained in the dimension chain, including narrow fillers.
