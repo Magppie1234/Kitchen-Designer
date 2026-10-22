@@ -403,10 +403,37 @@ function expand(input, cat) {
       const custom = a.applianceWidth != null;
       const rw = custom ? a.width : (ref?.width ?? 600);
       put('tall', a.wall, a.at, rw, 'refrigerator', custom ? null : ref?.code,
-        custom ? {applianceWidth:a.applianceWidth,sideClearance:50} : {});
+        {...(custom ? {applianceWidth:a.applianceWidth,sideClearance:50} : {}), ...(a.look === 'otg' ? {loose:true} : {})});
       if (custom) notes.push(`refrigerator: ${a.applianceWidth}mm appliance + 50mm clearance each side = ${rw}mm opening`);
       const mo = find(cat, { zone: 'TC', family: 'MO', height: H.tall });
       const pantry = find(cat, { zone: 'TC', family: 'AC', height: H.tall });
+      // fridge-look: the designer's photo pick names the exact towers beside the fridge
+      // (left of it, right of it); the first arrangement that fits wins.
+      const tall = (family, material, width, handing) => find(cat, { zone: 'TC', family, material, width, height: H.tall, handing })
+        ?? find(cat, { zone: 'TC', family, material, width, height: H.tall });
+      const glass = (w, h) => ({ u: tall('SH', 'GL', w, h), role: 'glass tall' });
+      const shelf = (w, h) => ({ u: tall('SH', 'ST', w, h), role: 'tall shelf' });
+      const PAN = { u: pantry, role: 'tandem pantry' }, MO = { u: mo, role: 'microwave + oven' };
+      const looks = {
+        'glass-shelves': [600, 450].map((w) => [[glass(w, 'LHS')], [glass(w, 'RHS')]]),
+        'pantry-otg': [[[PAN], [MO]], [[MO], [PAN]]],
+        'otg': [[[], [MO]], [[MO], []]],
+        'tall-cabinet': [600, 450].flatMap((w) => [[[], [shelf(w, 'RHS')]], [[shelf(w, 'LHS')], []]]),
+      }[a.look];
+      if (looks) {
+        const width = (xs) => xs.reduce((s, x) => s + x.u.width, 0);
+        const ok = (xs, from) => xs.every((x, i) => x.u && fits('tall', a.wall, from + width(xs.slice(0, i)), x.u.width));
+        const pick = omit.has('talls') ? null
+          : looks.find(([l, r]) => [...l, ...r].every((x) => x.u) && ok(l, a.at - width(l)) && ok(r, a.at + rw));
+        if (pick) {
+          let x = a.at - width(pick[0]);
+          for (const p of pick[0]) { put('tall', a.wall, x, p.u.width, p.role, p.u.code, { look: true }); x += p.u.width; }
+          x = a.at + rw;
+          for (const p of pick[1]) { put('tall', a.wall, x, p.u.width, p.role, p.u.code, { look: true }); x += p.u.width; }
+          notes.push(`fridge-look ${a.look}: ${[...pick[0].map((p) => p.role), 'refrigerator', ...pick[1].map((p) => p.role)].join(' | ')} on wall ${a.wall}`);
+        } else warnings.push(`fridge-look ${a.look}: the towers in the chosen picture do not fit beside the refrigerator on wall ${a.wall}`);
+        continue;
+      }
       const preferred = omit.has('talls') ? [] : [
         [{ u: pantry, role: 'tandem pantry' }, { u: mo, role: 'microwave + oven' }],
         [{ u: mo, role: 'microwave + oven' }, { u: pantry, role: 'tandem pantry' }],
@@ -432,6 +459,83 @@ function expand(input, cat) {
     }
   }
   return { placed: out, notes, problems, warnings };
+}
+
+// dish-rack-above-sink: every sink gets a wall dish rack, 600mm over a sink under 900mm and
+// 900mm otherwise. A window over the sink moves it to the wall cabinet beside the window, on
+// whichever side is nearer the sink (the first cabinet on that side of the window).
+function dishRackFor(input, cat, a) {
+  const H = P.heights[input.height];
+  const w = a.width >= 900 ? 900 : 600, mid = a.at + a.width / 2;
+  const win = (input.openings ?? []).find((o) => o.type === 'window' && o.wall === a.wall
+    && spansHit(o, a) && windowHitsTier(o, 'wall', input.height));
+  const near = (x) => Math.abs(x + w / 2 - mid);
+  return {
+    w, mid, win, near,
+    // flush over the sink, or flush against the window; nearer the sink first
+    spots: (win ? [win.at - w, win.at + win.width] : [a.at, a.at + a.width - w]).sort((x, y) => near(x) - near(y)),
+    unit: (x) => {
+      const handing = x + w / 2 > mid ? 'RHS' : 'LHS';   // single door hinges on the side away from the sink
+      const u = cat.find((c) => c.zone === 'WC' && c.spec.includes('DSH') && c.width === w
+        && c.height === H.wall && (w === 900 || c.handing === handing));
+      return u && { wall: a.wall, at: x, width: w, role: 'dish rack', code: u.code, depth: u.depth };
+    },
+    note: (x) => `dish-rack-above-sink: ${w}mm dish rack ${win ? `beside the window, ${x < win.at ? 'left' : 'right'} of it` : 'over the sink'} on ${a.wall}`,
+  };
+}
+const wallSinks = (input) => input.anchors.filter((a) => a.location !== 'island' && a.item === 'sink');
+
+// Second chance, on the packed wall run, like placeRequiredStorage: 1-3 adjacent plain wall
+// cabinets are swapped for the rack plus an exact re-pack of the rest, so the run still closes.
+function placeDishRacks(input, placed, cat, warnings, notes, done) {
+  const H = P.heights[input.height];
+  const plain = cat.filter((c) => c.zone === 'WC' && ['SH', 'OP'].includes(c.family) && c.height === H.wall);
+  const widths = [...new Set(plain.map((c) => c.width))].sort((a, b) => b - a);
+  const cabinet = (p) => p.code && !p.blocker;
+  for (const a of wallSinks(input).filter((a) => !done.has(a))) {
+    const { w, mid, win, near, unit, note } = dishRackFor(input, cat, a);
+    // over the sink: rack centre within the sink; beside a window: no cabinet between it and the window
+    const allowed = (x, others) => !win ? near(x) <= a.width / 2
+      : x + w <= win.at ? !others.some((p) => cabinet(p) && p.at >= x + w && p.at < win.at)
+      : x >= win.at + win.width && !others.some((p) => cabinet(p) && p.at >= win.at + win.width && p.at + p.width <= x);
+    const row = placed.wall.filter((p) => p.wall === a.wall).sort((p, q) => p.at - q.at);
+    let best = null;
+    for (let i = 0; i < row.length; i++) {
+      const group = [];
+      for (let k = i; k < Math.min(row.length, i + 3); k++) {
+        const p = row[k];
+        if (!ordinaryUnit(p) || p.designerChoice || !['shutter', 'open shelf'].includes(p.role)
+          || (group.length && !touches(group.at(-1), p))) break;
+        group.push(p);
+        const at = group[0].at, total = group.reduce((s, q) => s + q.width, 0);
+        if (total < w) continue;
+        const packed = fill(total - w, widths);
+        if (packed.error) continue;
+        for (const end of [false, true]) {
+          const x = end ? at + total - w : at;
+          let y = end ? at : x + w;
+          const pieces = packed.cabinets.map((width) => ({ at: (y += width) - width, width, code: true }));
+          const score = [near(x), group.length];
+          if (allowed(x, [...row.filter((q) => !group.includes(q)), ...pieces])
+            && (!best || (score[0] - best.score[0] || score[1] - best.score[1]) < 0))
+            best = { group: [...group], x, pieces, score };
+        }
+      }
+    }
+    const rack = best && unit(best.x);
+    // No room (e.g. blind corners take the wall either side of the window): no dish rack, said so.
+    if (!rack) {
+      warnings.push(`${a.wall}/wall: dish rack omitted — no ${w}mm space ${win ? 'beside the window over' : 'above'} the sink (dish-rack-above-sink)`);
+      continue;
+    }
+    placed.wall = placed.wall.filter((p) => !best.group.includes(p));
+    placed.wall.push(rack);
+    for (const p of best.pieces) {
+      const u = plain.find((c) => c.family === 'SH' && c.width === p.width) ?? plain.find((c) => c.width === p.width);
+      placed.wall.push({ wall: a.wall, at: p.at, width: p.width, role: u.family === 'OP' ? 'open shelf' : 'shutter', code: u.code, depth: u.depth });
+    }
+    notes.push(note(best.x));
+  }
 }
 
 // --- corners: where two base zones meet, one takes a corner unit ------------------
@@ -832,7 +936,7 @@ function solve(input, cat) {
   // Preferences may never make an otherwise valid hard layout fail. Drop an optional item
   // if a subsequently-created corner occupies the same space.
   for (const tier of ['base', 'wall', 'tall']) {
-    const optional = new Set(['glass (chimney flank)', 'tandem pantry', 'microwave + oven']);
+    const optional = new Set(['glass (chimney flank)', 'tandem pantry', 'microwave + oven', 'glass tall']);
     for (const p of [...placed[tier]]) {
       if (!optional.has(p.role)) continue;
       const hit = placed[tier].some((q) => q !== p && q.wall === p.wall
@@ -844,7 +948,8 @@ function solve(input, cat) {
     }
   }
   // tandem-with-microwave: the tandem pantry and the microwave + oven unit go in as a pair.
-  for (const p of placed.tall.filter(p => ['tandem pantry', 'microwave + oven'].includes(p.role))) {
+  // A fridge look names its own towers, so its oven tower may stand without a pantry (fridge-look).
+  for (const p of placed.tall.filter(p => !p.look && ['tandem pantry', 'microwave + oven'].includes(p.role))) {
     const partner = p.role === 'tandem pantry' ? 'microwave + oven' : 'tandem pantry';
     if (!placed.tall.some(q => q.role === partner && q.wall === p.wall)) {
       placed.tall.splice(placed.tall.indexOf(p), 1);
@@ -1157,7 +1262,26 @@ function solve(input, cat) {
   fillTier('base');
   placeRequiredStorage(input,placed,cat);
   capStorage(input,placed,cat,warnings);
-  fillTier('wall');
+  // dish-rack-above-sink: first try the rack flush over the sink / against the window and pack
+  // the wall run around it; a spot that leaves the run unclosable is rolled back. Failing all,
+  // the run is packed plainly and placeDishRacks swaps the rack in.
+  const racked=new Set();
+  let wallFilled=false;
+  for(const a of wallSinks(input)){
+    const r=dishRackFor(input,cat,a);
+    for(const x of r.spots){
+      const unit=r.unit(x);
+      if(!unit||!input.zones.wall.some(z=>z.wall===a.wall&&x>=z.from&&x+r.w<=z.to)||occupied(placed,'wall',a.wall,x,r.w))continue;
+      const was={wall:placed.wall.slice(),p:problems.length,n:notes.length,w:warnings.length,s:packingSpans.length,runs:[...appliedRuns]};
+      placed.wall.push(unit);
+      fillTier('wall');
+      if(problems.length===was.p){racked.add(a);notes.push(r.note(x));wallFilled=true;break;}
+      placed.wall=was.wall;problems.length=was.p;notes.length=was.n;warnings.length=was.w;packingSpans.length=was.s;
+      appliedRuns.clear();for(const id of was.runs)appliedRuns.add(id);
+    }
+  }
+  if(!wallFilled)fillTier('wall');
+  placeDishRacks(input,placed,cat,warnings,notes,racked);
   arrangeBlindFronts(input,placed,cat,notes);
   // anchor-at-zone-end: an appliance (hob, sink, veggie sink) may sit flush with a free end of its
   // base zone. No packing gap is left there for the countertop dropdown, so it goes just outside
@@ -1306,8 +1430,10 @@ function solve(input, cat) {
       problems.push(`locked anchor ${a.item}: generated position or width differs from input`);
   }
 
-  if (!placed.tall.some((p) => p.role === 'tandem pantry')) warnings.push('preferred model omitted: tandem pantry');
-  if (!placed.tall.some((p) => p.role === 'microwave + oven')) warnings.push('preferred model omitted: microwave + oven');
+  if (!input.anchors.some((a) => a.item === 'fridge' && a.look)) {
+    if (!placed.tall.some((p) => p.role === 'tandem pantry')) warnings.push('preferred model omitted: tandem pantry');
+    if (!placed.tall.some((p) => p.role === 'microwave + oven')) warnings.push('preferred model omitted: microwave + oven');
+  }
 
   // Dish-rack and vegetable-basket requirements were cancelled by the designer.
   const unresolved = [...(island?.unresolved||[])];
@@ -1568,7 +1694,7 @@ function solveAll(input, cat, fast) {
     ];
     const result = solve(trial, cat);
     const placedHob = result.placed.base.find((p) => p.role === 'hob');
-    const tallModels=result.placed.tall.filter(p=>['tandem pantry','microwave + oven'].includes(p.role)).length;
+    const tallModels=result.placed.tall.filter(p=>p.look||['tandem pantry','microwave + oven'].includes(p.role)).length;
     candidates.push({ ...result, hobWidth: placedHob?.width ?? 0, omitted: trial._omitPreferred.length, tallModels });
   }
   candidates.sort((a, b) => (a.problems.length?1:0)-(b.problems.length?1:0)

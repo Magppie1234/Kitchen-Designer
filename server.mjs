@@ -148,6 +148,7 @@ export function toEngineInput(anchors = [], options = {}) {
     const islandFixture=Array.isArray(island?.fixtures)?island.fixtures.find(f=>f?.type===a.type):null;
     if(islandFixture)Object.assign(anchor,{location:'island',wall:'island-'+islandFixture.row,at:islandFixture.at,width:islandFixture.width,row:islandFixture.row});
     if (applianceWidth != null) anchor.applianceWidth = applianceWidth;
+    if (a.type==='fridge' && options.fridgePick) anchor.look = String(options.fridgePick);   // fridge-look
     if (a.type==='hob'&&!islandFixture) anchor.center = a.off;
     // The designer's hob SHAPE choices ride on the hob anchor. They name a configuration and
     // never a size — the engine solves the width — and they are hard: it places that shape or
@@ -226,7 +227,7 @@ export function toEngineInput(anchors = [], options = {}) {
     ['keeps', (v) => v?.length, 'pinned cabinets — this engine re-solves every wall from scratch'],
     ['kubos', (v) => v, 'the KUBOS open shelving'],
     ['tark', (v) => v, 'the Tark system'],
-    ['fridgeType', (v) => v && v !== 'builtin', 'built-in vs free-standing fridge — a tall fridge tower is always used'],
+    ['fridgeType', (v) => v && v !== 'builtin' && !options.fridgePick, 'built-in vs free-standing fridge — a tall fridge tower is always used'],
   ];
   for (const [key, set, why] of IGNORED)
     if (set(options[key])) notes.push(`not applied: ${why}`);
@@ -325,7 +326,7 @@ export function toPlan(result, input, notes, options = {}) {
         seg.code=tall?.code??null;
         if(tall?.trim) {seg.kind='filler';seg.trim=true;seg.tier='tall';if(tall.side)seg.side=tall.side;}
         else seg.units = [{ type: tallType(seg.label), width: p.width, code:seg.code, ...dimensions(tall??p,'tall'),
-          ...(tall?.applianceWidth != null ? {applianceWidth:tall.applianceWidth,sideClearance:50} : {}) }];
+          ...(tall?.applianceWidth != null ? {applianceWidth:tall.applianceWidth,sideClearance:50} : {}), ...(tall?.loose ? {loose:true} : {}) }];
       }
       segments.push(seg);
       cursor = Math.max(cursor, p.at + p.width);

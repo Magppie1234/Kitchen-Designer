@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { loadCatalog } from '../../core/loadCatalog.mjs';
 import { modelManifest, modelFile } from '../../core/models.mjs';
 
@@ -59,4 +60,10 @@ test('every chimney panel the renderer can ask for exists, and its sizes reach t
   assert.deepEqual(p.chimney_panel_height, { '7ft': 450, '8ft': 600 });
   for (const hob of [600, 900]) for (const h of Object.values(p.chimney_panel_height))
     assert.ok(items.has(`CP-${hob + p.chimney_wider_than_hob_by}-${h}-15`), `CP-${hob + p.chimney_wider_than_hob_by}-${h}-15`);
+});
+
+test('every refrigerator panel the renderer can ask for exists', () => {
+  const items = new Set(man.models.filter((m) => m.category === 'item').map((m) => m.item));
+  const src = readFileSync('ui/renderer3d.js', 'utf8'), [, ws, h] = src.match(/RFP_W=\[([\d,]+)\], RFP_H=(\d+)/);
+  for (const w of ws.split(',')) assert.ok(items.has(`RFP-${w}-${h}-15`), `RFP-${w}-${h}-15`);
 });

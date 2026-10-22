@@ -386,7 +386,7 @@
         "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15",
         "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15"
       ],
-      "note": "Hob, main sink and refrigerator are required appliance anchors; the optional veggie sink is a separate anchor. Dish-rack and vegetable-basket preferences and requirements were cancelled by the user.",
+      "note": "Hob, main sink and refrigerator are required appliance anchors; the optional veggie sink is a separate anchor. The vegetable-basket requirement was cancelled by the user; every sink gets a dish rack above it (dish-rack-above-sink).",
       "preferred": [
         {
           "item": "hob",
@@ -487,7 +487,8 @@
       "hard": true,
       "seen_in": [],
       "statement": "An exposed base run end requires a fixed 30mm countertop dropdown. At a base/tall junction, use one fixed 20mm tall visible side panel and no duplicate base dropdown. Touching base zones are continuous. Exposed wall run ends use fixed 20mm panels. At a free base or wall run end the panel sits directly on the last cabinet, never behind a filler; any leftover wall beyond the panel stays open and is either none or at least 200mm. Only when that would leave a thin sliver does a measured gap filler of at least 30mm close the run instead, between the last cabinet and the panel. A tall side concealed by a physical wall uses a 40mm wall filler; an exposed tall side uses a 20mm visible panel; a refrigerator at the end of a tall run needs neither (no-filler-beside-fridge). Reserve corner footprints before treating run ends.",
-      "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm."
+      "note": "Never widen panels. Any residual space must be handled by a separate legal filler, a different cabinet packing, or reported anchor movement within the allowed 100mm.",
+      "implementation": "3D (ui/renderer3d.js): every end panel stands sideways on the cabinet side it closes, as the visible panel model — the base 30mm dropdown and base panels as VP-560-15, wall run-end panels as VP-336-15, tall panels as before — handed by panelSide() (RH when a unit ends where the panel starts). Designer, 2026-10-21: base and wall ends were drawn as front filler strips (BFP/WFP), leaving the cabinet side bare."
     },
     {
       "id": "no-filler-beside-fridge",
@@ -688,6 +689,50 @@
         "Designer, 2026-10-10: replaces the earlier 536mm (336mm depth + 200mm) trigger and reservation."
       ],
       "implementation": "core/engine.mjs windowCornerClearance(); params window_corner_trigger, window_corner_clearance"
+    },
+    {
+      "id": "cabinet-accessories",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "On the editing page, accessories are added to the cabinet that holds them, and a selected cabinet offers only the accessories that go in it: a drawer unit or hob base its low-back and high-back drawer accessories at its width (600 / 900; a 450 unit none), a bottle-pullout cabinet its Bottle Pull-Out (150 single, 300 double), a waste-bin pullout its Waste Bin Pull-Out, a LeMans corner its LeMans mechanism, a tall tandem pantry its Tandem Pantry mechanism, a 600 / 900 wall cabinet the Magic Pull Down (Double Tray). Mechanisms are offered as a tick, never added automatically. Each accessory is offered only where the Excel master's zone columns allow it (cooking, washing, cooling, island, other wall). One accessory per drawer, each at most once per cabinet. A pick belongs to its cabinet: replacing or deleting the cabinet removes it, and on regenerate it stays only on a cabinet of the same code in the same place. The hob's drawers and pictured side units share the HOB step's picks, and the sink cabinet shares the SINK step's. Accessories that do not go inside a cabinet (Kubos, Tark, Ceiling Hanging Unit, stone shelves, glass rolling shutter) are not offered on the editing page. Earlier kitchen-wide picks stay in the estimate until removed (designer, 2026-10-21).",
+      "implementation": "ui/builder.html cabAccSlots() / ACC_ZONES / drawerTypesOf() (what a cabinet holds), hobUnitForSel() (HOB step units), cabAccHtml() / toggleCabAcc() (editing panel; picks on seg.accs), cabAccItems() (estimate, priced at the cabinet width), carryCabAccs() (regenerate), zoneForSel() (now also the cooling zone near the fridge). Test: test/hob-accessories/hob-accessories.test.mjs."
+    },
+    {
+      "id": "hob-side-drawer-accessories",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "In a hob cabinet look, the drawer units pictured beside the hob take accessories as well as the hob's own drawers: low-back items in low-back drawers, high-back items in high-back drawers, one accessory per drawer, and each accessory at most once in the hob zone (no repeats). A side unit offers the accessories for its own width (600 or 900; a 450 unit or a grain unit takes none). While choosing, a side unit is taken at the width its picture shows (900 for looks 1, 2 and 4, 600 for look 3), giving at most 7 / 5 / 5 / 5 accessories. The engine sizes the side units itself; when a generated side unit is a different width, the accessories it cannot take are removed, the designer is warned, and is asked to choose that cabinet's accessories again for the generated width (designer, 2026-10-21).",
+      "implementation": "ui/builder.html HOB_SIDE_PRESETS.sideWidth + presetSides() give each pictured drawer unit its drawers; hobUnits() / hobFlatAccList() / hobFreeDrawerFor() / toggleHobAcc() place accessories across hob and side drawers; hobBOQItems() prices each at its unit width; reconcileHobSideWidths() runs after Generate (toast + a 'hob-accessories' correction + a notice in the HOB step until Done) and after every editing-page change, and also checks the side unit's drawer shape. Test: test/hob-accessories/hob-accessories.test.mjs."
+    },
+    {
+      "id": "fridge-look",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "The refrigerator step offers four photo looks, and the kitchen generates exactly the towers the chosen picture shows: Glass Display Shelves = a glass tall unit on each side of the fridge (600mm each, 450mm each when 600 does not fit); Tandem Pantry + Oven Tower = tandem pantry on one side, microwave + oven tower on the other; Free-standing Fridge + Oven Tower = a free-standing fridge at the end of the wall with the oven tower beside it; Fridge with Tall Storage = one plain tall storage cabinet beside the fridge, no glass or appliances. With no look picked, the standard pantry + oven bank applies.",
+      "implementation": "ui/builder.html FRIDGE_PICKS / syncFridgeStep() send options.fridgePick; server.mjs toEngineInput() puts it on the fridge anchor as `look`; core/engine.mjs expand() places the look's towers (tagged look:true, exempt from tandem-with-microwave pairing); core/correct.mjs deriveZones() sizes the auto tall band for the look. Test: test/fridge-look/fridge-look.test.mjs."
+    },
+    {
+      "id": "fridge-look-free-placement",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-21: replaces fridge-look-needs-tower-room"
+      ],
+      "statement": "The chosen fridge look never limits where the fridge goes or which width can be entered: the designer picks a look and positions the fridge as they want. Only the ordinary placement rules apply (on the wall, clear of other fixtures, doors, windows and columns). When the look's towers do not fit beside the fridge, the engine reports it.",
+      "implementation": "ui/builder.html fxDropValid() ignores S.fridge.pick; setFridgePick() no longer moves the fridge; core/engine.mjs warns 'fridge-look …: the towers in the chosen picture do not fit'. Test: test/ui-state/independent-fixtures.test.mjs."
+    },
+    {
+      "id": "fridge-top-panel",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-21"
+      ],
+      "statement": "A refrigerator panel closes the top of the fridge opening: the RFP code nearest the opening width (fridge + 50mm each side) — RFP-700, RFP-900 or RFP-1050, 300mm high — stretched (width and model) to run tall-to-tall: across the opening and any filler (up to 100mm) between it and the tall cabinets beside it. Its top is level with the real top of those tall cabinets' models and its face on their shutter plane; the fridge stands below it.",
+      "implementation": "ui/renderer3d.js tallBank fridge branch (RFP_W / RFP_H), model from Models/Additional Items/Refrigerator panels. 3D only, like the chimney panel. Test: test/models/models.test.mjs."
     },
     {
       "status": "stated",
@@ -1134,10 +1179,20 @@
       "status": "stated",
       "hard": false,
       "seen_in": [
-        "designer, 2026-10-14"
+        "designer, 2026-10-14",
+        "designer, 2026-10-21"
       ],
-      "statement": "While editing, the edge between two neighbouring empty pieces of a base run (open space, extend area, dead space, a corner reservation or a filler) can be dragged to resize them, or dragged to the end to merge them into one space the designer can use however they want — e.g. to take a corner back for a blind corner on that wall. A cabinet standing on the adjoining wall still marks the space it occupies (and its open space) as occupied.",
-      "implementation": "ui/detailed-plan.js emptyJoint() + .emptyjoint handles; ui/builder.html startEmptyJointDrag()/moveEmptyBoundary(); markOccupied() also cuts open space. Test: test/ui-state/ui-state.test.mjs."    },
+      "statement": "While editing, the edge between two neighbouring empty pieces of a base run (open space, extend area, dead space, a corner reservation or a filler) can be dragged to resize them, or dragged to the end to merge them into one space the designer can use however they want — e.g. to take a corner back for a blind corner on that wall. A cabinet standing on the adjoining wall still marks the space it occupies (and its open space) as occupied. The edge between a cabinet and the empty space beside it can be dragged too: the cabinet slides with it (keeping its width) into that space. A cabinet is dragged with a single press — pressing it selects it and drags it in one go.",
+      "implementation": "ui/detailed-plan.js emptyJoint() + .emptyjoint handles (data-cab on a cabinet/empty edge); ui/builder.html startEmptyJointDrag()/moveEmptyBoundary()/moveCabinetEdge() → relocateSelected(); startModDrag() selects on press; markOccupied() also cuts open space. Test: test/ui-state/ui-state.test.mjs."    },
+    {
+      "id": "open-space-worktop",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "designer, 2026-10-22"
+      ],
+      "statement": "Worktop is drawn over base-row open space (a deleted cabinet or filler) only when a base cabinet stands right beside it on that run; otherwise the open space has no worktop, so a slab never floats with nothing under it.",
+      "implementation": "ui/renderer3d.js run loop, seg.open branch: worktop() only if the previous or next non-zero-width segment is a non-tall cabinet/anchor/corner."    },
     {
       "id": "hob-flank-clear-of-corner",
       "status": "stated",
@@ -1153,10 +1208,11 @@
       "status": "stated",
       "hard": true,
       "seen_in": [
-        "designer, 2026-10-16"
+        "designer, 2026-10-16",
+        "designer, 2026-10-19"
       ],
-      "statement": "An uploaded PDF or image plan is read with Gemini 3.8 Flash: the kitchen is found on the sheet, then a close-up of it is read. A plan that shows only structure (walls, doors, windows, columns, open sides) opens on the Layout page pre-filled with that structure, to be checked. A plan that also shows cabinetry opens on the same pre-filled Layout page, and Continue to fixtures shows the base/wall/tall zones and the hob, sink and fridge where the plan draws them. Anything that cannot stand where the plan shows it (keep-outs, clearances) or that is not against a wall (island, peninsula) is named in a note, never forced in.",
-      "implementation": "plan-read.mjs findKitchens() (/api/kitchen-detect) + readKitchen()/toDraft() (/api/vision-extract), model gemini-3.8-flash; ui/builder.html pdfPageImages() (pdf.js), runKitchenDetection(), routeDecisionForPage() (one kitchen goes straight to the read), lockKitchenRegion() -> applyVisionExtract() -> applyDrawnCabinetry() (addZoneSplit, nearestValidFxOff, ensure*Defaults). Test: test/plan-read/plan-read.test.mjs."
+      "statement": "Plan import is phase 1 of 2: structure first, cabinetry later. Gemini 3.8 Flash finds the kitchen on the uploaded PDF or image. The designer then drags along one wall of it (A to B) and types its real length; how that wall is drawn on THIS plan (solid, or two face lines with their weight, spacing and fill, hollow or hatched, and the ink colour) is learned from the stroke, and the boundary is traced by following only ink drawn the same way, so counter edges, zone lines, dimensions, furniture and text are not walls. Where the outline leaves that style it is a door (nothing drawn across), a window (something else drawn across, e.g. glass lines in place of the hatch) or an open side; solid blocks in or against the wall are columns. The guess is shown on the plan for the designer to confirm before the Layout page: they can click a door or window to change it (door, window, opening without a door, not an opening), mark a second wall when the plan draws walls in two styles, take the other side of the marked wall, redo, or read the plan with AI instead. On confirm the Layout page opens pre-filled with walls, doors, windows, open sides and columns. Hob, sink and cabinet zones are phase 2 and are not filled from the trace; the AI read (the fallback, and the multi-kitchen 'open all as rooms' path) still pre-fills them, placing anything that cannot stand where the plan shows it in a note, never forcing it in.",
+      "implementation": "ui/wall-trace.js WallTrace.learn() (wall style + ink-colour mask from the stroke) -> trace() (cross-section bands, collinear gap bridging, flood fill, orthogonalize, takeColumns, readSides) -> scaleFrom() -> toDraft(); ui/builder.html lockKitchenRegion() -> openWallMark() -> renderWallMark()/wallTraceRun() -> renderWallPreview() (wtCycleOpening) -> wallTraceConfirm() -> applyVisionExtract(). Kitchen found by plan-read.mjs findKitchens() (/api/kitchen-detect); AI fallback readKitchenWithAi() -> readKitchen()/toDraft() (/api/vision-extract) -> applyDrawnCabinetry(). Tests: test/wall-trace/wall-trace.test.mjs, test/plan-read/plan-read.test.mjs."
     },
     {
       "id": "anchor-at-zone-end",
@@ -1177,6 +1233,19 @@
       ],
       "statement": "Wall cabinets hang from counter_height + backsplash up to the kitchen's design height. A window whose sill height plus window height leaves it wholly below or wholly above that band does not block wall cabinets: a wall zone may be drawn across it and wall cabinets may be placed in front of it. A window that overlaps the band still keeps wall cabinets out, and tall cabinets never stand in front of a window.",
       "implementation": "core/engine.mjs windowClearOfWall()/windowHitsTier() used by openingFree(), the opening blockers, geometryProblems(), corners() and windowCornerClearance(); ui/builder.html windowClearOfWall() in zoneBlocksOn(). Test: test/engine/engine.test.mjs."
+    },
+    {
+      "id": "dish-rack-above-sink",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "P1",
+        "P3",
+        "P4"
+      ],
+      "statement": "Whenever a sink cabinet is placed, a wall dish rack cabinet always goes above the sink. Its width follows the sink: a 600mm sink gets a 600mm dish rack; a sink of 900mm or more gets the 900mm dish rack. If a window is above the sink, the dish rack goes in the wall cabinet immediately left or right of the window, whichever side is nearer the sink. If there is no room for it there (e.g. wall blind corners take the wall cabinet run either side of the window), no dish rack is placed.",
+      "note": "Re-established by the user on 2026-10-19; it was previously recorded as refuted. 'No room' is a warning, not a release block (user, 2026-10-19: 'dont put dish rack there'). Sinks under 900mm other than 600mm (e.g. 750) also get the 600mm rack. A single-door 600mm rack is handed away from the sink centre (LHS when over or left of it). Island sinks are exempt (no wall above).",
+      "implementation": "core/engine.mjs solve(): before packing the wall tier, tries the rack (WC-AC-...-DSH code at the design-height wall size, dishRackFor()) flush over the sink or flush against the window, keeping it only if the wall run still packs cleanly; otherwise packs the run and placeDishRacks() swaps 1-3 plain wall cabinets for the rack plus an exact re-pack. Neither fits: a warning and no rack. Test: test/dish-rack/dish-rack.test.mjs."
     }
   ],
   "open_questions": [
@@ -1269,27 +1338,15 @@
     "Costing and pricing — the sheet carries sqft, panel and shutter counts, but no pricing rules have been given.",
     "Minimum viable run length — not needed, because the designer places all three anchors."
   ],
-  "refuted": [
-    {
-      "id": "dish-rack-above-sink",
-      "seen_in": [
-        "P1",
-        "P3",
-        "P4"
-      ],
-      "was": "The wall dish rack sits directly above the sink.",
-      "verdict": "REFUTED by the design team — there is no such thing as a dish rack over a sink.",
-      "lesson": "It looked confirmed at 3 of 4 projects. A dish rack does appear near the sink in those drawings, but proximity in a plan is not a placement rule. Recorded here so it is not re-derived from the same evidence."
-    }
-  ],
+  "refuted": [],
   "cancelled": [
     {
       "id": "countertop-beside-tall-appliance",
       "reason": "User cancelled point 24: countertop beside microwave/oven cabinet."
     },
     {
-      "id": "dish-rack-and-vegetable-basket",
-      "reason": "User cancelled point 35: no automatic preference, placement requirement or release block for these accessories."
+      "id": "vegetable-basket",
+      "reason": "User cancelled point 35: no automatic preference, placement requirement or release block for the vegetable basket. The dish rack half was re-established on 2026-10-19 as dish-rack-above-sink."
     },
     {
       "id": "fillers-only-at-corners",

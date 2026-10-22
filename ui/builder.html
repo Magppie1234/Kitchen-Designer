@@ -530,6 +530,7 @@
 <script src="auth.js"></script>
 <script src="finishes.js"></script>
 <script src="geometry.js"></script>
+<script src="wall-trace.js"></script>
 <script src="island-rules.js"></script>
 <script src="backsplash.js"></script>
 <script src="rule-log.js"></script>
@@ -841,6 +842,7 @@ const S={
   snapshots:[],   // Render Portal captures {id,img,mask,bs,picks,rendered,renderedFinish}
   rpSlot:'cab',   // Render Portal: the finish slot a tile click fills (cab | ctop | bs)
   rpActive:null, rpForceRepick:false,   // Render Portal: id of the snapshot currently open (null = gallery)
+  rpSel:[], rpBatch:null,   // Render Portal: gallery-ticked snapshot ids; the open batch {ids,picks} rendered together
   rpCapture:false,   // Render Portal: the plain 16:9 capture view is open
   structures:[], structArm:null, _dragged:false, planResult:null, tier:'Free',
   roomHeightUnit:'mm',
@@ -876,7 +878,7 @@ const ROOM_STATE_KEYS=[
   'method','shape','view','activeStep','steps','hob','sink','fridge','unlockedStages',
   'handle','look','material','rendered','discount','accSizes','selectedCab',
   'traceImage','upload','kdetect','dims','room','walls','suggested','islandInfo',
-  'anchors','openings','selFx','placing','arm','modules','snapshots','rpActive','rpForceRepick',
+  'anchors','openings','selFx','placing','arm','modules','snapshots','rpActive','rpForceRepick','rpSel','rpBatch',
   'structures','structArm','_dragged','planResult','roomHeightUnit','fieldErr','_tf',
   'layoutTab','panelOpen','style','roomShape','roomMode','roomName','_posTarget',
   'openWalls','selWall','selOpening','selStruct','editingWallDim','editingGap','unit','options','plan','planStyle','planTier','elevStyle','generationFailure',
@@ -1314,14 +1316,14 @@ function applyVisionExtract(ex,opts){
     h:s.type==='beam'?400:(S.options.ceiling||3100), dir:'h',
   }));
   S.suggested=[]; S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]};
-  S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false;
+  S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false; S.rpSel=[]; S.rpBatch=null;
   S.placing=null; S.arm=null; S.selFx=null; S.method='upload-ai';
   applyDrawnCabinetry(ex);
   S.islandInfo=computeIslandInfo();
   if(!navigate) return;              // multi-kitchen pass: caller stashes + navigates once
   resetUpload(); refitView(); go('layout');
   const n=(ex.warnings||[]).length;
-  showToast(`AI read the plan (${ex.confidence||'medium'} confidence)`+(n?` — ${n} note${n>1?'s':''}, check the plan`:'')+'.'+(n?' '+ex.warnings.join(' '):''));
+  showToast((ex.toast||`AI read the plan (${ex.confidence||'medium'} confidence)`)+(n?` — ${n} note${n>1?'s':''}, check the plan`:'')+'.'+(n?' '+ex.warnings.join(' '):''));
 }
 // Cabinetry the plan itself shows (plan-read.mjs: zones + hob/sink/fridge), placed so the fixtures
 // screen opens already filled in; a plan of bare walls leaves both empty, as before. Every piece
@@ -1557,7 +1559,7 @@ function pickKitchenCandidate(id){
   if(c) lockKitchenRegion(c);
 }
 function openKitchenManual(){ kmanual=null; showKitchenModal('manual'); }
-function cancelKitchenDetection(){ S.kdetect=null; kmanual=null; $('modalKitchen').style.display='none'; resetUpload(); }
+function cancelKitchenDetection(){ S.kdetect=null; kmanual=null; WT=null; $('modalKitchen').style.display='none'; resetUpload(); }
 function closeKitchenModal(ev){ if(ev && ev.target!==$('modalKitchen')) return; cancelKitchenDetection(); }
 
 // Crops imageDataUrl to a normalized-0-1 boundingBox, padded GENEROUSLY: on architectural
@@ -1569,11 +1571,11 @@ function padBbox(bb,pad=0.30){
   const x2=Math.min(1,bb.x+bb.width*(1+pad)), y2=Math.min(1,bb.y+bb.height*(1+pad));
   return {x,y,width:x2-x,height:y2-y};
 }
-function cropImageDataUrl(imageDataUrl,bbox){
+function cropImageDataUrl(imageDataUrl,bbox,pad){
   return new Promise((resolve,reject)=>{
     const img=new Image();
     img.onload=()=>{
-      const b=padBbox(bbox);
+      const b=padBbox(bbox,pad);
       const sx=Math.round(b.x*img.naturalWidth), sy=Math.round(b.y*img.naturalHeight);
       const sw=Math.max(1,Math.round(b.width*img.naturalWidth)), sh=Math.max(1,Math.round(b.height*img.naturalHeight));
       const c=document.createElement('canvas'); c.width=sw; c.height=sh;
@@ -1602,21 +1604,24 @@ function rectDraftMm(w,h,note){
 // {draft, cropDataUrl}, or {needsManual:true} when the region can only be resolved by hand.
 // Shared by the single-region lock below and the multi-kitchen "open all" pass, so both
 // resolve a region exactly the same way.
-async function readKitchenDraft(page, candidate){
-  // Decide what image the dimension read sees. Cropping exists to isolate ONE room out of a
-  // multi-room villa page — but on a dedicated kitchen sheet (or when the candidate box already
-  // spans most of the page) cropping is DESTRUCTIVE: the dimension chains are printed at the
-  // sheet edges outside the box, and cutting them off leaves the model nothing to read (the
-  // "right kitchen, wrong dimensions" failure on real drawings). Full page in those cases.
+// Decide what image a kitchen region is read from. Cropping exists to isolate ONE room out of a
+// multi-room villa page — but on a dedicated kitchen sheet (or when the candidate box already
+// spans most of the page) cropping is DESTRUCTIVE: the dimension chains are printed at the
+// sheet edges outside the box, and cutting them off leaves the model nothing to read (the
+// "right kitchen, wrong dimensions" failure on real drawings). null = full page.
+function kitchenCropBox(page, candidate){
   const bb=candidate&&candidate.boundingBox;
   const dedicated=page.detection&&page.detection.isDedicatedKitchenDrawing;
   const coversPage=bb&&(bb.width*bb.height>=0.5);
   // A PDF-text candidate's boundingBox is a small pin at the label, so crop a generous area
   // around it for the confirmation image (enough to show the kitchen, not just the label word).
-  const cropBox=(dedicated||coversPage)?null
+  return (dedicated||coversPage)?null
     : candidate&&candidate.textSource&&bb
       ? {x:bb.x+bb.width/2-0.18, y:bb.y+bb.height/2-0.16, width:0.36, height:0.32}
       : bb;
+}
+async function readKitchenDraft(page, candidate){
+  const cropBox=kitchenCropBox(page,candidate);
   const cropDataUrl=cropBox?await cropImageDataUrl(page.imageDataUrl,cropBox):page.imageDataUrl;
   if(candidate && Array.isArray(candidate.dims_mm)){
     // Exact room size recovered without a model wall-trace (the reliable-signal fix) — either
@@ -1639,6 +1644,19 @@ async function readKitchenDraft(page, candidate){
 }
 async function lockKitchenRegion(candidate){
   S.kdetect.pendingCandidate=candidate;
+  const page=currentKitchenPage(), box=kitchenCropBox(page,candidate), bb=candidate&&candidate.boundingBox;
+  // a wider margin than the AI read's: a wall drawn just outside the detector's box must stay whole
+  S.kdetect.cropDataUrl=box?await cropImageDataUrl(page.imageDataUrl,box,WT_PAD):page.imageDataUrl;
+  // where the kitchen box sits inside that image (0-1): the tracer's fence for a kitchen that is
+  // open to the next room. A PDF-text pin is not a box, so it gets no fence.
+  const pb=box?padBbox(box,WT_PAD):{x:0,y:0,width:1,height:1};
+  const inner=bb&&!candidate.textSource?{x:(bb.x-pb.x)/pb.width,y:(bb.y-pb.y)/pb.height,w:bb.width/pb.width,h:bb.height/pb.height}:null;
+  try{ await openWallMark(S.kdetect.cropDataUrl,inner); }
+  catch(err){ showToast('Could not open the plan image ('+(err&&err.message||err)+') — reading it with AI instead.'); readKitchenWithAi(); }
+}
+// The previous one-shot path: Gemini reads the whole kitchen (walls, openings, cabinetry).
+async function readKitchenWithAi(){
+  const candidate=S.kdetect.pendingCandidate; WT=null;
   showKitchenModal('dimension-reading');
   try{
     const out=await readKitchenDraft(currentKitchenPage(), candidate);
@@ -1907,6 +1925,161 @@ function renderKitchenDimensionConfirm(){
       <button class="btn" onclick="confirmKitchenDimensions()" style="padding:12px 26px;font-size:14px">Confirm &amp; Build Layout →</button>
     </div>`;
 }
+/* ---- MARK A WALL -> TRACED BOUNDARY (engine: ui/wall-trace.js) ----------------------------
+   The designer drags along one wall of the kitchen (A -> B) and types its length. How that wall
+   is drawn (thickness, solid / double-line / hatched, ink tone) is learned from the stroke and
+   the rest of the boundary is traced by following ink drawn the same way; doors, windows, open
+   sides and columns are read off where the outline leaves that style. The guess is shown on the
+   plan to confirm before the Layout page; a second wall can be marked when the plan draws walls
+   in two styles (e.g. brick and a glass partition). */
+let WT=null;   // tracer state (holds the crop's pixels) — transient, never stashed or persisted
+const WT_MAX_SIDE=2400, WT_PAD=0.5;
+async function openWallMark(url,inner){
+  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('image did not load')); i.src=url; });
+  const k=Math.min(1,WT_MAX_SIDE/Math.max(img.naturalWidth,img.naturalHeight));
+  const W=Math.max(1,Math.round(img.naturalWidth*k)), H=Math.max(1,Math.round(img.naturalHeight*k));
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H); ctx.drawImage(img,0,0,W,H);
+  const px=ctx.getImageData(0,0,W,H).data, gray=new Uint8Array(W*H), rgb=new Uint8Array(W*H*3);
+  for(let i=0;i<gray.length;i++){ const r=px[4*i],g=px[4*i+1],b=px[4*i+2];
+    rgb[3*i]=r; rgb[3*i+1]=g; rgb[3*i+2]=b; gray[i]=Math.round(0.299*r+0.587*g+0.114*b); }
+  const box=inner&&{x0:inner.x*W,y0:inner.y*H,x1:(inner.x+inner.w)*W,y1:(inner.y+inner.h)*H};
+  WT={url,W,H,gray,rgb,box,strokes:[],drag:null,mm:null,templates:null,rooms:null,pick:0,err:null};
+  showKitchenModal('wall-mark');
+}
+function wtPoint(ev){
+  const r=$('wtSvg').getBoundingClientRect(), t=ev.touches&&ev.touches.length?ev.touches[0]:ev;
+  return [Math.max(0,Math.min(WT.W,(t.clientX-r.left)/r.width*WT.W)),Math.max(0,Math.min(WT.H,(t.clientY-r.top)/r.height*WT.H))];
+}
+function wtDown(ev){ ev.preventDefault(); const p=wtPoint(ev); WT.drag={a:p,b:p}; WT.err=null; wtDrawStroke(); }
+function wtMove(ev){
+  if(!WT||!WT.drag) return; ev.preventDefault();
+  let b=wtPoint(ev); const a=WT.drag.a, dx=b[0]-a[0], dy=b[1]-a[1];
+  // plan walls are square to the sheet: within 10° of level/plumb, snap to it
+  if(Math.abs(dy)<=Math.abs(dx)*0.18) b=[b[0],a[1]]; else if(Math.abs(dx)<=Math.abs(dy)*0.18) b=[a[0],b[1]];
+  WT.drag.b=b; wtDrawStroke();
+}
+function wtUp(){
+  if(!WT||!WT.drag) return;
+  const s=WT.drag; WT.drag=null;
+  if(Math.hypot(s.b[0]-s.a[0],s.b[1]-s.a[1])<Math.max(WT.W,WT.H)*0.03){ renderKitchenModal(); return; }   // a click, not a wall
+  WT.strokes[WT.rooms?1:0]=s; renderKitchenModal();
+  const inp=$('wtLen'); if(inp) inp.focus();
+}
+function wtStrokeSvg(s,label){
+  const r=Math.max(WT.W,WT.H)/110, sw=Math.max(WT.W,WT.H)/320, fs=r*2.2;
+  const end=(p,t)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="#B4533A" stroke="#fff" stroke-width="${sw}"/><text x="${p[0]}" y="${p[1]-r*1.6}" font-size="${fs}" font-weight="700" fill="#B4533A" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="${sw*2}">${t}</text>`;
+  return `<line x1="${s.a[0]}" y1="${s.a[1]}" x2="${s.b[0]}" y2="${s.b[1]}" stroke="#B4533A" stroke-width="${sw*2}" stroke-linecap="round"/>${end(s.a,label[0])}${end(s.b,label[1])}`;
+}
+function wtDrawStroke(){ const g=$('wtLive'); if(g) g.innerHTML=WT.drag?wtStrokeSvg(WT.drag,WT.rooms?'CD':'AB'):''; }
+function wtImage(overlay,interactive){
+  return `<div style="text-align:center"><div style="position:relative;display:inline-block;max-width:100%;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff">
+    <img src="${WT.url}" style="display:block;max-width:100%;max-height:58vh" draggable="false"/>
+    <svg id="wtSvg" viewBox="0 0 ${WT.W} ${WT.H}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;${interactive?'cursor:crosshair;touch-action:none':''}"
+      ${interactive?'onmousedown="wtDown(event)" onmousemove="wtMove(event)" onmouseup="wtUp()" onmouseleave="wtUp()" ontouchstart="wtDown(event)" ontouchmove="wtMove(event)" ontouchend="wtUp()"':''}>${overlay}<g id="wtLive"></g></svg>
+  </div></div>`;
+}
+function renderWallMark(){
+  const second=!!WT.rooms, s=WT.strokes[second?1:0], c=S.kdetect&&S.kdetect.pendingCandidate;
+  const printed=c&&(Array.isArray(c.dims_mm)?fmtWH(c.dims_mm[0],c.dims_mm[1]):(c.dimensionStrings&&c.dimensionStrings[0]));
+  const shown=(second?wtStrokeSvg(WT.strokes[0],'AB'):'')+(s?wtStrokeSvg(s,second?'CD':'AB'):'');
+  const action=!s?'' : second
+    ? `<button class="btn" onclick="wallTraceRun()" style="padding:11px 22px;font-size:13.5px">Trace with both walls →</button>`
+    : `<label style="font-size:13px;color:var(--muted)">Length of A → B</label>
+       <input id="wtLen" type="number" min="0" step="${inputStep()}" value="${WT.mm?lenToInput(WT.mm):''}" onkeydown="if(event.key==='Enter')wallTraceRun()" style="width:110px;padding:10px;border:1px solid var(--line2);border-radius:9px;font-size:14px;text-align:center"/>
+       <span style="font-size:13px;color:var(--muted2)">${unitAbbr()}</span>
+       <button class="btn" onclick="wallTraceRun()" style="padding:11px 22px;font-size:13.5px">Trace walls →</button>`;
+  return `<div style="padding:24px 26px 12px">
+      <div class="serif" style="font-size:20px;margin-bottom:4px">${second?'Mark a wall drawn the other way':'Mark one wall of the kitchen'}</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">${second
+        ?'Drag along a wall the trace missed (C → D) — for example a glass partition drawn differently from the brick walls. Both styles count as wall.'
+        :'Drag along one wall, corner A to corner B, then type its length. The rest of the boundary is traced from how that wall is drawn.'}
+        ${printed&&!second?`<br>The plan prints this room as <b>${printed}</b>.`:''}</div>
+    </div>
+    <div style="padding:0 26px">${wtImage(shown,true)}</div>
+    ${WT.err?`<div style="margin:12px 26px 0;padding:10px 14px;font-size:12.5px;color:#8a6a3d;background:#FBF3E4;border-radius:10px">⚠ ${WT.err}</div>`:''}
+    <div style="padding:16px 26px 8px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;min-height:44px">${action}</div>
+    <div style="padding:0 26px 22px;text-align:center;font-size:11px;color:var(--muted2)">
+      ${second?`<span style="text-decoration:underline;cursor:pointer" onclick="WT.strokes.length=1;showKitchenModal('wall-preview')">Back to the traced room</span> &nbsp;·&nbsp; `:''}
+      <span style="text-decoration:underline;cursor:pointer" onclick="readKitchenWithAi()">Read it with AI instead</span>
+      &nbsp;·&nbsp;<span style="text-decoration:underline;cursor:pointer" onclick="cancelKitchenDetection()">Cancel</span></div>`;
+}
+function wallTraceRun(){
+  if(!WT.rooms){
+    const mm=inputToMm(($('wtLen')||{}).value);
+    if(mm<300){ showToast('Type the real length of wall A → B first.'); return; }
+    WT.mm=mm;
+  }
+  const s0=WT.strokes[0], ppm=Math.hypot(s0.b[0]-s0.a[0],s0.b[1]-s0.a[1])/WT.mm;
+  showKitchenModal('dimension-reading');
+  setTimeout(()=>{   // let the spinner paint: the trace runs on the main thread
+    const ts=WT.strokes.map(s=>WallTrace.learn({gray:WT.gray,rgb:WT.rgb,w:WT.W,h:WT.H,a:s.a,b:s.b,pxPerMm:ppm}));
+    const fail=msg=>{ WT.err=msg; WT.strokes.length=WT.rooms?1:0; showKitchenModal(WT.rooms?'wall-preview':'wall-mark'); if(WT.rooms) showToast(msg); };
+    if(ts.some(t=>!t)) return fail(`No wall line under ${ts[0]?'C → D':'A → B'} — drag right along a wall's drawn line.`);
+    const b=WT.box, prefer=b?[(b.x0+b.x1)/2,(b.y0+b.y1)/2]:[WT.W/2,WT.H/2];
+    const r=WallTrace.trace({w:WT.W,h:WT.H,templates:ts,pxPerMm:ppm,prefer,limit:b});
+    if(r.error) return fail(r.error);
+    WT.templates=ts; WT.rooms=r.rooms; WT.pick=0; WT.err=null;
+    showKitchenModal('wall-preview');
+  },30);
+}
+function wtDraft(){
+  const room=WT.rooms[WT.pick];
+  return {room, ppm:WallTrace.scaleFrom(room.poly,WT.templates[0],WT.mm).pxPerMm};
+}
+function renderWallPreview(){
+  const {room,ppm}=wtDraft(), p=room.poly, n=p.length, big=Math.max(WT.W,WT.H), sw=big/320, fs=big/55;
+  const pt=(i,s)=>{ const a=p[i],b=p[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]); return [a[0]+(b[0]-a[0])*s/L,a[1]+(b[1]-a[1])*s/L]; };
+  const sides=p.map((a,i)=>{ const b=p[(i+1)%n], open=room.edges[i].kind==='open';
+    return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${open?'#8C8778':'#B4533A'}" stroke-width="${sw*(open?2:3.2)}" ${open?`stroke-dasharray="${sw*5} ${sw*4}"`:''} stroke-linecap="round"/>`; }).join('');
+  // wall lengths sit just inside the room (inward normal of a clockwise outline)
+  const labels=p.map((a,i)=>{ const b=p[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]),u=[(b[0]-a[0])/L,(b[1]-a[1])/L],m=pt(i,L/2),d=fs*1.3;
+    return `<text x="${m[0]-u[1]*d}" y="${m[1]+u[0]*d+fs*0.35}" font-size="${fs}" font-weight="700" fill="#3A372F" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="${sw*2.5}">${fmtLen(L/ppm)}${room.edges[i].kind==='open'?' · open':''}</text>`; }).join('');
+  const opens=room.openings.map((o,i)=>{ const a=pt(o.edge,o.s),b=pt(o.edge,o.e),m=pt(o.edge,(o.s+o.e)/2), k=WT_KINDS[wtKind(o)];
+    return `<g onclick="wtCycleOpening(${i})" style="cursor:pointer"><title>${k.label} — click to change</title>
+      <line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${k.color}" stroke-width="${sw*(o.removed?3:6)}" ${o.removed?`stroke-dasharray="${sw*3} ${sw*3}"`:''} opacity=".85"/>
+      <line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="transparent" stroke-width="${sw*16}"/>
+      <text x="${m[0]}" y="${m[1]+fs*0.35}" font-size="${fs*0.9}" font-weight="700" fill="#fff" text-anchor="middle" paint-order="stroke" stroke="${k.color}" stroke-width="${sw*3}">${k.mark}</text></g>`; }).join('');
+  const cols=room.cols.map(c=>`<rect x="${c.x0}" y="${c.y0}" width="${c.x1-c.x0}" height="${c.y1-c.y0}" fill="#C98A2B" fill-opacity=".55" stroke="#C98A2B" stroke-width="${sw*1.5}"/>`).join('');
+  const area=`<polygon points="${p.map(q=>q.join(',')).join(' ')}" fill="#B4533A" fill-opacity=".08"/>`;
+  const cnt=(kind,one,many)=>{ const k=room.openings.filter(o=>wtKind(o)===kind).length; return k?`${k} ${k>1?many:one}`:''; };
+  const nOpen=room.edges.filter(e=>e.kind==='open').length;
+  const summary=[`${n} walls`,cnt('door','door','doors'),cnt('window','window','windows'),cnt('opening','opening','openings'),room.cols.length?`${room.cols.length} column${room.cols.length>1?'s':''}`:'',nOpen?`${nOpen} open side${nOpen>1?'s':''}`:''].filter(Boolean).join(' · ');
+  const key=(c,t)=>`<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:4px;border-radius:2px;background:${c}"></span>${t}</span>`;
+  return `<div style="padding:24px 26px 12px">
+      <div class="serif" style="font-size:20px;margin-bottom:4px">Is this the kitchen?</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">Traced from the wall you marked. Check it against the plan — click a door or window to change what it is. Everything stays editable on the Layout page.</div>
+    </div>
+    <div style="padding:0 26px">${wtImage(area+sides+cols+opens+labels+wtStrokeSvg(WT.strokes[0],'AB')+(WT.strokes[1]?wtStrokeSvg(WT.strokes[1],'CD'):''),false)}</div>
+    <div style="padding:12px 26px 0;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+      <b style="color:var(--ink)">${summary}</b>${key('#B4533A','wall')}${['door','window','opening'].map(k=>key(WT_KINDS[k].color,k)).join('')}${key('#C98A2B','column')}${key('#8C8778','open')}</div>
+    <div style="padding:18px 26px 8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn ghost" onclick="WT.strokes=[];WT.rooms=null;WT.templates=null;showKitchenModal('wall-mark')" style="padding:11px 18px;font-size:13px">↺ Redo</button>
+      <button class="btn ghost" onclick="WT.err=null;showKitchenModal('wall-mark')" style="padding:11px 18px;font-size:13px">Mark a second wall</button>
+      ${WT.rooms.length>1?`<button class="btn ghost" onclick="WT.pick=(WT.pick+1)%WT.rooms.length;renderKitchenModal()" style="padding:11px 18px;font-size:13px">Other side of A → B</button>`:''}
+      <button class="btn" onclick="wallTraceConfirm()" style="padding:11px 24px;font-size:14px">Looks right → Build layout</button>
+    </div>
+    <div style="padding:4px 26px 22px;text-align:center;font-size:11px;color:var(--muted2)">
+      <span style="text-decoration:underline;cursor:pointer" onclick="readKitchenWithAi()">Read it with AI instead</span>
+      &nbsp;·&nbsp;<span style="text-decoration:underline;cursor:pointer" onclick="cancelKitchenDetection()">Cancel</span></div>`;
+}
+// What a traced gap is: the tracer's guess, changed by clicking it in the preview.
+const WT_KINDS={door:{label:'Door',mark:'D',color:'#3C8A55'},window:{label:'Window',mark:'W',color:'#3B6FB6'},
+  opening:{label:'Opening (no door)',mark:'O',color:'#8A6FB0'},none:{label:'Not an opening — wall',mark:'×',color:'#8C8778'}};
+const wtKind=o=>o.removed?'none':o.type==='window'?'window':o.variant==='doorless'?'opening':'door';
+function wtCycleOpening(i){
+  const o=WT.rooms[WT.pick].openings[i], order=Object.keys(WT_KINDS), next=order[(order.indexOf(wtKind(o))+1)%order.length];
+  o.removed=next==='none'; o.type=next==='window'?'window':'door';
+  if(next==='opening') o.variant='doorless'; else delete o.variant;
+  renderKitchenModal();
+}
+function wallTraceConfirm(){
+  const {room,ppm}=wtDraft(), d=WallTrace.toDraft(room,ppm);
+  d.confidence='high'; d.warnings=[]; d.toast='Kitchen traced from the wall you marked';
+  WT=null; S.kdetect=null; $('modalKitchen').style.display='none';
+  applyVisionExtract(d);
+}
+
 function renderKitchenModal(){
   const card=$('modalKitchenCard'); if(!card||!S.kdetect) return;
   const stage=S.kdetect.stage;
@@ -1916,6 +2089,8 @@ function renderKitchenModal(){
     : stage==='manual' ? renderKitchenManual()
     : stage==='dimension-reading' ? renderKitchenDimensionReading()
     : stage==='dimension-confirm' ? renderKitchenDimensionConfirm()
+    : stage==='wall-mark' ? renderWallMark()
+    : stage==='wall-preview' ? renderWallPreview()
     : '';
 }
 
@@ -1958,7 +2133,7 @@ async function buildRoomFromShape(shapeId){
 // the state loadRoom() sets up — bypasses the rect/L-only /api/suggest engine.
 function buildCustomRoom(verts,label){
   S.anchors=[]; S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]};
-  S.openings=[]; S.suggested=[]; S.islandInfo=null; S.structures=[]; S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false;
+  S.openings=[]; S.suggested=[]; S.islandInfo=null; S.structures=[]; S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false; S.rpSel=[]; S.rpBatch=null;
   S.placing=null; S.arm=null; S.selFx=null;
   S.room={strategy:'custom',label};
   rebuildWalls(verts);            // sets S.walls + S.room.bbox + S.dims
@@ -2408,7 +2583,7 @@ async function loadRoom(){
   const r=await res.json();
   S.room=r.room; S.walls=r.room.walls; S.suggested=r.suggested; S.islandInfo=computeIslandInfo();
   S.anchors=[];                       // guided flow: nothing placed until the user (or AI) places it
-  S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]}; S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false;
+  S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]}; S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false; S.rpSel=[]; S.rpBatch=null;
   setDefaultDoorWindow();   // default room = door centred on one wall + window centred opposite
   S.placing=null; S.arm=null; S.selFx=null;
   refitView();   // fresh room → fit it to the viewport once (frozen thereafter, no shift on edits)
@@ -4175,9 +4350,16 @@ function fxWidthMm(a){ return a.type==='hob'?(S.hob.size||(a.elevation==='B'?600
 function fxDropValid(type,wallIdx,off,widthMm){
   const w=S.walls[wallIdx]; if(!w) return false;
   if(isOpenWall(wallIdx)) return false;               // open threshold — no cabinets/fixtures
-  if(w.length<widthMm) return false;                  // wall too short to hold it
-  const half=widthMm/2; if(off<half-0.5||off>w.length-half+0.5) return false;  // footprint off the wall ends
-  const s0=off-half, s1=off+half;
+  const half=widthMm/2;
+  // The fridge look never limits where the fridge goes (fridge-look-free-placement): the designer
+  // positions it; towers that do not fit are reported by the engine.
+  return fxSpanValid(type,wallIdx,off-half,off+half);
+}
+// The footprint [s0,s1] on wall `wallIdx`: on the wall, clear of other anchors, door swings,
+// windows (sinks excepted) and — for the fridge — columns.
+function fxSpanValid(type,wallIdx,s0,s1){
+  const w=S.walls[wallIdx];
+  if(s0<-0.5||s1>w.length+0.5) return false;          // footprint off the wall ends
   for(const a of S.anchors){
     if(a.type===type||a.wall!=='W'+wallIdx||globalThis.IslandDesigner?.assigned(a.type))continue;
     const otherHalf=fxWidthMm(a)/2;
@@ -4572,9 +4754,14 @@ function hobAccDesc(name,size){ const e=(S.hobAccDesc||{})[name]; if(!e)return n
   if(e.bySize) return e.bySize[String(size)]||null; return e.desc||null; }
 const HOB_BASE_TRAY='Sintered stone base tray';   // auto-attached to every assigned accessory
 // Product photos (public/assets/hob/, served via /assets/). Size is baked into the names
-// now, so no size-aware lookup. Items with no photo yet (baskets, divider, pot & pan
-// holder) simply show name + description on the Summary until the user supplies images.
+// now, so no size-aware lookup. The basket, divider and pot & pan holder photos are the
+// Excel master's own (data/accessories-master/media image5/1/11); the Excel has a photo only
+// for the 600 basket, so both basket sizes share it (user's choice, 2026-10-19).
 const HOB_ACC_IMG={
+  'Onion & Potato Basket (Small)':'assets/hob/onion-potato.jpg',
+  'Onion & Potato Basket (Large)':'assets/hob/onion-potato.jpg',
+  'Drawer Divider for Lids & Pans':'assets/hob/drawer-divider.jpg',
+  'Pot & Pan Holder':'assets/hob/pot-pan-holder.jpg',
   'Cutlery Tray (Small)':'assets/hob/cutlery.jpg',
   'Cutlery Tray (Large)':'assets/hob/cutlery-900.png',
   'Rolling Board & Rolling Pin Tray':'assets/hob/rolling.jpg',
@@ -4603,14 +4790,10 @@ function hobAccOptions(size,count,type){
 function hobHasAccessories(){ return !!(S.hob.size&&S.hob.drawerCount) &&
   S.hob.drawers.some(d=>hobAccOptions(S.hob.size,S.hob.drawerCount,d.type).length>0); }
 // Flat list of assigned drawer accessories (+ their auto base tray) for the BOQ/quote step.
-function hobBOQItems(){ const out=[]; (S.hob.drawers||[]).forEach((d,i)=>{ if(d.acc)
-  out.push({drawer:i+1, back:d.type, name:d.acc, baseTray:HOB_BASE_TRAY}); });
-  // side drawer units carry their accessories into the BOQ exactly like the hob's own drawers
-  const sides=(S.hob.sides)||{};
-  for(const side of ['left','right']){ const s=sides[side];
-    if(s&&s.mode==='drawers') (s.drawers||[]).forEach((d,i)=>{ if(d.acc)
-      out.push({drawer:`${side} unit ${i+1}`, back:d.type, name:d.acc, baseTray:HOB_BASE_TRAY}); }); }
-  return out; }
+// Side drawer units carry their accessories exactly like the hob's own drawers; `width` is the
+// unit's, so a 600 side unit's accessory is priced at 600.
+function hobBOQItems(){ return hobUnits().flatMap(u=>u.drawers.map((d,i)=>d.acc&&{
+  drawer:u.key==='hob'?i+1:`${u.key} unit ${i+1}`, back:d.type, name:d.acc, width:u.size, baseTray:HOB_BASE_TRAY}).filter(Boolean)); }
 // Keep the compatibility summary (drives stepDone/stepValue/chips) and the engine width in sync.
 function syncHobStep(){ S.steps.hob=(S.hob.size&&S.hob.drawerCount)?`${S.hob.size}mm · ${S.hob.drawerCount} drawers`:null;
   const a=S.anchors.find(x=>x.type==='hob'); if(a&&S.hob.size) a.elevation=S.hob.size===900?'A':'B'; }
@@ -4630,12 +4813,15 @@ function applyHobSkipDefault(){
   const highIdx=H.drawers.findIndex(d=>d.type==='high');
   if(highIdx>=0){ const o=hobAccOptions(H.size,H.drawerCount,'high'); const can=o.find(x=>/canister/i.test(x)); if(can)H.drawers[highIdx].acc=can; }
   ensureAnchor('hob', H.size===900?'A':'B'); syncHobStep(); }
-function hobSkipAll(){ applyHobSkipDefault(); closeStep(); }                 // Skip All → default, close
-function hobDone(){ if(!S.hob.drawers.some(d=>d.acc)) applyHobSkipDefault(); closeStep(); }  // nothing picked → default
+function hobSkipAll(){ hobSeenResize();   // skipping clears the side units' picks too, so the default never repeats one
+  for(const s of Object.values(S.hob.sides||{})) for(const d of (s&&s.drawers)||[]) d.acc=null;
+  applyHobSkipDefault(); closeStep(); }                 // Skip All → default, close
+function hobSeenResize(){ for(const s of Object.values(S.hob.sides||{})) if(s) delete s.resized; }
+function hobDone(){ hobSeenResize(); if(!hobChosenAccs().length) applyHobSkipDefault(); closeStep(); }  // nothing picked anywhere → default
 // Fallback used by Generate / AI-Automate if the wizard was never completed. A hob with no chosen
 // count, or a chosen count but no accessories, gets the Skip-All default.
 function ensureHobDefaults(){ syncHobSidePreset(); if(!S.hob.size)S.hob.size=900;
-  if(!S.hob.drawerCount || !S.hob.drawers.some(d=>d.acc)) applyHobSkipDefault();
+  if(!S.hob.drawerCount || !hobChosenAccs().length) applyHobSkipDefault();
   ensureAnchor('hob', S.hob.size===900?'A':'B'); syncHobStep(); }
 
 // ---- wizard setters (each enforces validity, then re-renders) ----
@@ -4667,20 +4853,32 @@ function ensureHobSides(){ const mk=()=>({mode:'none',cabinet:null,drawerCount:n
     if(!s.mode) s.mode='none'; if(!Array.isArray(s.drawers)) s.drawers=[]; }
   return S.hob.sides; }
 // Keep the saved picture keys stable; the third photo has a two-drawer hob.
+// `sideWidth` = the side cabinets' width as pictured; their drawers offer that width's
+// accessories until a generated layout says otherwise (reconcileHobSideWidths).
 const HOB_SIDE_PRESETS=[
   {key:'3d-900-each', img:'assets/hob/sides-3d-900-each.png',
    hob:{size:900,drawerCount:3,shape:'2LB+1HB'},
-   left:'DW:2HB', right:'DW:2HB'},
+   left:'DW:2HB', right:'DW:2HB', sideWidth:900},
   {key:'2d-900-each', img:'assets/hob/sides-2d-900-each.png',
    hob:{size:900,drawerCount:2,shape:'2HB'},
-   left:'DW:2HB', right:'DW:2HB'},
+   left:'DW:2HB', right:'DW:2HB', sideWidth:900},
   {key:'3d-600-each', img:'assets/hob/sides-3d-600-each.png?v=2',
    hob:{size:900,drawerCount:2,shape:'2HB'},
-   left:'DW:2LB+1HB', right:'DW:2LB+1HB'},
+   left:'DW:2LB+1HB', right:'DW:2LB+1HB', sideWidth:600},
   {key:'3d-grain-right', img:'assets/hob/sides-3d-grain-right.png',
    hob:{size:900,drawerCount:3,shape:'2LB+1HB'},
-   left:'DW:2HB', right:'GD:1BL+1HF'},
+   left:'DW:2HB', right:'GD:1BL+1HF', sideWidth:900},
 ];
+// hob-side-drawer-accessories: a pictured drawer unit beside the hob gets real drawers that
+// take accessories like the hob's own (LB -> low back, HB -> high back). A unit whose shape is
+// unchanged keeps its drawers, chosen accessories and width; a grain unit has none.
+const SIDE_DRAWERS={'DW:2HB':['high','high'],'DW:2LB+1HB':['low','low','high']};
+function presetSides(p){ const H=S.hob, old=H.sides||{};
+  H.sides={};
+  for(const side of ['left','right']){ const shape=p[side], types=SIDE_DRAWERS[shape], cur=old[side];
+    H.sides[side] = !types ? {mode:'none',cabinet:null,drawerCount:null,drawers:[]}
+      : cur&&cur.mode==='drawers'&&cur.shape===shape ? cur
+      : {mode:'drawers',shape,width:p.sideWidth,drawers:types.map(type=>({type,acc:null}))}; } }
 // With NO pick the core returns to the default 3-drawer layout, so the accessory list
 // shows EVERYTHING the chosen size offers (600: cutlery + spice; 900: all four) — the
 // count-2 sets are subsets of count-3, so nothing selectable is ever hidden. Accessories
@@ -4693,11 +4891,14 @@ function hobResetCoreDefault(){ const H=S.hob; if(H.drawerCount===3) return;
 function hobPresetSummary(){
   const p=HOB_SIDE_PRESETS.find(x=>x.key===S.hob.sidePreset); if(!p) return '';
   const label=shape=>shape==='GD:1BL+1HF'?'Grain drawer':shape.replace('DW:','').replace('2LB+1HB','2 LB + 1 HB').replace('2HB','2 HB');
+  const side=k=>{ const s=(S.hob.sides||{})[k];
+    if(!s||s.mode!=='drawers') return label(p[k]);
+    return `${label(p[k])} · ${s.width?s.width+' mm':'not built'}${s.resized?` <span style="color:#B4533A;font-weight:600">— generated at this width; choose its accessories again</span>`:''}`; };
   return `<div aria-live="polite" style="margin-top:14px;border:1px solid var(--line);background:#FBF9F4;border-radius:12px;padding:12px 16px;font-size:12px;line-height:1.8">
     <div style="font-weight:600;margin-bottom:3px">Selected cabinet layout</div>
-    <div>Hob base: ${label(p.hob.shape)}</div>
-    <div>Left of hob: ${label(p.left)}</div>
-    <div>Right of hob: ${label(p.right)}</div>
+    <div>Hob base: ${label(p.hob.shape)} · ${S.hob.size} mm</div>
+    <div>Left of hob: ${side('left')}</div>
+    <div>Right of hob: ${side('right')}</div>
     <div style="font-size:11px;color:var(--muted);margin-top:4px">LB = low back · HB = high back</div>
   </div>`; }
 function clearHobSidePreset(){ const H=S.hob;
@@ -4707,7 +4908,7 @@ function clearHobSidePreset(){ const H=S.hob;
 // acquire the current shapes instead of sending obsolete exact-width side cabinets.
 function syncHobSidePreset(){ const H=S.hob, p=HOB_SIDE_PRESETS.find(x=>x.key===H.sidePreset); if(!p) return;
   H.shape=p.hob.shape; H.flankShape={left:p.left,right:p.right};
-  H.sides=null; ensureHobSides();
+  presetSides(p);
   if(H.size!==p.hob.size){ H.size=p.hob.size; H.drawers=hobDrawersFor(p.hob.drawerCount);
     ensureAnchor('hob', p.hob.size===900?'A':'B'); }
   if(H.drawerCount!==p.hob.drawerCount){ H.drawerCount=p.hob.drawerCount; H.drawers=hobDrawersFor(p.hob.drawerCount); }
@@ -4723,35 +4924,42 @@ function hobSidePresetGuard(){ const H=S.hob, p=HOB_SIDE_PRESETS.find(x=>x.key==
   clearHobSidePreset(); }
 
 // ---- FLAT accessory list (no per-drawer UI; drawer types never surfaced) -------------------
-// The list = the DISTINCT accessories available for the active size×count (union of the existing
-// per-type matrix), preserving all internal rules. Selecting one auto-places it on a free drawer of
-// its (hidden) back type; each accessory appears ONCE ⇒ inherently one-per-cabinet (no duplicates,
-// no quantity). Capacity = number of drawers of that type, so e.g. only one item can take the single
-// High-Back slot in a 3-drawer layout — invalid combinations stay impossible.
-function hobFlatAccList(){ if(!(S.hob.size&&S.hob.drawerCount)) return [];
-  const seen=new Set(), list=[];
-  for(const t of ['low','high']) for(const a of hobAccOptions(S.hob.size,S.hob.drawerCount,t)) if(!seen.has(a)){ seen.add(a); list.push(a); }
+// Every drawer unit of the hob zone: the hob's own drawers, then the pictured side units.
+// A unit offers the matrix for ITS width (900 hob, a 600 side unit the 600 list); a side
+// unit at a width the matrix lacks (450, or not built) offers nothing.
+function hobUnits(){ const H=S.hob, units=[];
+  if(H.size&&H.drawerCount) units.push({key:'hob',size:H.size,count:H.drawerCount,drawers:H.drawers||[]});
+  for(const k of ['left','right']){ const s=(H.sides||{})[k];
+    if(s&&s.mode==='drawers'&&HOB_ACC_SETS[s.width]) units.push({key:k,size:s.width,count:s.drawers.length,drawers:s.drawers}); }
+  return units; }
+const hobUnitOpts=(u,type)=>hobAccOptions(u.size,u.count,type);
+// The list = the DISTINCT accessories any drawer can take. Selecting one auto-places it on the
+// first free drawer of its (hidden) back type that offers it; each accessory appears ONCE, so
+// at most one of each per hob zone and one per drawer. Capacity = the matching free drawers,
+// so invalid combinations stay impossible.
+function hobFlatAccList(){ const seen=new Set(), list=[];
+  for(const u of hobUnits()) for(const t of ['low','high']) for(const a of hobUnitOpts(u,t)) if(!seen.has(a)){ seen.add(a); list.push(a); }
   return list; }
-function hobDrawerHolding(name){ return (S.hob.drawers||[]).findIndex(d=>d.acc===name); }
-function hobTypeFree(type){ return (S.hob.drawers||[]).findIndex(d=>d.type===type && d.acc===null); }
-// Selected = some drawer holds it. Disabled = not selected AND no free drawer of its back type
-// (its cabinet slot is full) — prevents over-selection.
-function hobAccState(name){ const held=hobDrawerHolding(name)>=0;
-  const type=(HOB_ACC_META[name]||{}).back; const free=hobTypeFree(type)>=0;
-  return { selected:held, disabled:!held && !free }; }
-// Toggle a chosen accessory on/off. On → first free drawer of its back type; off → clear its drawer.
-function toggleHobAcc(name){ const type=(HOB_ACC_META[name]||{}).back;
-  const at=hobDrawerHolding(name);
-  if(at>=0){ S.hob.drawers[at].acc=null; }                 // unassign
-  else { const f=hobTypeFree(type); if(f<0) return;        // no room in this cabinet → ignore
-    const opts=hobAccOptions(S.hob.size,S.hob.drawerCount,type); if(!opts.includes(name)) return;   // matrix guard
-    S.hob.drawers[f].acc=name; }
+function hobDrawerHolding(name){ for(const u of hobUnits()){ const d=u.drawers.find(d=>d.acc===name); if(d) return d; } return null; }
+function hobFreeDrawerFor(name){ const type=(HOB_ACC_META[name]||{}).back;
+  for(const u of hobUnits()){ if(!hobUnitOpts(u,type).includes(name)) continue;
+    const d=u.drawers.find(d=>d.type===type&&d.acc===null); if(d) return d; }
+  return null; }
+// Every chosen accessory with the unit it sits in, for the Summary and the BOQ.
+function hobChosenAccs(){ return hobUnits().flatMap(u=>u.drawers.filter(d=>d.acc).map(d=>({name:d.acc,unit:u.key,width:u.size}))); }
+// Selected = some drawer holds it. Disabled = not selected AND no free drawer that takes it.
+function hobAccState(name){ const held=!!hobDrawerHolding(name);
+  return { selected:held, disabled:!held && !hobFreeDrawerFor(name) }; }
+// Toggle a chosen accessory on/off. On -> first free drawer that takes it; off -> clear its drawer.
+function toggleHobAcc(name){ const held=hobDrawerHolding(name);
+  if(held) held.acc=null;                                   // unassign
+  else { const d=hobFreeDrawerFor(name); if(!d) return; d.acc=name; }   // no room -> ignore
   syncHobStep(); renderStepModal(); renderEditorLeft(); }
 
 function renderHobWizard(){
   syncHobSidePreset();
   const H=S.hob, step=H.wizStep||1; ensureHobSides();
-  const dotState=n=> step===n?'active':(((n===1&&H.size)||(n===2&&(H.sidePreset||(H.drawers||[]).some(d=>d.acc))))?'done':'pending');
+  const dotState=n=> step===n?'active':(((n===1&&H.size)||(n===2&&(H.sidePreset||hobChosenAccs().length)))?'done':'pending');
   const dot=(n,lbl)=>{ const s=dotState(n); const bg=s==='active'?'var(--accent)':s==='done'?'var(--sage)':'#fff';
     const fg=s==='pending'?'#A39A88':'#fff', bd=s==='pending'?'#D2CABA':'transparent';
     return `<div onclick="hobWizGo(${n})" style="display:flex;align-items:center;gap:7px;cursor:pointer">
@@ -4786,8 +4994,8 @@ function renderHobWizard(){
     // STEP 2 — the CABINET PICKS: one look for the hob + both flanking sections, from the
     // four preset photos (HOB_SIDE_PRESETS; single-select, click again to clear). The old
     // separate "drawers & accessories" page is gone — a pick names the drawer count, and
-    // accessories are listed right beneath, NAME-ONLY (pictures and descriptions appear
-    // on the Summary step only — user's requirement). With no pick the core normalizes
+    // accessories are listed right beneath, name plus a small thumbnail (descriptions
+    // appear on the Summary step only — user's requirement). With no pick the core normalizes
     // to the 3-drawer default so the list is EVERYTHING the chosen size offers; a pick
     // narrows it to exactly that configuration. Drawer types never surfaced; each chosen
     // accessory auto-places on its hidden type, one per cabinet.
@@ -4797,12 +5005,14 @@ function renderHobWizard(){
         ${on?`<span style="position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1">✓</span>`:''}
         <div style="aspect-ratio:2/1;background:#26241f">
           <img src="${p.img}" alt="Hob cabinet look" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block"/></div></div>`; };
-    const accCard=(name)=>{ const st=hobAccState(name), sel=st.selected, dis=st.disabled;
-      return `<div ${dis?'':`onclick="toggleHobAcc('${name.replace(/'/g,"\\'")}')"`} title="${dis?'This cabinet is full — remove another accessory to add this one.':''}" style="display:flex;align-items:center;gap:10px;border:1.5px solid ${sel?'var(--accent)':'var(--line)'};background:${sel?'#FBF1EC':'#fff'};border-radius:12px;cursor:${dis?'not-allowed':'pointer'};opacity:${dis?0.5:1};padding:12px 14px">
+    // a small thumbnail beside each name (user's request 2026-10-19); descriptions stay on Summary
+    const accCard=(name)=>{ const st=hobAccState(name), sel=st.selected, dis=st.disabled, img=hobAccImg(name,H.size);
+      return `<div ${dis?'':`onclick="toggleHobAcc('${name.replace(/'/g,"\\'")}')"`} title="${dis?'This cabinet is full — remove another accessory to add this one.':''}" style="display:flex;align-items:center;gap:10px;border:1.5px solid ${sel?'var(--accent)':'var(--line)'};background:${sel?'#FBF1EC':'#fff'};border-radius:12px;cursor:${dis?'not-allowed':'pointer'};opacity:${dis?0.5:1};padding:8px 14px 8px 8px">
+        <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(150deg,#E9E0D2,#CDB89C)">${img?`<img src="${img}" alt="" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block"/>`:''}</div>
         <div style="flex:1;font-size:12.5px;font-weight:600;line-height:1.3">${name}</div>
         ${sel?`<span style="width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">✓</span>`:''}</div>`; };
     const list=hobFlatAccList();
-    const accBlock=`<div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px"><span style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6B675E">Accessories</span><span style="font-size:11px;color:var(--muted2)">${H.sidePreset?'for this pick':`all available at ${H.size} mm`} · one per cabinet</span><div style="flex:1;height:1px;background:var(--line)"></div></div>`
+    const accBlock=`<div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px"><span style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6B675E">Accessories</span><span style="font-size:11px;color:var(--muted2)">${H.sidePreset?'for this pick':`all available at ${H.size} mm`} · one per drawer, each once</span><div style="flex:1;height:1px;background:var(--line)"></div></div>`
       +(list.length
         ?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${list.map(accCard).join('')}</div>`
         :`<div style="border:1px dashed #C3B89F;border-radius:12px;padding:20px;text-align:center;background:#FBF9F4">
@@ -4827,17 +5037,18 @@ function renderHobWizard(){
     const p=HOB_SIDE_PRESETS.find(x=>x.key===H.sidePreset);
     const cnt=H.drawerCount||3;
     const heroImg=p?p.img:`assets/hob/drawers-${cnt}.png`;
-    const accs=(H.drawers||[]).filter(d=>d.acc).map(d=>d.acc);
+    const accs=hobChosenAccs();
+    const WHERE={hob:'Hob drawers',left:'Left of hob',right:'Right of hob'};
     // picture + description tiles — the Summary is the ONLY place accessory pictures and
-    // descriptions (Excel master) appear; step 2 lists names alone (user's requirement).
-    const accImgCard=(name)=>{ const img=hobAccImg(name,H.size);
-      const d=S.hobAccDesc?hobAccDesc(name,H.size):null;
+    // descriptions (Excel master) appear; step 2 lists names with a small thumbnail.
+    const accImgCard=({name,unit,width})=>{ const img=hobAccImg(name,width);
+      const d=S.hobAccDesc?hobAccDesc(name,width):null;
       return `<div style="border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff">
         <div style="aspect-ratio:16/10;background:linear-gradient(150deg,#E9E0D2,#CDB89C)">${img?`<img src="${img}" alt="${name}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block"/>`:''}</div>
         <div style="padding:9px 11px">
           <div style="font-size:11.5px;font-weight:600;line-height:1.3">${name}</div>
           ${d?`<div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">${d.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>`:''}
-          <div style="font-size:9.5px;color:var(--muted2);margin-top:5px">+ ${HOB_BASE_TRAY.toLowerCase()}</div></div></div>`; };
+          <div style="font-size:9.5px;color:var(--muted2);margin-top:5px">${WHERE[unit]} · + ${HOB_BASE_TRAY.toLowerCase()}</div></div></div>`; };
     body=`<div style="padding:22px 26px">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 12px">
         <h3 style="font-weight:500;font-size:18px;margin:0">Your hob — summary</h3>
@@ -5040,21 +5251,22 @@ const FRIDGE_PICKS=[
    fridgeType:'builtin', appliances:['crockery','crockery']},
   {key:'pantry-otg', img:'assets/fridge/fridge-pantry-otg.png',
    title:'Tandem Pantry + Oven Tower',
-   desc:'A pull-out tandem pantry right beside the fridge, plus a built-in oven & microwave tower in the cooking zone.',
+   desc:'The fridge between a pull-out tandem pantry on one side and a built-in oven & microwave tower on the other.',
    fridgeType:'builtin', appliances:['pantry','oven']},
   {key:'otg', img:'assets/fridge/fridge-otg.png',
    title:'Free-standing Fridge + Oven Tower',
-   desc:'A free-standing fridge with a built-in oven & microwave tower — the rest of the wall stays open and light.',
+   desc:'A free-standing fridge at the end of the wall with a built-in oven & microwave tower beside it — the rest of the wall stays open and light.',
    fridgeType:'loose', appliances:['oven']},
   {key:'tall-cabinet', img:'assets/fridge/fridge-tall-cabinet.png',
    title:'Fridge with Tall Storage',
-   desc:'The fridge built into full-height cabinetry — a tall storage cabinet alongside, lofts above.',
+   desc:'The fridge built into full-height cabinetry — one plain tall storage cabinet alongside, no glass or appliances.',
    fridgeType:'builtin', appliances:['pantry']},
 ];
 // Summary + engine wiring. A pick names its exact towers; NO pick keeps the legacy
 // Built-In full set. The dishwasher remains an explicit sink selection.
 function syncFridgeStep(){ const f=S.fridge, p=FRIDGE_PICKS.find(x=>x.key===f.pick);
   S.options.fridgeWidth=fridgeWidth();
+  S.options.fridgePick=p?p.key:null;   // the engine builds exactly this look's towers (fridge-look)
   if(p) f.type=p.fridgeType;
   S.steps.fridge = p ? p.title : (f.type ? (f.type==='builtin'?'Built-in':'Free Standing') : null);
   if(f.type){ S.options.fridgeType = f.type==='builtin'?'builtin':'loose';
@@ -5271,9 +5483,15 @@ async function generate(){
     if(S.plan)await dsRevision('before-generation',{required:true});
     if(activeRoom()!==owner||owner._buildRequest!==requestId||buildFingerprint(S)!==sourceInput)return;
     if(S.plan?.placedAccessories?.length)plan.placedAccessories=S.plan.placedAccessories;   // the designer's accessory picks survive a regenerate
+    const lostAccs=carryCabAccs(S.plan,plan);   // …and cabinet-held ones follow their cabinet
     if(S.plan?.backsplash&&!plan.backsplash)plan.backsplash=S.plan.backsplash;   // kept across a regenerate; any piece now behind a cabinet drops out
     S.plan=plan;S.generationFailure=null;
     applyCorrections(plan);
+    // a side unit generated at another width loses the accessories it can't take: listed with
+    // the corrections, flagged in the HOB step, and said once now
+    const hobMsgs=reconcileHobSideWidths(plan);
+    if(lostAccs.length) hobMsgs.push(`${lostAccs.join(', ')} ${lostAccs.length>1?'were':'was'} removed: ${lostAccs.length>1?'their cabinets':'its cabinet'} changed or moved in the new layout. Select the cabinets on the editing page to add accessories again.`);
+    if(hobMsgs.length){ plan.corrections=[...(plan.corrections||[]),...hobMsgs.map(description=>({kind:'hob-accessories',description}))]; showToast(hobMsgs[0]); }
   }catch(err){
     if(activeRoom()===owner&&owner._buildRequest===requestId&&buildFingerprint(S)===sourceInput){
       go('editor');showGenerationFailure(err);
@@ -5303,6 +5521,26 @@ function applyCorrections(plan){
   for(const a of S.anchors){ const b=c.anchors.find(x=>x.type===a.type); if(b){ a.wall=b.wall; a.off=b.off; } }
   if(c.zones){ S.zones=c.zones.map((z,i)=>({id:'fix-'+i,...z})); S.options.zones=c.zones; }
 }
+// hob-side-drawer-accessories: the side units' accessories were chosen for the pictured width,
+// but the engine sizes those units itself. Where it built another width (or none), accessories
+// that width does not take are removed and the designer is asked to choose again.
+function reconcileHobSideWidths(plan){
+  const H=S.hob, sides=H.sidePreset&&H.sides; if(!sides) return [];
+  const isHob=g=>g.kind==='anchor'&&g.label==='hob';
+  const run=(plan.runs||[]).find(r=>(r.segments||[]).some(isHob)); if(!run) return [];
+  const segs=run.segments, hob=segs.find(isHob), msgs=[], NAME={left:'Left of hob',right:'Right of hob'};
+  for(const k of ['left','right']){ const s=sides[k]; if(!s||s.mode!=='drawers') continue;
+    const g=segs.find(g=>g.code&&/^BC-DW-/.test(g.code)&&Math.abs(k==='left'?g.x1-hob.x0:g.x0-hob.x1)<1), t=g&&drawerTypesOf(g.code);
+    const same=t&&t.low===s.drawers.filter(d=>d.type==='low').length&&t.high===s.drawers.filter(d=>d.type==='high').length;
+    const built=g&&same?Math.round(g.width):null; if(built===s.width) continue;
+    const was=s.width, u={size:built,count:s.drawers.length}, removed=[];
+    s.width=built;
+    for(const d of s.drawers) if(d.acc&&!(HOB_ACC_SETS[built]&&hobUnitOpts(u,d.type).includes(d.acc))){ removed.push(d.acc); d.acc=null; }
+    if(!removed.length) continue;
+    s.resized=true;
+    msgs.push(`${NAME[k]} is ${built?`now ${built} mm`:'no longer the pictured drawer unit'}, not the ${was} mm its accessories were chosen for, so ${removed.join(', ')} ${removed.length>1?'were':'was'} removed. Choose accessories for ${built?`the ${built} mm cabinet`:'it'} again (select it, or open the HOB step).`);
+  }
+  return msgs; }
 function correctionsHtml(plan){
   const list=(plan&&plan.corrections)||[], made=list.filter(c=>c.kind!=='unresolved'), left=list.filter(c=>c.kind==='unresolved');
   const ul=items=>`<ul style="margin:4px 0 0;padding-left:18px">${items.map(c=>`<li>${esc(c.description)}</li>`).join('')}</ul>`;
@@ -5446,11 +5684,13 @@ function captureWalkSnapshot(){
   if(S.snapshots.length>=SNAP_MAX) return;
   const pair=window.captureSnapshotPair&&window.captureSnapshotPair();
   if(!pair||!pair.photo) return;
-  S.snapshots.push({id:'shot'+Date.now()+Math.random().toString(36).slice(2,6),img:pair.photo,mask:pair.mask,bs:Object.keys(captureBsRects()).length>0});
+  const shot={id:'shot'+Date.now()+Math.random().toString(36).slice(2,6),img:pair.photo,mask:pair.mask,bs:Object.keys(captureBsRects()).length>0};
+  S.snapshots.push(shot);
+  if(S.rpBatch) S.rpBatch.ids.push(shot.id);   // a retake from the batch page joins that batch
   renderSnapshotBar();
   showToast(`Snapshot saved (${S.snapshots.length}/${SNAP_MAX})`);
 }
-function removeSnapshot(id){ S.snapshots=S.snapshots.filter(s=>s.id!==id); renderSnapshotBar(); }
+function removeSnapshot(id){ S.snapshots=S.snapshots.filter(s=>s.id!==id); if(S.rpBatch) S.rpBatch.ids=S.rpBatch.ids.filter(x=>x!==id); renderSnapshotBar(); }
 function renderSnapshotBar(){
   const strip=$('snapStrip'), count=$('snapCount'), btn=$('snapCaptureBtn'), msg=$('snapCapMsg'); if(!strip) return;
   const atCap=S.snapshots.length>=SNAP_MAX;
@@ -5911,7 +6151,7 @@ function renderPopLooks(){ $('popLooks').innerHTML=LOOKS.map(l=>lookCell(l,11)).
 // Entry point for every "Open Render Portal" button. Zero snapshots -> the empty state (below)
 // handles telling the user to go capture one; otherwise always re-open on the gallery, never
 // mid-flow on whatever snapshot was last active.
-function openRenderPortal(){ S.rpActive=null; S.rpForceRepick=false; S.rpCapture=false; go('render'); }
+function openRenderPortal(){ S.rpActive=null; S.rpForceRepick=false; S.rpSel=[]; S.rpBatch=null; S.rpCapture=false; go('render'); }
 // Capture view: the walkthrough scene again, but plain (no finish, no lettering) in a 16:9 pane.
 function openCapture(){ S.rpCapture=true; S.rpActive=null; renderRenderPortal(); window.scrollTo(0,0); }
 function closeCapture(){ S.rpCapture=false; if(window.stopScene)window.stopScene(); renderRenderPortal(); }
@@ -5947,12 +6187,21 @@ function rpSetSlot(k){ S.rpSlot=k;
     </div>`;
   m.style.display='flex'; renderMaterialGrid(); }
 function closeRpFinish(){ const m=$('modalRpFinish'); if(m){ m.style.display='none'; m.innerHTML=''; } }
-function rpMatch(k){ const a=S.snapshots.find(s=>s.id===S.rpActive); if(a){ rpPicks(a)[k]=null; renderRenderPortal(); } }
+function rpMatch(k){ const a=rpTarget(); if(a){ rpPicks(a)[k]=null; renderRenderPortal(); } }
+// What the finish slots edit: the open batch (one set of picks for all its snapshots), else the open snapshot.
+// A batch shows the backsplash slot when any of its snapshots has a backsplash panel.
+function batchSnaps(){ return S.rpBatch?S.rpBatch.ids.map(id=>S.snapshots.find(s=>s.id===id)).filter(Boolean):[]; }
+function rpTarget(){ if(S.rpBatch){ S.rpBatch.bs=batchSnaps().some(s=>s.bs); return S.rpBatch; } return S.snapshots.find(s=>s.id===S.rpActive); }
+// Gallery tick boxes: pick two or three snapshots to render together.
+function toggleRpSel(id){ S.rpSel=(S.rpSel||[]).includes(id)?S.rpSel.filter(x=>x!==id):[...(S.rpSel||[]),id]; renderRenderPortal(); }
+function openBatch(){ const ids=S.snapshots.map(s=>s.id).filter(id=>(S.rpSel||[]).includes(id)); if(ids.length<2) return;
+  S.rpBatch={ids,picks:null}; S.rpActive=null; S.rpSlot='cab'; renderRenderPortal(); window.scrollTo(0,0); }
+function closeBatch(){ S.rpBatch=null; renderRenderPortal(); }
 function openSnapshotFull(id){ S.rpActive=id; S.rpForceRepick=false; S.rpSlot='cab'; renderRenderPortal(); window.scrollTo(0,0); }
 function backToGallery(){ S.rpActive=null; renderRenderPortal(); }
 // Retake discards this snapshot outright (freeing its slot under the 3-cap) and opens the
 // capture view for its replacement.
-function retakeSnapshot(id){ S.snapshots=S.snapshots.filter(s=>s.id!==id); openCapture(); }
+function retakeSnapshot(id){ removeSnapshot(id); openCapture(); }
 function nextSnapshot(){
   const idx=S.snapshots.findIndex(s=>s.id===S.rpActive), nxt=S.snapshots[idx+1]; if(!nxt) return;
   S.rpActive=nxt.id; S.rpForceRepick=false; S.rpSlot='cab'; renderRenderPortal(); window.scrollTo(0,0);
@@ -5961,7 +6210,7 @@ function nextSnapshot(){
 // picks it was last rendered with (kept on the snapshot), so re-render-with-same is one click.
 function reRenderActive(){ S.rpForceRepick=true; S.rpSlot='cab'; renderRenderPortal(); }
 // A tile click fills the active slot of the open snapshot.
-function setMaterial(m){ const a=S.snapshots.find(s=>s.id===S.rpActive); closeRpFinish(); if(a){ rpPicks(a)[S.rpSlot]=m; renderRenderPortal(); } }
+function setMaterial(m){ const a=rpTarget(); closeRpFinish(); if(a){ rpPicks(a)[S.rpSlot]=m; renderRenderPortal(); } }
 
 function renderRenderPortal(){
   const planCap=S.tier==='Premium'?'up to 10':S.tier==='Basic'?'5':'2';
@@ -6004,22 +6253,54 @@ function renderRenderPortal(){
     return;
   }
 
+  // ---- batch: the picked snapshots side by side, one set of finishes, rendered together ----
+  if(S.rpBatch){
+    const snaps=batchSnaps();
+    $('renderTitle').textContent='Render '+snaps.length+' snapshots together';
+    body.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn ghost" onclick="closeBatch()" style="padding:9px 16px;font-size:12.5px">← All snapshots</button>
+        <span style="font-size:13px;color:var(--muted)">The finishes below apply to every snapshot here.</span>
+      </div>
+      <div class="ed-grid" style="display:grid;grid-template-columns:1fr 280px;gap:18px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;align-content:start">${snaps.map((s,i)=>`
+          <div style="border-radius:14px;overflow:hidden;border:1.5px solid var(--line);background:#fff">
+            <div style="aspect-ratio:16/10;background:#2A2722"><img src="${s.img}" style="width:100%;height:100%;object-fit:cover;display:block"/></div>
+            <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:12.5px;font-weight:600">Snapshot ${S.snapshots.indexOf(s)+1}</span>
+              <button class="btn ghost" onclick="retakeSnapshot('${s.id}')" style="padding:6px 12px;font-size:11.5px">↺ Retake</button>
+            </div>
+          </div>`).join('')}
+          ${S.snapshots.length<SNAP_MAX?`<button class="btn ghost" onclick="openCapture()" style="min-height:120px;font-size:12.5px">📸 Capture snapshot</button>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">${rpFinishPanel(rpTarget(),'doRenderBatch()',snaps.length)}</div>
+      </div>`;
+    return;
+  }
+
   const active=S.snapshots.find(s=>s.id===S.rpActive);
 
   // ---- 1-3 snapshots, none open: gallery ----
   if(!active){
     $('renderTitle').textContent='Choose a snapshot';
-    const tile=(s,i)=>`<div onclick="openSnapshotFull('${s.id}')" style="cursor:pointer;position:relative;border-radius:14px;overflow:hidden;border:1.5px solid var(--line);background:#fff;box-shadow:0 14px 30px -20px rgba(0,0,0,.4)">
+    const sel=S.rpSel||[];
+    const tile=(s,i)=>{ const on=sel.includes(s.id);
+      return `<div onclick="openSnapshotFull('${s.id}')" style="cursor:pointer;position:relative;border-radius:14px;overflow:hidden;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:#fff;box-shadow:0 14px 30px -20px rgba(0,0,0,.4)">
+        <button onclick="event.stopPropagation();toggleRpSel('${s.id}')" aria-pressed="${on}" title="Select to render together" style="position:absolute;top:10px;left:10px;z-index:2;width:26px;height:26px;border-radius:7px;border:2px solid #fff;background:${on?'var(--accent)':'rgba(30,28,24,.45)'};color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35)">${on?'✓':''}</button>
         <div style="aspect-ratio:16/10;background:#EEE9DE"><img src="${s.rendered||s.img}" style="width:100%;height:100%;object-fit:cover;display:block"/></div>
         <div style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
           <span style="font-size:12.5px;font-weight:600">Snapshot ${i+1}</span>
           ${s.rendered?`<span style="font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;background:var(--sage);color:#fff;padding:3px 9px;border-radius:20px;white-space:nowrap">✓ Rendered</span>`:`<span style="font-size:10.5px;color:var(--muted2)">Not rendered</span>`}
         </div>
-      </div>`;
+      </div>`; };
+    const nSel=S.snapshots.filter(s=>sel.includes(s.id)).length;
     body.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <p style="font-size:13px;color:var(--muted);margin:0">Click a snapshot to pick a finish and render it — each one renders on its own.</p>
-        ${S.snapshots.length<SNAP_MAX?`<button class="btn ghost" onclick="openCapture()" style="padding:9px 16px;font-size:12.5px">📸 Capture snapshot</button>`:''}
+        <p style="font-size:13px;color:var(--muted);margin:0">Click a snapshot to render it on its own, or tick two or three to render them together.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${S.snapshots.length<SNAP_MAX?`<button class="btn ghost" onclick="openCapture()" style="padding:9px 16px;font-size:12.5px">📸 Capture snapshot</button>`:''}
+          ${nSel>=2?`<button class="btn" onclick="openBatch()" style="padding:9px 16px;font-size:12.5px">Render ${nSel} together →</button>`:''}
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">${S.snapshots.map(tile).join('')}</div>`;
     return;
@@ -6032,7 +6313,7 @@ function renderRenderPortal(){
 }
 // Group 1 / Group 2 (matte) finish grid — unchanged tiles/logic, just relocated into the per-snapshot view.
 function renderMaterialGrid(){
-  const el=$('renderMaterials'), active=S.snapshots.find(s=>s.id===S.rpActive); if(!el||!active) return;
+  const el=$('renderMaterials'), active=rpTarget(); if(!el||!active) return;
   const F=window.MAGPPIE_FINISHES, picked=rpPicks(active)[S.rpSlot];   // the tick follows the active slot
   if(F&&F.pg1){
     // the render portal offers only the finish group(s) the room's series allows
@@ -6053,6 +6334,21 @@ function renderMaterialGrid(){
         <span style="font-size:13px;font-weight:600;flex:1">${m.name}</span>${on?'<span style="color:var(--accent);font-weight:700;font-size:13px">✓</span>':''}</div>`;}).join('');
   }
 }
+// The Cabinets / Countertop / Backsplash slots plus the Render button, for a snapshot or a batch.
+function rpFinishPanel(t,onRender,n){
+  const R=rpResolved(t), picks=rpPicks(t);
+  const slot=([k,label])=>{ const f=R[k], off=k==='bs'&&!t.bs;
+    const sub=off?'None in this snapshot':!f?'Pick a finish':picks[k]||k==='cab'?f.name:k==='ctop'?'Matched to cabinets':'Matched to countertop';
+    return `<div ${off?'title="Add backsplash in the Elevation, then capture again"':`onclick="rpSetSlot('${k}')"`} style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:${off?'not-allowed':'pointer'};opacity:${off?.5:1}">
+      <div style="flex:none;width:38px;height:38px;border-radius:8px;overflow:hidden;background:#EEE9DE">${f?`<img src="${f.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>`:''}</div>
+      <div style="min-width:0;flex:1"><div style="font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:700">${label}</div>
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub)}</div></div>
+      ${k!=='cab'&&picks[k]&&!off?`<button onclick="event.stopPropagation();rpMatch('${k}')" title="Follow the ${k==='ctop'?'cabinets':'countertop'} again" style="flex:none;border:none;background:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:2px">Match</button>`:''}
+    </div>`; };
+  const ok=R.cab&&n!==0;
+  return RP_SLOTS.map(slot).join('')+
+    `<button class="btn" id="renderBtn" onclick="${onRender}" ${ok?'':'disabled'} style="padding:14px;margin-top:4px;${ok?'':'opacity:.45;cursor:not-allowed'}">Render with AI</button>`;
+}
 // The per-snapshot full view. showPicker=true -> plain snapshot + finish grid + Render button.
 // showPicker=false -> the snapshot's OWN existing rendered result (before/after) + Next/re-render —
 // revisiting an already-rendered snapshot always lands here, never forces a re-render.
@@ -6065,24 +6361,12 @@ function renderSnapshotFullView(active,body){
       <button class="btn ghost" onclick="retakeSnapshot('${active.id}')" style="padding:9px 16px;font-size:12.5px">↺ Retake this snapshot</button>
     </div>`;
   if(showPicker){
-    const R=rpResolved(active), picks=rpPicks(active);
-    const slot=([k,label])=>{ const f=R[k], off=k==='bs'&&!active.bs;
-      const sub=off?'None in this snapshot':!f?'Pick a finish':picks[k]||k==='cab'?f.name:k==='ctop'?'Matched to cabinets':'Matched to countertop';
-      return `<div ${off?'title="Add backsplash in the Elevation, then capture again"':`onclick="rpSetSlot('${k}')"`} style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:${off?'not-allowed':'pointer'};opacity:${off?.5:1}">
-        <div style="flex:none;width:38px;height:38px;border-radius:8px;overflow:hidden;background:#EEE9DE">${f?`<img src="${f.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>`:''}</div>
-        <div style="min-width:0;flex:1"><div style="font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:700">${label}</div>
-          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub)}</div></div>
-        ${k!=='cab'&&picks[k]&&!off?`<button onclick="event.stopPropagation();rpMatch('${k}')" title="Follow the ${k==='ctop'?'cabinets':'countertop'} again" style="flex:none;border:none;background:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:2px">Match</button>`:''}
-      </div>`; };
     body.innerHTML=topBar+`
       <div class="ed-grid" style="display:grid;grid-template-columns:1fr 280px;gap:18px">
         <div style="position:relative;aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:#2A2722">
           <img src="${active.img}" style="width:100%;height:100%;object-fit:cover;display:block"/>
         </div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          ${RP_SLOTS.map(slot).join('')}
-          <button class="btn" id="renderBtn" onclick="doRenderActive()" ${R.cab?'':'disabled'} style="padding:14px;margin-top:4px;${R.cab?'':'opacity:.45;cursor:not-allowed'}">Render with AI</button>
-        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">${rpFinishPanel(active,'doRenderActive()')}</div>
       </div>`;
   } else {
     body.innerHTML=topBar+`
@@ -6163,7 +6447,7 @@ function fallbackTintImage(imgSrc){
     return c.toDataURL('image/jpeg',0.85);
   }).catch(()=>imgSrc);
 }
-// Renders ONLY the currently-open snapshot (S.rpActive) — never the whole batch. Each snapshot
+// doRenderActive renders only the open snapshot; doRenderBatch renders a ticked batch. Each snapshot
 // keeps its own `.rendered` + `.renderedFinish`, so re-visiting one later shows its own result.
 const toDataUrl=src=>fetch(src).then(r=>r.blob()).then(b=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); }));
 // Gemini only accepts these output shapes; pick the one closest to the snapshot so the render
@@ -6198,9 +6482,24 @@ async function doRenderActive(){
   go('rendering');
   try{ active.rendered=await aiRender(active); }
   catch(e){ go('render'); showToast(e.message); return; }
-  active.renderedFinish=[...new Set([R.cab,R.ctop,R.bs].filter(Boolean).map(f=>f.name))].join(' · ');
+  active.renderedFinish=rpFinishLabel(active);
   S.rpForceRepick=false;
   go('render');
+}
+function rpFinishLabel(snap){ const R=rpResolved(snap); return [...new Set([R.cab,R.ctop,R.bs].filter(Boolean).map(f=>f.name))].join(' · '); }
+// The batch: every snapshot gets the batch's picks and all renders go out at once. Nothing is
+// shown until the last one is back — a fast render waits for the slow ones, then the gallery
+// shows them all together.
+async function doRenderBatch(){
+  const snaps=batchSnaps(); if(!snaps.length||!rpResolved(S.rpBatch).cab) return;
+  for(const s of snaps) s.picks={...S.rpBatch.picks};
+  go('rendering');
+  const res=await Promise.allSettled(snaps.map(aiRender));
+  res.forEach((r,i)=>{ if(r.status==='fulfilled'){ snaps[i].rendered=r.value; snaps[i].renderedFinish=rpFinishLabel(snaps[i]); } });
+  const failed=res.filter(r=>r.status==='rejected');
+  S.rpBatch=null; S.rpSel=[];
+  go('render');
+  if(failed.length) showToast(`${failed.length} of ${snaps.length} renders failed: ${failed[0].reason?.message||'AI render failed'}`);
 }
 // Drag-to-compare: the render underneath, the original snapshot clipped over it from the left.
 // A transparent native range input spans the image, so dragging (mouse, touch, keyboard) moves it.
@@ -6252,7 +6551,8 @@ function quoteAccItems(){
   const out=new Map(), add=(name,width,qty=1)=>{ const r=accRow(name,width), k=r?r.sn:name, e=out.get(k);
     if(e) e.qty+=qty; else out.set(k,{name:r?r.name:name,qty,price:r?r.price:0}); };
   for(const a of (S.plan&&S.plan.placedAccessories)||[]) add(a.name);
-  for(const h of hobBOQItems()) add(h.name,S.hob.size);
+  for(const c of cabAccItems()) add(c.name,c.width);
+  for(const h of hobBOQItems()) add(h.name,h.width);
   for(const n of (S.sink&&S.sink.accessories)||[]) add(n,sinkWidth());
   for(const n of (S.fridge&&S.fridge.accessories)||[]) add(n);
   return [...out.values()];
@@ -6275,8 +6575,10 @@ function quoteMath(){
   // Kitchen accessories: only the ones the designer ticked while editing (plan.placedAccessories).
   const accPacks=(S.plan&&S.plan.placedAccessories||[]).reduce((a,b)=>a+accPrice(b.name),0);
   // Hob drawer accessories (full config → BOQ). Each assigned tray includes a sintered stone base tray.
-  const hobAcc=hobBOQItems(); const hobAccAmt=hobAcc.reduce((a,h)=>a+accPrice(h.name,S.hob.size),0);
-  const accessories=accPacks+hobAccAmt;
+  const hobAcc=hobBOQItems(); const hobAccAmt=hobAcc.reduce((a,h)=>a+accPrice(h.name,h.width),0);
+  // Accessories the designer put in cabinets on the editing page (seg.accs).
+  const cabAccAmt=cabAccItems().reduce((a,c)=>a+accPrice(c.name,c.width),0);
+  const accessories=accPacks+hobAccAmt+cabAccAmt;
   // Sink wet-zone selections (chosen sink accessories + Veggie add-on) flow into the BOQ here.
   const sinkAccItems=(S.sink&&S.sink.accessories)||[]; const sinkAccAmt=sinkAccItems.reduce((a,n)=>a+accPrice(n,sinkWidth()),0);
   // Fridge (cooling zone) accessories — Tandem Pantry / Pantry.
@@ -6366,7 +6668,8 @@ function renderQuote(){
   // Sink wet-zone spec: pick + size + veggie add-on (own tile now) + chosen accessories.
   const sinkSpec=S.steps.sink?`${S.steps.sink}${S.sink.veggie?' · Veggie Sink':''}${q.sinkAccItems.length?(' · '+q.sinkAccItems.join('; ')):' · no extra accessories'}`:'Configure the sink in the Design step';
   // Corner mechanism + accessory systems (Kubos / Tark) selected in the Design step.
-  const kitchenExtra=(S.plan&&S.plan.placedAccessories||[]).map(a=>esc((accRow(a.name)||a).name)).join(' · ')||'None selected — add them while editing the layout';
+  const kitchenExtra=[...(S.plan&&S.plan.placedAccessories||[]).map(a=>esc((accRow(a.name)||a).name)),
+    ...cabAccItems().map(c=>esc((accRow(c.name,c.width)||c).name))].join(' · ')||'None selected — select a cabinet while editing the layout to add its accessories';
   const aRows=[
     {name:'Wellness Cabinets',spec:`${esc(seriesLabel(activeRoom().seriesId))} · shutter profile ${esc(shutterProfile()||'—')} · ${handle} base · ${q.cabQuote.lines.length} cabinets, carcass net area × series rate (itemised below)`,amt:q.cabinets,w:600,tc:'var(--ink)'},
     {name:'Hob & Drawer Accessories',spec:hobSpec,amt:q.hobAccAmt,w:500,tc:'#4A463E'},
@@ -6442,7 +6745,7 @@ Object.assign(window,{go,setProject,addRoom,editRoom,deleteRoom,duplicateRoom,op
   startOpeningDrag,startStructDrag,toggleWall,setUnit,goStage,
   saveNow,openRevisions,closeRevisionsModal,restoreRevisionUi,
   continueToDesign,openSeriesModal,closeSeriesModal,chooseSeries,openRuleLog,closeRuleLog,
-  selectModule,editDelete,editMoveBy,editReplacePick,closeLibPanel,toggleLibCross,setLibBrowse,setShutterProfile,stopEditing,planElevPick,enterEditMode,bsToggle,bsSet,bsMove,bsUncut,bsDelete,
+  selectModule,editDelete,editMoveBy,editReplacePick,closeLibPanel,toggleLibCross,toggleCabAcc,removeRoomAcc,setLibBrowse,setShutterProfile,stopEditing,planElevPick,enterEditMode,bsToggle,bsSet,bsMove,bsUncut,bsDelete,
   setSegShutter,toggleRemark,toggleKeep,setKeepTol,releaseKeep,regenClean,
   openFinishes,closeFinishes,pickFinishRoom,setHandleGroup,setCounterFinish,setBacksplashFinish,
   toggleMoreMenu,openSchedule,openCompare,shareNow,createShareLink,roomSwitch,pickRoomFromMenu,
@@ -6704,7 +7007,8 @@ async function openSchedule(){
   const rows=Object.entries(bom).sort().map(([code,qty])=>{ const e=entryFor(code); const amt=e?e.price*qty:null; if(amt)cabTotal+=amt;
     return `<tr><td>${esc(code)}${crossCodes.has(normCodeClient(code))?' <b style="color:#B4533A;font-size:9px">CROSS-SERIES</b>':''}</td><td>${e?`${e.w}×${e.h}×${e.d}`:'—'}</td><td>${esc(finishName)}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${e?inr(e.price):'—'}</td><td style="text-align:right">${amt?inr(amt):'—'}</td></tr>`; }).join('');
   const q=quoteMath();
-  const accRows=((S.plan&&S.plan.placedAccessories)||[]).map(a=>`<tr><td>${esc(a.name)} ${accSizeSelect(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('');
+  const accRows=((S.plan&&S.plan.placedAccessories)||[]).map(a=>`<tr><td>${esc(a.name)} ${accSizeSelect(a.name)}</td><td style="text-align:center">${a.qty||1}</td><td style="text-align:right">${inr(accPrice(a.name)*(a.qty||1))}</td></tr>`).join('')
+    +cabAccItems().map(c=>`<tr><td>${esc(c.name)} <span style="color:var(--muted2);font-size:10px">in ${esc(c.code||'')}</span></td><td style="text-align:center">1</td><td style="text-align:right">${inr(accPrice(c.name,c.width))}</td></tr>`).join('');
   const appl=[]; if(S.fridge&&S.fridge.type) appl.push(`Refrigerator (${S.fridge.type})`); if((S.options.appliances||[]).includes('oven')) appl.push('Oven / MW');
   $('schedBody').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -6962,6 +7266,7 @@ function selectTierUnit(run,tier,idx){
 function firstEditBreakaway(){ if(S.reResult){ S.reResult=null; S.reCtx=null; } }
 async function afterEdit(action,from,to){
   firstEditBreakaway(); recalcPositions(); recordPlanEdit();
+  { const m=S.plan?reconcileHobSideWidths(S.plan):[]; if(m.length) showToast(m[0]); }
   if(S.plan){ S.plan.verdict='UNRESOLVED'; S.plan.releaseBlocked=true;
     S.plan.log=(S.plan.log||[]).filter(e=>e.rule!=='Edited layout validation');
     S.plan.log.push({status:'assumed',rule:'Edited layout validation',detail:'Modules were edited after generation. The generated rule verdict no longer validates this arrangement; regenerate to run all layout rules.'});
@@ -7168,7 +7473,18 @@ function startEmptyJointDrag(el,ev){ if(!S.editing) return;
   const sc=+el.dataset.sc, m=el.parentNode.getScreenCTM().inverse(), svg=el.ownerSVGElement; let to=null;
   el.onpointermove=e=>{ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
     to=Math.round(p.matrixTransform(m).x/sc/10)*10; el.setAttribute('x1',to*sc); el.setAttribute('x2',to*sc); };
-  el.onpointerup=()=>{ el.onpointermove=el.onpointerup=null; if(to!=null) moveEmptyBoundary(el.dataset.run,+el.dataset.idx,to); };
+  el.onpointerup=()=>{ el.onpointermove=el.onpointerup=null; if(to==null) return;
+    if(el.dataset.cab) moveCabinetEdge(el.dataset.run,+el.dataset.idx,to,el.dataset.cab); else moveEmptyBoundary(el.dataset.run,+el.dataset.idx,to); };
+}
+// The edge between a cabinet and the empty piece beside it drags the cabinet along with it
+// (cabinets keep their catalogue width), through the same planner as dragging the cabinet itself.
+// rules.json: drag-empty-space-boundary.
+function moveCabinetEdge(run,i,at,side){ if(!S.editing) return;
+  const list=editableList({run,tier:'base'}), a=list?.[i], b=list?.[i+1], cab=side==='a'?a:b;
+  if(!a||!b||!cab) return;
+  S.selModRef={run,tier:'base',idx:list.indexOf(cab)};
+  if(!relocateSelected((cab.x0||0)+at-((a.x0||0)+a.width))) draw2d();
+  openLibPanel();
 }
 /*__RELOCATE_CORE_START__*/
 // Pure free-relocation planner (no DOM, no globals — unit-tested by extraction).
@@ -7325,8 +7641,8 @@ function stopEditing(){
    after an explicit confirm. Structural segments and pinned cabinets are barriers. */
 let _md=null;
 function startModDrag(ev,i){ const m=S.modules[i]; if(!S.editing||!m||m.run==null||m.segTier!=='base') return;
-  if(!S.selModRef||S.selModRef.run!==m.run||S.selModRef.idx!==m.seg||S.selModRef.tier!=='base') return; // drag only the selected one
-  const list=editableList(S.selModRef); const s=list&&list[S.selModRef.idx]; if(!s||!['cabinet','anchor','corner','tallBank'].includes(s.kind)) return;
+  const list=editableList({run:m.run,tier:'base'}); const s=list&&list[m.seg]; if(!s||!['cabinet','anchor','corner','tallBank'].includes(s.kind)) return;
+  if(!S.selModRef||S.selModRef.run!==m.run||S.selModRef.idx!==m.seg||S.selModRef.tier!=='base') selectModule(i);   // one press selects and drags
   const w=S.walls[+m.run.slice(1)], t=tf(680,520,40),pointer=svgPoint($('view2d'),ev);
   const ax=t.X(w.a[0]), ay=t.Y(w.a[1]), bx=t.X(w.b[0]), by=t.Y(w.b[1]);
   const Lpx=Math.hypot(bx-ax,by-ay)||1, ux=(bx-ax)/Lpx, uy=(by-ay)/Lpx;
@@ -7377,7 +7693,8 @@ function zoneForSel(){ const ref=S.selModRef; if(!ref) return 'other';
   const s=selSeg(); const c=s?(s.x0+s.x1)/2:0;
   const reach=(S.rulesCfg&&S.rulesCfg.zones&&S.rulesCfg.zones.reach)||1200;
   const near=(lbl)=>{ const a=(run.segments||[]).find(x=>x.kind==='anchor'&&x.label===lbl); return a&&Math.abs((a.x0+a.x1)/2-c)<=reach; };
-  if(near('hob')) return 'cooking'; if(near('sink')) return 'washing'; return 'other'; }
+  const nearFridge=(run.segments||[]).some(x=>x.kind==='tallBank'&&(x.units||[]).some(u=>u.type==='fridge')&&Math.abs((x.x0+x.x1)/2-c)<=reach);
+  if(near('hob')) return 'cooking'; if(near('sink')) return 'washing'; if(nearFridge) return 'cooling'; return 'other'; }
 // The editor is a docked left sidebar (#libPanel) that exists for the whole edit session;
 // with nothing selected it shows how to start. The body class drives the full-window layout.
 function syncEditWorkspace(){
@@ -7427,6 +7744,99 @@ function thumbCatsFor(ref,s){
 function fillThumb(imgId,cats,w,code){ if(!window.moduleThumb) return;
   window.moduleThumb(cats,w,code).then(u=>{ const img=$(imgId); if(!u||!img) return;
     img.src=u; if(img.parentElement) img.parentElement.style.display='flex'; }); }
+/* ---- CABINET ACCESSORIES on the editing page (rules.json: cabinet-accessories) -------------
+   A selected cabinet offers only the accessories that go in it: its drawers' (low / high back,
+   at its width, the HOB step's matrix) or its mechanism. A pick belongs to that cabinet
+   (seg.accs), so replacing or deleting the cabinet removes it. The hob's drawers and pictured
+   side units share the HOB step's picks; the sink cabinet shares the SINK step's. Zones are
+   the Excel master's (data/accessories-master, Kitchen Accessories sheet). */
+const ACC_ZONES={
+  'Cutlery Tray (Small)':'cooking island','Cutlery Tray (Large)':'cooking island','Rolling Board & Rolling Pin Tray':'cooking island',
+  'Pulse Canister Tray (Small)':'cooking island other','Pulse Canister Tray (Medium)':'cooking island other','Pulse Canister Tray (Large)':'cooking island other',
+  'Onion & Potato Basket (Small)':'cooking island other','Onion & Potato Basket (Large)':'cooking island other',
+  'Drawer Divider for Lids & Pans':'cooking island other','Pot & Pan Holder':'cooking island other',
+  'Bottle Pull-Out – Single':'cooking island other','Bottle Pull-Out – Double':'cooking island other',
+  'Waste Bin Pull-Out':'washing other','Lehmans Corner':'cooking cooling other',
+  'Double Tray':'cooking cooling other','Tandem Pantry':'cooking cooling other',
+};
+// Drawer counts by back type from a cabinet code ('…-2LB-1HB-…' → 2 low, 1 high).
+function drawerTypesOf(code){ const n=t=>[...String(code||'').matchAll(new RegExp(`-(\\d)${t}(?=-)`,'g'))].reduce((a,m)=>a+ +m[1],0);
+  return {low:n('LB'),high:n('HB')}; }
+// What an ordinary cabinet can hold, in `zone`: [{type:'low'|'high'|'unit', count, options}].
+function cabAccSlots(s,zone){ const c=s.code||'', ok=n=>(ACC_ZONES[n]||'').split(' ').includes(zone), out=[];
+  const add=(type,count,options)=>{ options=options.filter(ok); if(count&&options.length) out.push({type,count,options}); };
+  if(/^BC-(DW|HO)-/.test(c)&&HOB_ACC_SETS[s.width]){ const t=drawerTypesOf(c), all=t.low+t.high;
+    for(const type of ['low','high']) add(type,t[type],hobAccOptions(s.width,all,type)); }
+  else if(/^BC-AC-.*-BPO-/.test(c)) add('unit',1,[s.width<=150?'Bottle Pull-Out – Single':'Bottle Pull-Out – Double']);
+  else if(/^BC-AC-.*-WBP-/.test(c)) add('unit',1,['Waste Bin Pull-Out']);
+  else if(/^BB-AC-.*-LMC-/.test(c)) add('unit',1,['Lehmans Corner']);
+  else if(/^TC-AC-.*-TPT-/.test(c)) add('unit',1,['Tandem Pantry']);
+  else if(/^WC-SH-/.test(c)&&[600,900].includes(s.width)) add('unit',1,['Double Tray']);
+  return out; }
+// The HOB step unit a selected base cabinet IS: the hob itself, or a pictured side unit still
+// standing beside it as pictured (same drawers, the unit's width) — else null.
+function hobUnitForSel(ref,s){ const H=S.hob;
+  if(ref.tier!=='base'||!s) return null;
+  if(s.kind==='anchor'&&s.label==='hob') return H.size&&H.drawerCount?'hob':null;
+  const hob=(editableList(ref)||[]).find(g=>g.kind==='anchor'&&g.label==='hob'); if(!hob||!/^BC-DW-/.test(s.code||'')) return null;
+  for(const k of ['left','right']){ const u=(H.sides||{})[k], t=drawerTypesOf(s.code);
+    if(u&&u.mode==='drawers'&&u.width===s.width&&Math.abs(k==='left'?s.x1-hob.x0:s.x0-hob.x1)<1
+      &&t.low===u.drawers.filter(d=>d.type==='low').length&&t.high===u.drawers.filter(d=>d.type==='high').length) return k; }
+  return null; }
+const ACC_TYPE_LABEL={low:'Low-back drawers',high:'High-back drawers',unit:'Mechanism'};
+function cabAccHtml(ref,s){
+  const opts=S._cabAccOpts=[], WHERE={hob:'the hob drawers',left:'the cabinet left of the hob',right:'the cabinet right of the hob'};
+  const card=(name,w,on,why,act)=>{ const i=opts.push(act)-1, img=HOB_ACC_IMG[name]||cfgImg(name);
+    return `<div ${why?'':`onclick="toggleCabAcc(${i})"`} title="${esc(why||'')}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:5px;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:${on?'#FBF1EC':'#fff'};border-radius:9px;cursor:${why?'not-allowed':'pointer'};opacity:${why?.5:1}">
+      <div style="width:34px;height:34px;border-radius:6px;overflow:hidden;flex-shrink:0;background:linear-gradient(150deg,#E9E0D2,#CDB89C)">${img?`<img src="${img}" alt="" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block">`:''}</div>
+      <div style="flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.3">${esc(name)}<div style="font-size:10.5px;font-weight:500;color:var(--muted2)">${inr(accPrice(name,w))}${why?` · ${esc(why)}`:''}</div></div>
+      ${on?'<span style="color:var(--accent);font-weight:700">✓</span>':''}</div>`; };
+  const group=(label,body)=>`<div style="font-size:11px;font-weight:600;color:#6B675E;margin:8px 0 5px">${label}</div>${body}`;
+  const box=(note,body)=>`<div style="margin-top:16px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px">Accessories in this cabinet</div>
+    ${note?`<div style="font-size:11px;color:var(--muted2)">${note}</div>`:''}${body}</div>`;
+  let html='';
+  const unit=hobUnitForSel(ref,s);
+  if(unit){ const u=hobUnits().find(x=>x.key===unit);
+    if(u) html=box('Same picks as the HOB step · each accessory once in the hob area',['low','high'].map(type=>{ const n=u.drawers.filter(d=>d.type===type).length, list=hobUnitOpts(u,type); if(!n||!list.length) return '';
+      const free=u.drawers.some(d=>d.type===type&&d.acc===null);
+      return group(`${ACC_TYPE_LABEL[type]} · ${n}`,list.map(name=>{ const on=u.drawers.some(d=>d.acc===name), held=!on&&hobDrawerHolding(name);
+        const where=held&&hobUnits().find(x=>x.drawers.includes(held));
+        return card(name,u.size,on,held?`already in ${WHERE[where.key]}`:!on&&!free?'no free drawer':'',{kind:'hob',unit,type,name}); }).join('')); }).join('')); }
+  else if(ref.tier==='base'&&s.kind==='anchor'&&s.label==='sink'&&S.sink&&S.sink.pick){
+    html=box('Same picks as the SINK step',sinkAccGroups().map(g=>group(`${g.label}${g.items.length>1?' · pick one':''}`,
+      g.items.map(name=>card(name,sinkWidth(),S.sink.accessories.includes(name),'',{kind:'sink',name})).join(''))).join('')); }
+  else if(s.code){ const slots=cabAccSlots(s,zoneForSel()), have=s.accs||[];
+    if(slots.length) html=box('',slots.map(sl=>{ const used=have.filter(a=>a.type===sl.type).length;
+      return group(sl.type==='unit'?ACC_TYPE_LABEL.unit:`${ACC_TYPE_LABEL[sl.type]} · ${sl.count}`,sl.options.map(name=>{ const on=have.some(a=>a.name===name);
+        return card(name,s.width,on,!on&&used>=sl.count?'no free drawer':'',{kind:'seg',type:sl.type,name}); }).join('')); }).join('')); }
+  const legacy=(S.plan&&S.plan.placedAccessories)||[];
+  if(legacy.length) html+=`<div style="margin-top:16px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px">Earlier kitchen-wide picks</div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:5px">Added before accessories went into cabinets — still in the estimate until removed.</div>
+    ${legacy.map((a,i)=>`<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0"><span style="flex:1">${esc(a.name)}</span><button class="btn ghost" onclick="removeRoomAcc(${i})" style="padding:3px 9px;font-size:11px">Remove</button></div>`).join('')}</div>`;
+  return html; }
+function toggleCabAcc(i){ const o=(S._cabAccOpts||[])[i], s=selSeg(); if(!o||!s) return;
+  if(o.kind==='sink'){ toggleSinkAcc(o.name); }
+  else if(o.kind==='hob'){ const u=hobUnits().find(x=>x.key===o.unit); if(!u) return;
+    const at=u.drawers.find(d=>d.acc===o.name), free=u.drawers.find(d=>d.type===o.type&&d.acc===null);
+    if(at) at.acc=null; else if(free&&!hobDrawerHolding(o.name)) free.acc=o.name; else return;
+    syncHobStep(); }
+  else { const have=s.accs||[], at=have.findIndex(a=>a.name===o.name);
+    s.accs = at>=0 ? have.filter((_,j)=>j!==at) : [...have,{type:o.type,name:o.name}];
+    if(!s.accs.length) delete s.accs; }
+  scheduleAutosave(); renderLibPanelBody(); }
+// Every cabinet-held accessory in the plan, at its cabinet's width, for the estimate.
+function cabAccItems(plan=S.plan){ if(!plan) return [];
+  const lists=[...(plan.runs||[]).map(r=>r.segments||[]),...Object.values(plan.tiers||{}).flatMap(t=>[t.wall||[],t.loft||[]])];
+  return lists.flat().flatMap(g=>(g.accs||[]).map(a=>({name:a.name,width:g.width,code:g.code}))); }
+// A regenerate rebuilds every cabinet: picks follow a cabinet of the same code at the same
+// place on the same wall and tier; the rest are listed back as removed.
+function carryCabAccs(from,to){ const lost=[]; if(!from) return lost;
+  const lists=p=>[...(p.runs||[]).map(r=>[r.key+'|base',r.segments||[]]),...Object.entries(p.tiers||{}).flatMap(([k,t])=>['wall','loft'].map(tr=>[k+'|'+tr,t[tr]||[]]))];
+  const target=new Map(lists(to));
+  for(const [key,list] of lists(from)) for(const g of list) if(g.accs&&g.accs.length){
+    const m=(target.get(key)||[]).find(q=>q.code===g.code&&Math.abs((q.x0||0)-(g.x0||0))<=1);
+    if(m) m.accs=g.accs.map(a=>({...a})); else lost.push(...g.accs.map(a=>a.name)); }
+  return lost; }
 function renderLibPanelBody(){
   const box=$('libBody'); if(!box||!S.selModRef) return;
   const s=selSeg(); if(!s){ box.innerHTML='<div style="color:var(--muted2);font-size:12.5px">Nothing selected.</div>'; return; }
@@ -7495,10 +7905,7 @@ function renderLibPanelBody(){
       </div>
       <div id="libList" style="display:flex;flex-direction:column;gap:4px"><div style="color:var(--muted2);font-size:12px">Loading library…</div></div>
     </div>
-    <div style="margin-top:16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Kitchen accessories · tick to add to the estimate</div>
-      <div id="libAcc" style="font-size:12px;color:#6B675E;line-height:1.6"></div>
-    </div>
+    <div id="libAcc">${cabAccHtml(ref,s)}</div>
     ${(S.editLog&&S.editLog.length&&S.remarksCfg)?`<div style="margin-top:16px">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Remark — why the last change? (pick any)</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px">${S.remarksCfg.map(rm=>{ const last=S.editLog[S.editLog.length-1]; const on=(last.remarks||[]).includes(rm);
@@ -7523,16 +7930,10 @@ function renderLibPanelBody(){
         const [c,w,code]=img.getAttribute('data-mthumb').split('|');
         window.moduleThumb([c],+w,code).then(u=>{ if(!u||!img.isConnected) return; img.src=u; img.style.display='block'; });
       }); },true);
-    const zone=zoneForSel(), acc=(lib.zoneAccessories&&lib.zoneAccessories[zone])||[];
-    // Every accessory on offer, this zone's first; a tick adds it to the room (plan.placedAccessories)
-    // and to the estimate. Nothing is added unless ticked here.
-    S._accList=[...new Set([...acc,...Object.values(lib.zoneAccessories||{}).flat()].map(a=>a.name))];
-    const has=n=>(S.plan.placedAccessories||[]).some(a=>a.name===n);
-    $('libAcc')&&($('libAcc').innerHTML=S._accList.map((n,i)=>`<label style="display:flex;align-items:flex-start;gap:7px;padding:3px 0;cursor:pointer"><input type="checkbox" ${has(n)?'checked':''} onchange="toggleRoomAcc(${i})" style="margin-top:3px"><span style="flex:1;min-width:0">${esc(n)}${i<acc.length?` <span style="color:var(--muted2);font-size:10.5px">· ${zone} zone</span>`:''}<br>${has(n)&&accSizeSelect(n)||`<span style="color:var(--muted2);font-size:11px">${inr(accPrice(n))}</span>`}</span></label>`).join(''));
   }).catch(()=>{ $('libList')&&($('libList').innerHTML='<div style="color:#B4533A;font-size:12px">Library unavailable — is the server running?</div>'); });
 }
-function toggleRoomAcc(i){ const n=S._accList[i], list=S.plan.placedAccessories||[];
-  S.plan.placedAccessories=list.some(a=>a.name===n)?list.filter(a=>a.name!==n):[...list,{name:n}];
+// Earlier kitchen-wide picks (before accessories went into cabinets) can only be removed now.
+function removeRoomAcc(i){ const list=S.plan.placedAccessories||[]; list.splice(i,1); S.plan.placedAccessories=list;
   scheduleAutosave(); renderLibPanelBody(); }
 function toggleLibCross(v){ S.libCross=!!v; renderLibPanelBody(); }
 function setLibBrowse(v){ S.libBrowse=v; renderLibPanelBody(); }

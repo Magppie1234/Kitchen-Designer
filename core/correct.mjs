@@ -39,6 +39,15 @@ export function deriveZones(walls, anchors, openings = []) {
       const floor = leftLimit ? leftLimit.at + leftLimit.width : 0;
       let to = Math.min(rightLimit, fridge.at + TALL_BAND);
       let from = to - fridge.at >= TALL_BAND ? fridge.at : Math.max(floor, to - TALL_BAND);
+      if (fridge.look) {
+        // fridge-look: exactly the picture's towers — a 600mm tower plus its 20mm end panel on
+        // both sides (fridge between two talls) or on one side (20mm panel on the other). A band
+        // end within 200mm of the wall end or an opening runs on to it (no unusable sliver).
+        const right = rightLimit - fridge.at - fridge.width;
+        const [l, r] = ['glass-shelves', 'pantry-otg'].includes(fridge.look) ? [620, 620] : right >= 620 ? [20, 620] : [620, 20];
+        from = fridge.at - l - floor < 200 ? floor : fridge.at - l;
+        to = right - r < 200 ? rightLimit : fridge.at + fridge.width + r;
+      }
       from = Math.min(from, fridge.at);
       to = Math.max(to, fridge.at + fridge.width);
       if (from > 0) for (const t of ['base', 'wall']) zones[t].push({ wall: w.id, from: 0, to: from });

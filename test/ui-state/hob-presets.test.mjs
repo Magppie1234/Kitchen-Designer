@@ -69,7 +69,11 @@ test('saved picture selections migrate to shapes and matching accessories surviv
   c.S.hob.sides={left:{mode:'cabinet',cabinet:{code:'BC2EH',w:600}},right:{mode:'cabinet'}};
   c.ensureHobDefaults();
   assert.equal(c.S.hob.drawerCount,2);assert.equal(c.S.hob.shape,'2HB');
-  assert.equal(c.S.hob.sides.left.mode,'none');assert.equal(c.S.hob.sides.right.mode,'none');
+  // the obsolete exact-SKU side cabinets give way to the picture's drawer units, empty
+  // (hob-side-drawer-accessories)
+  for(const k of ['left','right']){ const s=plain(c.S.hob.sides[k]);
+    assert.equal(s.mode,'drawers');assert.equal(s.shape,'DW:2LB+1HB');assert.equal(s.cabinet,undefined);
+    assert.ok(s.drawers.every(d=>d.acc===null)); }
   const drawers=plain(c.S.hob.drawers);c.renderHobWizard();
   assert.deepEqual(plain(c.S.hob.drawers),drawers);
   c.S.hob.wizStep=3;c.renderHobWizard();assert.match(c.card.innerHTML,/Hob base: 2 HB/);

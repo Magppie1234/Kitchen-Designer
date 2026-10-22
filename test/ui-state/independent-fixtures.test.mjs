@@ -122,3 +122,12 @@ test('the sink snaps to a window centre when dragged near it; the fridge cannot 
   assert.equal(c.fxDropValid('fridge',0,800,700),true);
   assert.equal(c.fxDropValid('hob',0,3400,700),true,'only the fridge is kept off the column');
 });
+
+test('fridge-look-free-placement: the chosen look never limits where the fridge goes',()=>{
+  const S={walls:[{a:[0,0],b:[4000,0],length:4000}],openings:[],anchors:[],structures:[],rulesCfg:null,fridge:{pick:'glass-shelves'}};
+  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,isOpenWall:()=>false,fxWidthMm:()=>600});
+  vm.runInContext(between('function fxDropValid(','// nearest VALID offset')+between('// Columns and beams within','// Columns and beams seen'),c);
+  for(const pick of ['glass-shelves','otg',null]){ S.fridge.pick=pick;
+    assert.equal(c.fxDropValid('fridge',0,350,700),true,`${pick}: flush in the corner`);
+    assert.equal(c.fxDropValid('fridge',0,2000,700),true,`${pick}: mid-wall`); }
+});

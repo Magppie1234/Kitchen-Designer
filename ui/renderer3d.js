@@ -585,9 +585,14 @@ function buildKitchen(plan, walls){
     }).catch(()=>{});
     return {hide(){ hidden=true; for(const p of parts) p.visible=false; }};
   }
+  // An end panel's hand: its own `side` when the plan gives one, else RH when a unit of its
+  // row ends where the panel starts (the panel closes that unit's right side), LH otherwise.
+  const panelSide=(s,row)=>s.side==='left'?'LH':s.side==='right'?'RH'
+    :row.some(t=>t!==s&&t.width>0&&!['filler','gap','open','inset'].includes(t.kind)&&Math.abs((t.x0??0)+t.width-(s.x0??0))<1)?'RH':'LH';
   const FILLER_D=76;
   const SKIRT_AT=500, SKIRT_T=3, SKIRT_H=100;   // the base models' skirting: 3mm thick, its face 500mm off the wall
   const DW_PANEL_T=15;              // FDP/SDP dishwasher panels are 15 mm boards
+  const RFP_W=[700,900,1050], RFP_H=300;   // Models/Additional Items/Refrigerator panels
   // The skirting runs on unbroken under pieces that have none of their own (fillers, the
   // dishwasher), in line with the cabinets' and in their own bronze material.
   function skirting(ww,z,D,at,ang){
@@ -646,6 +651,15 @@ function buildKitchen(plan, walls){
         front=Math.max(front,new THREE.Box3().setFromObject(o).max.z); });
       return Number.isFinite(front)?(front-back)/MM:carcass+23;
     }).catch(()=>carcass+23);
+  }
+  // Where a unit's model really tops out: place() never sinks a model below the floor, so a
+  // model taller than its plan box (legs/skirting) rises above it. `planTop` without a model.
+  function modelTop(unit,planTop){
+    const entry=unit&&haveModels?modelFor(unit.code):null;
+    if(!entry) return Promise.resolve(planTop);
+    const z=unit.z??0, h=unit.height??planTop-z;
+    return loadModel(entry.path,entry.version).then(proto=>{ const size=new THREE.Vector3(); new THREE.Box3().setFromObject(proto).getSize(size);
+      return Math.max(z+h,size.y/MM); }).catch(()=>planTop);
   }
   // The kitchen height ('7ft' / '8ft', rules.json params.heights) of a run, read off its wall
   // cabinets' height; the project's design height when the run has none.
@@ -727,16 +741,30 @@ function buildKitchen(plan, walls){
         let so=off;
         units.forEach((tu)=>{const wmm=tu.width;const along=so+wmm/2;const px=w.a[0]+u[0]*along+n[0]*(D/2+inset),py=w.a[1]+u[1]*along+n[1]*(D/2+inset);
           if(tu.loose||tu.applianceWidth!=null){ const fw=tu.applianceWidth??wmm-40;
+            const at=(k)=>[w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset)];
+            const top=(tu.z??seg.z??0)+(tu.height??seg.height??stack.tall);
             if(!blocked('refrigerator',footprint(px,py,ang,fw,tu.depth??D),0,1800)){
               const fr=box(fw,1800,tu.depth??D,0xcfd3d6,{metalness:0.3,roughness:0.3}); fr.position.copy(world(px,py,900)); fr.rotation.y=ang; g.add(fr);
-              appliance('fridge',fw,(k)=>[w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset)],ang,{mode:'floor',maxH:tu.height??seg.height??stack.tall,fallback:fr}); } }
+              appliance('fridge',fw,at,ang,{mode:'floor',maxH:top-RFP_H,fallback:fr}); }
+            // Refrigerator panel (rules.json: fridge-top-panel): the RFP nearest the opening width,
+            // stretched tall-to-tall across the opening and any filler beside it (up to 100mm), its
+            // top level with the flanking tall models' real top, its face on their shutter plane.
+            const o0=so, o1=so+wmm, talls=r.segments.filter(t=>t.tier==='tall'&&t.code&&t!==seg);
+            const lt=talls.find(t=>Math.abs(o0-(t.x0+t.width))<=100), rt=talls.find(t=>Math.abs(t.x0-o1)<=100);
+            const p0=lt?lt.x0+lt.width:o0, p1=rt?rt.x0:o1, pw=p1-p0, flank=lt||rt;
+            const rfp=RFP_W.reduce((b,x)=>Math.abs(x-pw)<Math.abs(b-pw)?x:b);
+            Promise.all([shutterFront(flank,flank?.depth??tu.depth??D),modelTop(flank,top)]).then(([front,ptop])=>{
+              const k=front-12, pa=(p0+p1)/2;
+              item(`RFP-${rfp}-${RFP_H}-15`,null,pw,RFP_H,24,world(w.a[0]+u[0]*pa+n[0]*(k+inset),w.a[1]+u[1]*pa+n[1]*(k+inset),ptop-RFP_H/2),ang,0xE7E0D0,'cabinet'); }); }
           else place(wmm,tu.code||seg.code,px,py,tu.z??seg.z??0,ang,0x21433A,tu.height??seg.height??stack.tall,tu.depth??D);
           so+=wmm;});
         off+=ww;continue;}
       if(seg.kind==='filler'||seg.kind==='inset'){
-        const tall=seg.tier==='tall', panel=/visible panel|^panel/.test(seg.label||'');
-        // a deleted filler leaves open space: nothing stands there, the worktop runs on over it
-        if(seg.open){ if(!tall) worktop(off,off+ww,D,inset); off+=ww; continue; }
+        const tall=seg.tier==='tall', panel=/visible panel|^panel|countertop return/.test(seg.label||'');
+        // a deleted filler leaves open space: nothing stands there. The worktop runs on over it
+        // only when a base cabinet stands right beside it on this run (rules.json: open-space-worktop)
+        if(seg.open){ const i=ends.indexOf(seg), base=(s)=>s&&['cabinet','anchor','corner'].includes(s.kind)&&!(s.kind==='anchor'&&TALL_ANCHORS.includes(s.label))&&s.tier!=='tall';
+          if(!tall&&(base(ends[i-1])||base(ends[i+1]))) worktop(off,off+ww,D,inset); off+=ww; continue; }
         let h=seg.height??720, z=seg.z??100;
         // A tall gap filler starts on the floor, but the tall cabinets beside it stand on their
         // skirting: it stops at the skirting line and the skirting runs on beneath it.
@@ -747,7 +775,7 @@ function buildKitchen(plan, walls){
         const at=(k,y)=>world(w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset),y);
         // a visible panel is an end panel standing sideways; any other filler is the front
         // filler strip (LH in the first half of the run, RH in the second)
-        if(panel) item(D<450?'VP-336-15':'VP-560-15',seg.side==='left'?'LH':seg.side==='right'?'RH':null,ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
+        if(panel) item(D<450?'VP-336-15':'VP-560-15',panelSide(seg,r.segments),ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
         else item(tall?(h>2200?'TFP-2397':'TFP-2037'):'BFP-717',along<r.total/2?'LH':'RH',ww,h,FILLER_D,at(D-FILLER_D/2,z+h/2),ang,0xE6DFCE,'cabinet');
         skirting(ww,z,D,at,ang);
         if(!tall) worktop(off,off+ww,D,inset);
@@ -809,7 +837,10 @@ function buildKitchen(plan, walls){
         // The chimney slot is left to the chimney alone: no backsplash, chimney panel or filler
         // is put on or over it (the chimney pass above placed the appliance itself).
         if(tu.kind==='chimney') continue;
-        if((tu.kind==='filler'||tu.kind==='inset')&&!tu.open)
+        // a wall run's end panel stands sideways like the base and tall ones (VP-336)
+        if(tu.kind==='filler'&&/^panel|visible panel/.test(tu.label||''))
+          item('VP-336-15',panelSide({...tu,x0:ux},tw),tu.width,height,depth,at(depth/2,bottom+height/2),ang,0xE6DFCE,'cabinet',true);
+        else if((tu.kind==='filler'||tu.kind==='inset')&&!tu.open)
           item(height<900?'WFP-722':'WFP-1082',along<r.total/2?'LH':'RH',tu.width,height,FILLER_D,at(depth-FILLER_D/2,bottom+height/2),ang,0xEDE7DA,'cabinet');
       }
     }

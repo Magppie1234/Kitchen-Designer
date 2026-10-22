@@ -20,6 +20,7 @@
   // row whose shared edge the designer may drag while editing, to resize or merge them.
   const emptyPiece=s=>!!s&&(s.kind==='gap'||s.kind==='filler'&&(s.open||/filler/i.test(s.label||'')));
   const emptyJoint=(a,b)=>emptyPiece(a)&&emptyPiece(b)&&(a.tier||'base')===(b.tier||'base');
+  const movable=s=>!!s&&['cabinet','anchor','corner','tallBank'].includes(s.kind);
   const rect=(x,y,w,h,attrs='')=>`<rect x="${x}" y="${y}" width="${Math.max(0,w)}" height="${Math.max(0,h)}" ${attrs}/>`;
   const line=(x1,y1,x2,y2,attrs='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${attrs}/>`;
   function wrapLabel(lines,width,fontSize,maxLines){
@@ -160,9 +161,12 @@
       }
       let joints='';
       if(state.editing)for(let i=1;i<base.length;i++){const p=base[i-1],q=base[i];
-        if(!emptyJoint(p.seg,q.seg)||mode==='wall'&&q.seg.tier!=='tall')continue;
+        // a cabinet beside an empty piece: its edge drags the cabinet into that space
+        const room=s=>emptyPiece(s)&&emptyKind(s)!=='occupied';
+        const cab=room(q.seg)&&movable(p.seg)?'a':room(p.seg)&&movable(q.seg)?'b':'';
+        if(!cab&&!emptyJoint(p.seg,q.seg)||mode==='wall'&&q.seg.tier!=='tall')continue;
         const xp=q.x*t.sc,dep=Math.max(p.seg.depth??560,q.seg.depth??560)*t.sc;
-        joints+=`<line class="emptyjoint" data-run="${key}" data-idx="${p.index}" data-sc="${t.sc}" x1="${xp}" x2="${xp}" y1="${sign>0?0:-dep}" y2="${sign>0?dep:0}" stroke="#B4533A" stroke-width="4" stroke-opacity=".75" vector-effect="non-scaling-stroke" style="cursor:ew-resize;touch-action:none"><title>Drag to move this edge between empty spaces — drag it to the end to merge them</title></line>`;}
+        joints+=`<line class="emptyjoint" data-run="${key}" data-idx="${p.index}" data-sc="${t.sc}"${cab?` data-cab="${cab}"`:''} x1="${xp}" x2="${xp}" y1="${sign>0?0:-dep}" y2="${sign>0?dep:0}" stroke="#B4533A" stroke-width="4" stroke-opacity="${cab?'.4':'.75'}" vector-effect="non-scaling-stroke" style="cursor:ew-resize;touch-action:none"><title>${cab?'Drag to slide the cabinet into the empty space':'Drag to move this edge between empty spaces — drag it to the end to merge them'}</title></line>`;}
       if(mode!=='base')for(const {seg,index,x} of upper){
         if(!['wallSolid','wallGlass','wallBlind','chimney','filler','panel'].includes(seg.kind))continue;
         if(seg.kind==='filler'&&seg.open)continue;   // an open upper slot is just bare wall

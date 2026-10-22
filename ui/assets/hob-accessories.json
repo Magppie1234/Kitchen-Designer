@@ -4,7 +4,7 @@
     "sheet": "Kitchen Accessories",
     "descriptionColumn": "PRODUCT NAME (col C) — text below the product-name line",
     "extractedTo": "data/accessories-master/",
-    "note": "Keys re-aligned 2026-09-01 to the client's clarified per-size catalog (size now baked into the accessory name). Description text preserved from the original Excel rows; items without a matching Excel row (baskets, divider, pot & pan holder) have no description yet."
+    "note": "Keys re-aligned 2026-09-01 to the client's clarified per-size catalog (size now baked into the accessory name). Description text preserved from the original Excel rows; the baskets and drawer divider have no description text in the Excel; Pot & Pan Holder added 2026-10-19 from its row (S.NO 7)."
   },
   "_unmatched": [],
   "Cutlery Tray (Small)": {
@@ -35,6 +35,11 @@
   "Pulse Canister Tray (Large)": {
     "desc": "Includes\n- 24 Stainless Steel Canisters (Large, Capacity 1500 ml)\n- Base Tray in Sintered Stone",
     "excelName": "PULSE CANISTER TRAY (LARGE)",
+    "sizes": ["900"]
+  },
+  "Pot & Pan Holder": {
+    "desc": "With Adjustable Pins",
+    "excelName": "POT & PAN HOLDER",
     "sizes": ["900"]
   }
 }

@@ -32,7 +32,7 @@ test('countertop material is billed once in A and its installation once in B; ca
   const html = readFileSync('ui/builder.html', 'utf8');
   const src = html.slice(html.indexOf('// Backsplash geometry'), html.indexOf('// The discount is one'));
   const byCode = { 'BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15': { carcassSqft: 5.296 } };
-  const ctx = vm.createContext({ window: { TALL_ANCHORS: ['fridge'] }, CabinetCatalog: globalThis.CabinetCatalog, Backsplash: globalThis.Backsplash, hobBOQItems: () => [], seriesRate: () => 11400,
+  const ctx = vm.createContext({ window: { TALL_ANCHORS: ['fridge'] }, CabinetCatalog: globalThis.CabinetCatalog, Backsplash: globalThis.Backsplash, hobBOQItems: () => [], cabAccItems: () => [], seriesRate: () => 11400,
     S: { plan: { ...plan, price: { ...price, breakdown: { ...price.breakdown, counter: 999999 } } }, cabCat: byCode, options: {},
       quoteCfg: {}, cfgInstall: installRates(), cfgSurfaces: surfaceRates() } });
   vm.runInContext(src + ';globalThis.q=quoteMath();', ctx);
@@ -62,7 +62,7 @@ test('city charges: 4 site visits at the city rate; loading and transport by shi
   const byCode = { 'BC-X': { carcassSqft: 5 }, 'TC-X': { carcassSqft: 20 } };
   const run = (city, boms, discount = 0) => {
     const rooms = boms.map((bom, i) => ({ id: i, design: { plan: bom && { runs: [], tiers: {}, bom, price: {} } } }));
-    const ctx = vm.createContext({ window: { TALL_ANCHORS: ['fridge'] }, CabinetCatalog: globalThis.CabinetCatalog, Backsplash: globalThis.Backsplash, hobBOQItems: () => [], seriesRate: () => 10000,
+    const ctx = vm.createContext({ window: { TALL_ANCHORS: ['fridge'] }, CabinetCatalog: globalThis.CabinetCatalog, Backsplash: globalThis.Backsplash, hobBOQItems: () => [], cabAccItems: () => [], seriesRate: () => 10000,
       stashRoom() {}, withRoom(r, fn) { ctx.S.plan = r.design.plan; return fn(); },
       S: { rooms, cabCat: byCode, options: {}, project: { city, discount }, quoteCfg: {}, cityCfg: CR, cfgInstall: installRates(), cfgSurfaces: surfaceRates() } });
     vm.runInContext(src + ';globalThis.pq=projectQuote();', ctx);

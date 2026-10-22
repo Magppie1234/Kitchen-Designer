@@ -107,6 +107,7 @@ function generator(){
     activeRoom:()=>ctx.currentRoom,fetch:(url,options)=>{requests.push(JSON.parse(options.body));return new Promise(resolve=>pending.push(resolve));},alert:()=>{throw Error("Native build alerts must not be used");},
     setTimeout:()=>{},sinkWidth:()=>900,fxWidthMm:()=>600,coerceFinishToSeries:()=>false,seriesById:id=>id?{id}:null});
   for(const n of ['ensureHobDefaults','ensureSinkDefaults','ensureFridgeDefaults','reconcileZones','ensureHobSides','runRuleEngine','go','syncKeepsFromPlan','dsRevision','scheduleAutosave','showToast','selectHandleType'])ctx[n]=()=>{};
+  ctx.reconcileHobSideWidths=()=>[];ctx.carryCabAccs=()=>[];
   ctx.renderChrome=()=>{};ctx.openRuleLog=()=>ctx.failures.push(ctx.S.generationFailure.log.map(e=>e.detail).join('\n'));
   vm.runInContext(between('function showGenerationFailure(','function openRuleLog('),ctx);
   vm.runInContext(between('async function generate(','function mountResult'),ctx);
@@ -305,6 +306,10 @@ test('the edge between empty pieces drags to resize or merge them; adjoining cab
   assert.deepEqual(plain(c.S.plan.runs[0].segments.map(s=>[s.kind,s.width])),[['filler',1350],['anchor',900]],'merged into one open space');
   assert.equal(c.S.selModRef.idx,0,'the merged space is selected');
   assert.equal(c.DetailedPlan.emptyJoint(open,hob),false,'a cabinet edge is not an empty-space edge');
+  // the cabinet's edge beside open space slides the cabinet: dragging it 60mm moves the cabinet 60mm
+  let moved=null;c.relocateSelected=x=>{moved=[c.S.selModRef.idx,x];return true;};
+  c.moveCabinetEdge('W0',0,1410,'b');
+  assert.deepEqual(moved,[1,1410],'hob selected and its left edge sent to 1410');
   // a corner cabinet on the adjoining wall turns open space it stands in into occupied space, and gives it back
   const walls=[{a:[0,0],b:[4000,0],length:4000},{a:[4000,0],b:[4000,3000],length:3000},{a:[4000,3000],b:[0,3000],length:4000},{a:[0,3000],b:[0,0],length:3000}];
   const g=vm.createContext({});vm.runInContext(readFileSync('ui/geometry.js','utf8'),g);vm.runInContext(between('// Empty base-row space a cabinet','function reservedSpaceHtml'),g);
