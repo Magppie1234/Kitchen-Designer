@@ -121,5 +121,5 @@ test('a countertop dropdown bills its stone face as countertop area; a plain fil
   const {enumerateModules}=await import('../../vendor/costEstimate.js');
   const plan=(label)=>({runs:[{key:'W0',segments:[{kind:'filler',label,width:30,depth:560,height:720}]}]});
   assert.equal(enumerateModules(plan('filler panel')).counterMm2,30*560);
-  assert.equal(enumerateModules(plan('countertop return')).counterMm2,30*560+560*720);
+  assert.equal(enumerateModules(plan('countertop return')).counterMm2,30*560+560*(100+720),'face from the floor, skirting included');
 });

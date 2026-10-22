@@ -1264,7 +1264,7 @@
       "seen_in": [
         "Designer, 2026-10-22"
       ],
-      "statement": "While editing, a base-row filler can be made into a countertop dropdown at its left or right end: exactly countertop_return (30mm), the same countertop return the engine puts at an exposed base run end; any wider filler keeps the rest as a filler. It can be changed back to a filler. It shows in 3D as the run-end dropdown does, and its stone face (depth x height) is billed as countertop area in the estimate and PDF, as is every countertop dropdown.",
+      "statement": "While editing, a base-row filler can be made into a countertop dropdown at its left or right end: exactly countertop_return (30mm), the same countertop return the engine puts at an exposed base run end; any wider filler keeps the rest as a filler. It can be changed back to a filler. It shows in 3D as the run-end dropdown does, and its stone face (depth x the height from the floor to the underside of the worktop, skirting included) is billed as countertop area (stone and installation) in the estimate and PDF, as is every countertop dropdown.",
       "implementation": "ui/builder.html editFillerToPanel(side,\"dropdown\") / isDropdownSeg() / canDropdown() (editing panel buttons; normalizeList never merges it); 3D: ui/renderer3d.js filler branch (countertop return = VP-560-15 end panel); pricing: vendor/costEstimate.js enumerateModules() adds the face to counterMm2. Test: test/pricing."
     }
   ],
