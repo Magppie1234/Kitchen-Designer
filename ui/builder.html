@@ -7420,6 +7420,10 @@ function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
   if(tall) rep.units=[{type:/-REF-/.test(code)?'fridge':/-(MW|OV)-/.test(code)?'appliance':/-GL-/.test(code)?'glass':/-SH-/.test(code)?'shelves':'pantry',width:w,code,height:h,depth:rep.depth,z:0,offset:s.offset??0}];
   if(cross) rep.crossSeries=true;   // Stage 4.4 — flagged on the design and (later) the module schedule
   if(keepAnchor) Object.assign(rep,{kind:'anchor',label:s.label,func:s.func,tier:s.tier,wall:s.wall});
+  // A hob or sink cabinet placed anywhere else in the base row (e.g. after the original was deleted)
+  // is that anchor too, so the hob / sink stands on it in 3D and the walkthrough.
+  else if(S.selModRef.tier==='base'&&!tall){ const fam=Object.values(ANCHOR_FAMILY).find(f=>f.re.test(code));
+    if(fam) Object.assign(rep,{kind:'anchor',label:fam.name,func:fam.name}); }
   li=list.indexOf(s); list[li]=rep;
   if(side==='right'){ const rest=s.kind==='gap'?{...s,width:s.width-w}:{kind:'filler',open:true,label:'open space',width:s.width-w,depth:s.depth,height:s.height,z:s.z,offset:s.offset,tier:tall?s.tier:undefined};
     rest.x0=s.x0||0; rest.x1=rest.x0+rest.width; rep.x0=rest.x1; rep.x1=rep.x0+w; list.splice(li,0,rest); li++; }
