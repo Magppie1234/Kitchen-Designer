@@ -735,6 +735,16 @@
       "implementation": "ui/renderer3d.js tallBank fridge branch (RFP_W / RFP_H), model from Models/Additional Items/Refrigerator panels. 3D only, like the chimney panel. Test: test/models/models.test.mjs."
     },
     {
+      "id": "tall-panel-top",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "designer, 2026-10-22"
+      ],
+      "statement": "A tall visible panel or tall gap filler stands on the skirting line and tops out level with the real top of the tall cabinet model beside it (the tall models are 100mm taller than the plan's tall height: 2500 for 8ft, 2140 for 7ft), the same way the refrigerator panel does.",
+      "implementation": "ui/renderer3d.js run loop, filler/inset branch: a tall piece finds the tall cabinet or tall anchor touching either end and stretches to modelTop() of it; with no such neighbour it keeps the plan height. 3D only."
+    },
+    {
       "status": "stated",
       "hard": true,
       "id": "fridge-not-at-column",

@@ -775,8 +775,14 @@ function buildKitchen(plan, walls){
         const at=(k,y)=>world(w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset),y);
         // a visible panel is an end panel standing sideways; any other filler is the front
         // filler strip (LH in the first half of the run, RH in the second)
-        if(panel) item(D<450?'VP-336-15':'VP-560-15',panelSide(seg,r.segments),ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
-        else item(tall?(h>2200?'TFP-2397':'TFP-2037'):'BFP-717',along<r.total/2?'LH':'RH',ww,h,FILLER_D,at(D-FILLER_D/2,z+h/2),ang,0xE6DFCE,'cabinet');
+        const draw=(h)=>{
+          if(panel) item(D<450?'VP-336-15':'VP-560-15',panelSide(seg,r.segments),ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
+          else item(tall?(h>2200?'TFP-2397':'TFP-2037'):'BFP-717',along<r.total/2?'LH':'RH',ww,h,FILLER_D,at(D-FILLER_D/2,z+h/2),ang,0xE6DFCE,'cabinet'); };
+        // A tall panel or filler tops out level with the tall cabinet beside it: its model stands
+        // 100mm taller than the plan box (rules.json: tall-panel-top), as the fridge panel does.
+        const flank=tall&&r.segments.find(t=>t!==seg&&t.code&&(t.tier==='tall'||TALL_ANCHORS.includes(t.label))
+          &&(Math.abs((t.x0??0)+t.width-off)<1||Math.abs((t.x0??0)-(off+ww))<1));
+        if(flank) modelTop(flank,z+h).then(top=>draw(Math.max(h,top-z))); else draw(h);
         skirting(ww,z,D,at,ang);
         if(!tall) worktop(off,off+ww,D,inset);
         off+=ww;continue;}
