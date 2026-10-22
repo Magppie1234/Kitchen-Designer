@@ -7298,6 +7298,7 @@ async function repriceNow(){
 function editDelete(){ if(!S.editing) return; const list=editableList(S.selModRef), s=selSeg(); if(!list||!s) return;
   if(isReservedSpace(s)){showToast('The adjoining wall’s cabinet stands in this corner — edit that cabinet instead.');return;}
   if(s.kind==='gap'){ showToast('This is dead space — nothing to delete. Add a cabinet here from the library.'); return; }
+  if(s.kind==='chimney'&&S.selModRef.tier==='wall'&&hobUnder(S.selModRef.run,s)){ showToast('The chimney stays over the hob — move or delete the hob to change it.'); return; }
   const from=segDesc(s);
   // Deleting leaves the space open: same width, nothing standing in it, so the drawings show
   // exactly what is behind (wall, column, window). A cabinet can still be added there.
@@ -8123,6 +8124,7 @@ function elevStructures(wi,xs,Y,k,ceil,R){
 // drawn there, or nothing fitted) is an open "spare" slot, so a wall cabinet can be added
 // anywhere. Tall units, doors and windows keep their wall. Spare slots draw only in editing.
 function addSpareWallSlots(run,t,WB,wallTop){ t.wall=t.wall||[];
+  ensureChimneySlots(run,t,WB,wallTop);
   const busy=[...t.wall,...run.segments.filter(sg=>sg.tier==='tall'||sg.kind==='tallBank'||sg.kind==='door'||sg.kind==='window'
     ||(sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label)))].map(u=>[u.x0||0,(u.x0||0)+u.width]).sort((a,b)=>a[0]-b[0]);
   let x=0; const free=[], L=run.total||0;
@@ -8130,6 +8132,21 @@ function addSpareWallSlots(run,t,WB,wallTop){ t.wall=t.wall||[];
   if(L-x>=150) free.push([x,L]);
   for(const [a,b] of free) t.wall.push({kind:'filler',open:true,spare:true,label:'open space',width:b-a,x0:a,x1:b,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
   if(free.length) t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); }
+// The 3D always hangs a chimney over a wall-run hob (rules.json: chimney-width), so the
+// wall row keeps that space as its own chimney slot, with its own dimension: one lost to an older
+// delete is cut back out of the open space around it. A cabinet placed there by hand is left alone.
+function ensureChimneySlots(run,t,WB,wallTop){ const over=S.rulesCfg?.params?.chimney_wider_than_hob_by??100; let off=0;
+  for(const seg of run.segments){ off=seg.x0??off; const a0=off; off+=seg.width;
+    if(!(seg.kind==='anchor'&&seg.label==='hob')) continue;
+    const cw=seg.width+over, x0=a0+seg.width/2-cw/2, x1=x0+cw, hit=t.wall.filter(u=>(u.x0||0)<x1-1&&(u.x0||0)+u.width>x0+1);
+    if(hit.some(u=>!(u.kind==='filler'&&u.open))) continue;
+    const rest=hit.flatMap(u=>{ const a=u.x0||0, b=a+u.width;
+      return [[a,Math.min(b,x0)],[Math.max(a,x1),b]].filter(([p,q])=>q-p>=1).map(([p,q])=>({...u,x0:p,x1:q,width:q-p})); });
+    t.wall=t.wall.filter(u=>!hit.includes(u)).concat(rest,{kind:'chimney',label:'chimney',width:cw,x0,x1,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
+    t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); } }
+function hobUnder(runKey,u){ const run=(S.plan?.runs||[]).find(r=>r.key===runKey); let off=0;
+  return (run?.segments||[]).some(seg=>{ off=seg.x0??off; const a=off; off+=seg.width;
+    return seg.kind==='anchor'&&seg.label==='hob'&&a<(u.x0||0)+u.width&&a+seg.width>(u.x0||0); }); }
 function drawPlanElev(key){
   const svg=$('viewElev'); if(!svg||!S.plan) return;
   const run=(S.plan.runs||[]).find(r=>r.key===key); if(!run){ svg.innerHTML=''; return; }

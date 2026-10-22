@@ -28,3 +28,11 @@ test('wall-only view shows actual upper units, hood, fillers and tall cabinets w
   S.planTier='base';ctx.draw2dLegacy();assert.equal(S.modules.filter(m=>m.tier==='wall').length,0);
   S.planTier='overlay';ctx.draw2dLegacy();assert.equal(S.modules.filter(m=>m.tier==='wall').length,1);
 });
+test('editing keeps the chimney over the hob as its own wall slot, cut out of open space',()=>{
+  const html=readFileSync('ui/builder.html','utf8'),start=html.indexOf('function addSpareWallSlots'),end=html.indexOf('function drawPlanElev(',start);
+  const ctx=vm.createContext({S:{rulesCfg:{}},TALL_ANCHORS:[]});vm.runInContext(html.slice(start,end),ctx);
+  const run={key:'W1',total:3790,segments:[{kind:'cabinet',width:600,x0:620},{kind:'anchor',label:'hob',width:900,x0:1220},{kind:'cabinet',width:900,x0:2120}]};
+  const t={wall:[{kind:'filler',open:true,label:'open space',width:3708,x0:0,x1:3708}]};
+  ctx.addSpareWallSlots(run,t,1415,2500);ctx.addSpareWallSlots(run,t,1415,2500);
+  assert.deepEqual(t.wall.map(u=>[u.kind,u.x0,u.width]),[['filler',0,1170],['chimney',1170,1000],['filler',2170,1538]]);
+});
