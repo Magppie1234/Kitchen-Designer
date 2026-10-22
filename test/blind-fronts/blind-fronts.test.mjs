@@ -59,7 +59,7 @@ test('saved kitchen moves residuals into concealed corners and keeps both tiers 
   without.runs.forEach(r=>r.segments=r.segments.filter(p=>!p.hiddenCorner));
   const noSpace=enumerateModules(without);
   assert.equal(withSpace.specs.length,noSpace.specs.length);
-  assert.equal(withSpace.counterMm2-noSpace.counterMm2,row.filter(p=>p.hiddenCorner).reduce((n,p)=>n+p.width,0)*560,'concealed corner space still carries countertop');
+  assert.equal(withSpace.counterMm2-noSpace.counterMm2,row.filter(p=>p.hiddenCorner).reduce((n,p)=>n+p.width*((p.depth??560)+40),0),'concealed corner space still carries countertop');
   assert.ok(!r.notes.some(n=>/143mm filler|57mm filler/.test(n)));
   const explanation=KitchenRuleLog.explain({status:'applied',detail:r.notes.find(n=>/mm concealed corner/.test(n))});
   assert.equal(explanation.title,'Corner shutters aligned');assert.match(explanation.problem,/concealed and empty/);

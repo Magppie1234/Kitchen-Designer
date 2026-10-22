@@ -6,6 +6,10 @@ import { RULES } from './rules.js';
 // Tier depths (mm) — data/rules.json is the single source; no renderer or costing
 // module keeps its own copy. base === tall (560), wall === loft (336).
 const DEPTH = RULES.depths;
+// The worktop is billed at its own depth: the cabinet under it plus the front overhang
+// (counter − base, 600 − 560 = 40mm), as the 3D draws it (rules.json: countertop-billed-at-worktop-depth).
+const COUNTER_OVER = Math.max(0, DEPTH.counter - DEPTH.base);
+const worktopD = (seg) => (seg.depth ?? DEPTH.base) + COUNTER_OVER;
 
 // Enumerate every physical module in a plan as a geometry spec (no costing), used
 // by the saleable (shutter-sqft) pricing. Returns
@@ -17,7 +21,7 @@ export function enumerateModules(plan) {
   const push = (m) => specs.push({ D: DEPTH.base, carries: [], drawers: 0, ...m });
   for (const run of plan.runs || []) {
     for (const seg of run.segments) {
-      if(seg.hiddenCorner){counterMm2+=seg.width*(seg.depth??DEPTH.counter);continue;}
+      if(seg.hiddenCorner){counterMm2+=seg.width*worktopD(seg);continue;}
       if (seg.kind === 'tallBank') {
         // typed tall units, no counter above. A loose fridge slot is freestanding (not saleable).
         for (const u of (seg.units || [])) {
@@ -26,18 +30,18 @@ export function enumerateModules(plan) {
         }
         continue;
       }
-      if (seg.kind==='filler' && seg.tier!=='tall') counterMm2+=seg.width*(seg.depth??DEPTH.counter);
+      if (seg.kind==='filler' && seg.tier!=='tall') counterMm2+=seg.width*worktopD(seg);
       // a countertop dropdown is stone down the cabinet side too: its face, from the floor to the
       // underside of the worktop (skirting included), is countertop area (rules.json: filler-to-countertop-dropdown)
-      if (seg.kind==='filler' && seg.tier!=='tall' && /^countertop return/.test(seg.label||'')) counterMm2+=(seg.depth??DEPTH.base)*((seg.z??100)+(seg.height??720));
+      if (seg.kind==='filler' && seg.tier!=='tall' && /^countertop return/.test(seg.label||'')) counterMm2+=worktopD(seg)*((seg.z??100)+(seg.height??720));
       if (!['cabinet', 'anchor', 'corner'].includes(seg.kind)) continue;
-      if(seg.label==='dishwasher'){counterMm2+=seg.width*(seg.depth??DEPTH.counter);continue;}
+      if(seg.label==='dishwasher'){counterMm2+=seg.width*worktopD(seg);continue;}
       if (seg.kind === 'anchor' && seg.label === 'fridge') { push({ kind: 'tall', W: seg.width, H: seg.height??2100, D:seg.depth??DEPTH.tall, label: 'fridge tower', carries: ['fridge'] }); continue; }
       if (seg.kind === 'corner') push({ kind: 'base', W: seg.width, H: seg.height??seg.h??720, D:seg.depth??DEPTH.base, label: 'corner (Lemans)', carries: ['lemans'] });
       else if (seg.kind === 'anchor' && seg.label === 'hob') push({ kind: 'base', W: seg.width, H: seg.height??seg.h??720, D:seg.depth??DEPTH.base, label: 'hob base', carries: ['hob'], drawers: 3 });
       else if (seg.kind === 'anchor' && ['sink','veggie sink'].includes(seg.label)) push({ kind: 'base', W: seg.width, H: seg.height??seg.h??720, D:seg.depth??DEPTH.base, label: seg.veggie?'veggie sink base':'sink base', carries: ['sink'] });
       else push({ kind: 'base', W: seg.width, H: seg.height??seg.h??720, D:seg.depth??DEPTH.base, label: 'base cabinet' });
-      counterMm2 += seg.width * (seg.depth??DEPTH.counter);
+      counterMm2 += seg.width * worktopD(seg);
     }
     const t = plan.tiers?.[run.key];
     if (t) {

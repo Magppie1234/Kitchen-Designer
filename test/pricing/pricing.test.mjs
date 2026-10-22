@@ -25,7 +25,7 @@ test('countertop material is billed once in A and its installation once in B; ca
     tiers: {}, bom: { 'BC-DW-CJ-ST-XXX-2HB-XXX-600-720-560-15': 2 },
     backsplash: { W0: [{ x0: 0, x1: 1200, z0: 850, z1: 1415 }] } };   // added in the Elevation; tucks 10mm behind the countertop
   const price = priceSaleable(plan, {});
-  const counterSqft = 1200 * 560 / 92903;   // both cabinets' worktop, unrounded
+  const counterSqft = 1200 * 600 / 92903;   // both cabinets' worktop (560 + 40mm overhang), unrounded
   assert.equal(price.breakdown.counter, Math.round(counterSqft * R.countertop_material), 'server countertop line is stone only');
 
   // the Quote's own maths, run against that plan
@@ -120,6 +120,6 @@ test('accessory prices come from the price master by S.No.; unmapped names are a
 test('a countertop dropdown bills its stone face as countertop area; a plain filler only its top',async()=>{
   const {enumerateModules}=await import('../../vendor/costEstimate.js');
   const plan=(label)=>({runs:[{key:'W0',segments:[{kind:'filler',label,width:30,depth:560,height:720}]}]});
-  assert.equal(enumerateModules(plan('filler panel')).counterMm2,30*560);
-  assert.equal(enumerateModules(plan('countertop return')).counterMm2,30*560+560*(100+720),'face from the floor, skirting included');
+  assert.equal(enumerateModules(plan('filler panel')).counterMm2,30*600);
+  assert.equal(enumerateModules(plan('countertop return')).counterMm2,30*600+600*(100+720),'face from the floor, skirting included');
 });

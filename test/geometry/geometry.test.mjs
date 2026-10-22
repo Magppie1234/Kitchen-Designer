@@ -93,7 +93,7 @@ test('share view leaves gaps empty and prices real depths/heights',()=>{
   const plan={runs:[{key:'W0',total:4275,segments:[{kind:'gap',width:3675,x0:0},{kind:'cabinet',width:600,x0:3675,height:720,depth:336}]}],tiers:{}};
   assert.equal((livePlanSvg({walls,plan}).match(/<polygon/g)||[]).length,2,'only room and real cabinet');
   assert.equal((liveElevSvg({walls,plan}).match(/<rect/g)||[]).length,1);
-  const m=enumerateModules(plan);assert.equal(m.counterMm2,600*336);assert.equal(m.specs[0].D,336);
+  const m=enumerateModules(plan);assert.equal(m.counterMm2,600*(336+40),"worktop = cabinet depth + 40mm overhang");assert.equal(m.specs[0].D,336);
 });
 test('a shallow column partway along a wall: the low-depth cabinet still lines up with the 560mm fronts',()=>{
   const low=cat.find(c=>c.group==='base'&&c.depth===336&&c.width===600&&c.handle==='CJ');

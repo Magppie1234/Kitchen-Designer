@@ -1264,8 +1264,19 @@
       "seen_in": [
         "Designer, 2026-10-22"
       ],
-      "statement": "While editing, a base-row filler can be made into a countertop dropdown at its left or right end: exactly countertop_return (30mm), the same countertop return the engine puts at an exposed base run end; any wider filler keeps the rest as a filler. It can be changed back to a filler. It shows in 3D as the run-end dropdown does, and its stone face (depth x the height from the floor to the underside of the worktop, skirting included) is billed as countertop area (stone and installation) in the estimate and PDF, as is every countertop dropdown.",
+      "statement": "While editing, a base-row filler can be made into a countertop dropdown at its left or right end: exactly countertop_return (30mm), the same countertop return the engine puts at an exposed base run end; any wider filler keeps the rest as a filler. It can be changed back to a filler. It shows in 3D as the run-end dropdown does, and its stone face (worktop depth x the height from the floor to the underside of the worktop, skirting included) is billed as countertop area (stone and installation) in the estimate and PDF, as is every countertop dropdown.",
       "implementation": "ui/builder.html editFillerToPanel(side,\"dropdown\") / isDropdownSeg() / canDropdown() (editing panel buttons; normalizeList never merges it); 3D: ui/renderer3d.js filler branch (countertop return = VP-560-15 end panel); pricing: vendor/costEstimate.js enumerateModules() adds the face to counterMm2. Test: test/pricing."
+    },
+    {
+      "id": "countertop-billed-at-worktop-depth",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-22"
+      ],
+      "statement": "The countertop is billed at the worktop depth, not the cabinet depth: each base-row piece (cabinet, hob/sink, dishwasher, filler, concealed corner space, countertop dropdown face) counts its cabinet depth plus the front overhang (depths.counter - depths.base = 600 - 560 = 40mm), so a standard 560mm run bills 600mm deep, as the 3D worktop is drawn. Both the stone (Section A) and the countertop installation (Section B) use this area.",
+      "note": "Was billed at the cabinet depth (560mm) until 2026-10-22. The island top keeps its own measured depth.",
+      "implementation": "vendor/costEstimate.js enumerateModules(): worktopD() = (seg.depth ?? depths.base) + COUNTER_OVER for every counterMm2 term; the 3D uses the same COUNTER_OVER (ui/renderer3d.js worktop()). Test: test/pricing."
     }
   ],
   "open_questions": [
