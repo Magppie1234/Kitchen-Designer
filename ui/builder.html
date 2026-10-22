@@ -7241,7 +7241,7 @@ function normalizeList(list, track, openOnly){ let obj=track!=null?list[track]:n
   for(let i=list.length-2;i>=0;i--){ const a=list[i], b=list[i+1];
     if(a.kind!=='filler'||b?.kind!=='filler'||(b.x0!=null&&a.x0!=null&&a.x0+a.width!==b.x0)) continue;
     const open=a.open&&b.open;
-    if(!open&&(openOnly||a.open||b.open||!sameTier(a,b)||isPanelSeg(a)||isPanelSeg(b))) continue;   // a panel stays 20mm
+    if(!open&&(openOnly||a.open||b.open||!sameTier(a,b)||isPanelSeg(a)||isPanelSeg(b)||isDropdownSeg(a)||isDropdownSeg(b))) continue;   // a panel stays 20mm, a dropdown 30mm
     if(open&&(a.tier==='tall'||b.tier==='tall')){ a.tier='tall'; a.height=Math.max(a.height||0,b.height||0)||undefined; }
     a.width+=b.width; if(a.x0!=null) a.x1=a.x0+a.width; list.splice(i+1,1); }
   return obj?list.indexOf(obj):-1; }
@@ -7329,20 +7329,25 @@ function editAddFiller(w,side){ if(!S.editing) return;
 }
 // Designer's choice: a filler becomes a visible panel, or back. A panel is always exactly
 // panel_width (20mm, never widened — panel-vs-filler); a wider filler keeps the rest as a filler
-// on the other side of the panel.
+// on the other side of the panel. A base filler can likewise become a countertop dropdown
+// (as='dropdown'): exactly countertop_return (30mm), the engine's own 'countertop return'
+// (rules.json: filler-to-countertop-dropdown).
 const isPanelSeg=s=>s?.kind==='filler'&&/^panel|visible panel/.test(s.label||'');
-function editFillerToPanel(side){ if(!S.editing) return;
-  const list=editableList(S.selModRef), s=selSeg(), P=S.rulesCfg?.params?.panel_width??20;
+const isDropdownSeg=s=>s?.kind==='filler'&&/^countertop return/.test(s.label||'');
+const canDropdown=(ref,s)=>ref?.tier==='base'&&s?.kind==='filler'&&!s.open&&s.tier!=='tall';
+function editFillerToPanel(side,as){ if(!S.editing) return;
+  const drop=as==='dropdown', list=editableList(S.selModRef), s=selSeg(), P=drop?S.rulesCfg?.params?.countertop_return??30:S.rulesCfg?.params?.panel_width??20;
   if(!list||!s||s.kind!=='filler'||s.open) return;
-  const from=segDesc(s);
-  if(isPanelSeg(s)){ s.label='filler panel'; afterEdit('panel to filler',from,`filler ${s.width}mm`); return; }
-  if(s.width<P){ showToast(`A visible panel is exactly ${P}mm — this filler is only ${s.width}mm.`); return; }
-  const li=S.selModRef.idx, x0=s.x0||0, panel={...s,label:'panel',width:P,x0:side==='right'?x0+s.width-P:x0};
+  const from=segDesc(s), name=drop?'countertop dropdown':'visible panel';
+  if(isPanelSeg(s)||isDropdownSeg(s)){ const was=isDropdownSeg(s)?'countertop dropdown':'panel'; s.label='filler panel'; afterEdit(`${was} to filler`,from,`filler ${s.width}mm`); return; }
+  if(drop&&!canDropdown(S.selModRef,s)){ showToast('A countertop dropdown goes in the base row, under the worktop.'); return; }
+  if(s.width<P){ showToast(`A ${name} is exactly ${P}mm — this filler is only ${s.width}mm.`); return; }
+  const li=S.selModRef.idx, x0=s.x0||0, panel={...s,label:drop?'countertop return':'panel',width:P,x0:side==='right'?x0+s.width-P:x0};
   delete panel.code; if(panel.x1!=null) panel.x1=panel.x0+P;
   if(s.width===P) list[li]=panel;
   else { s.width-=P; if(s.x1!=null) s.x1=(side==='right'?x0+s.width:s.x1); if(side==='right') list.splice(li+1,0,panel); else { s.x0=x0+P; list.splice(li,0,panel); } }
   S.selModRef.idx=list.indexOf(panel);
-  afterEdit('filler to panel',from,`visible panel ${P}mm (${side||'left'})`);
+  afterEdit(`filler to ${drop?'countertop dropdown':'panel'}`,from,`${name} ${P}mm (${side||'left'})`);
 }
 // A base run never grows past its wall while it still has empty space: the extra width a wider
 // cabinet or filler needs comes out of the nearest free / open space (or gap filler) in the same
@@ -7853,7 +7858,7 @@ function renderLibPanelBody(){
   const list=editableList(ref), left=list[ref.idx-1], right=list[ref.idx+1];
   const slack=s.width+(left&&left.kind==='filler'&&sameTier(left,s)?left.width:0)+(right&&right.kind==='filler'&&sameTier(right,s)?right.width:0);
   box.innerHTML=`
-    <div style="font-size:15px;font-weight:600;line-height:1.35"><span id="libSelDesc">${esc(isGap?(DetailedPlan.emptyKind(s)==='free'?'Extend area':'Dead space'):isFiller?(s.open?'Open space (no filler)':isPanelSeg(s)?'Visible panel':'Filler'):s.func||(s.code?'':s.label||s.kind))}</span>${s.crossSeries?' <span style="font-size:10px;font-weight:700;color:#B4533A">CROSS-SERIES</span>':''}</div>
+    <div style="font-size:15px;font-weight:600;line-height:1.35"><span id="libSelDesc">${esc(isGap?(DetailedPlan.emptyKind(s)==='free'?'Extend area':'Dead space'):isFiller?(s.open?'Open space (no filler)':isPanelSeg(s)?'Visible panel':isDropdownSeg(s)?'Countertop dropdown':'Filler'):s.func||(s.code?'':s.label||s.kind))}</span>${s.crossSeries?' <span style="font-size:10px;font-weight:700;color:#B4533A">CROSS-SERIES</span>':''}</div>
     <div style="margin-top:6px;font-size:22px;font-weight:700;color:var(--ink)">${s.width} mm <span style="font-size:12px;font-weight:600;color:var(--muted)">wide${s.height||s.h?` · ${s.height||s.h} H`:''}${s.depth?` · ${s.depth} D`:''}</span></div>
     <div id="libSelPos" style="font-size:11.5px;color:var(--muted2);margin-top:2px">at ${s.x0}–${s.x1}mm on ${ref.run} (${ref.tier})</div>
     ${s.code?`<div title="${esc(s.code)}" style="font-size:10.5px;font-family:monospace;color:var(--muted2);margin-top:4px;overflow-wrap:anywhere">${esc(s.code)}</div>`:''}
@@ -7871,12 +7876,16 @@ function renderLibPanelBody(){
       <button class="btn ghost" onclick="editDelete()" style="flex:1;padding:8px;font-size:12px;color:#B4533A;border-color:#D9A79A">${isFiller?'Delete filler (leave open space)':'Delete'}</button>
     </div>`}
     ${hasFridgePanel(s)?`<div style="margin-top:8px"><button class="btn ghost" onclick="toggleFridgePanel()" style="width:100%;padding:7px;font-size:11.5px">${s.noFridgePanel?'Add refrigerator panel':'Remove refrigerator panel'}</button></div>`:''}
-    ${s.kind==='filler'&&!s.open?(isPanelSeg(s)?`<div style="margin-top:8px"><button class="btn ghost" onclick="editFillerToPanel()" style="width:100%;padding:7px;font-size:11.5px">Change to filler</button></div>`
+    ${s.kind==='filler'&&!s.open?(isPanelSeg(s)||isDropdownSeg(s)?`<div style="margin-top:8px"><button class="btn ghost" onclick="editFillerToPanel()" style="width:100%;padding:7px;font-size:11.5px">Change to filler</button></div>`
       :`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Make visible panel · ${S.rulesCfg?.params?.panel_width??20}mm</div>
       <div style="display:flex;gap:6px">
         <button class="btn ghost" onclick="editFillerToPanel('left')" style="flex:1;padding:7px;font-size:11.5px">◀ At left</button>
         <button class="btn ghost" onclick="editFillerToPanel('right')" style="flex:1;padding:7px;font-size:11.5px">At right ▶</button>
-      </div></div>`):''}
+      </div></div>`+(canDropdown(ref,s)?`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Make countertop dropdown · ${S.rulesCfg?.params?.countertop_return??30}mm</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn ghost" onclick="editFillerToPanel('left','dropdown')" style="flex:1;padding:7px;font-size:11.5px">◀ At left</button>
+        <button class="btn ghost" onclick="editFillerToPanel('right','dropdown')" style="flex:1;padding:7px;font-size:11.5px">At right ▶</button>
+      </div></div>`:'')):''}
     ${(!isFiller&&s.kind==='cabinet')?`<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div><div style="font-size:10.5px;color:var(--muted2);margin-bottom:3px">Shutter (this cabinet)</div>
         <select onchange="setSegShutter(this.value)" style="width:100%;padding:7px;border:1px solid var(--line2);border-radius:8px;font-size:12px;background:#fff">

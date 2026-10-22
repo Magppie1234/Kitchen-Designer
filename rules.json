@@ -1256,6 +1256,16 @@
       "statement": "Whenever a sink cabinet is placed, a wall dish rack cabinet always goes above the sink. Its width follows the sink: a 600mm sink gets a 600mm dish rack; a sink of 900mm or more gets the 900mm dish rack. If a window is above the sink, the dish rack goes in the wall cabinet immediately left or right of the window, whichever side is nearer the sink. If there is no room for it there (e.g. wall blind corners take the wall cabinet run either side of the window), no dish rack is placed.",
       "note": "Re-established by the user on 2026-10-19; it was previously recorded as refuted. 'No room' is a warning, not a release block (user, 2026-10-19: 'dont put dish rack there'). Sinks under 900mm other than 600mm (e.g. 750) also get the 600mm rack. A single-door 600mm rack is handed away from the sink centre (LHS when over or left of it). Island sinks are exempt (no wall above).",
       "implementation": "core/engine.mjs solve(): before packing the wall tier, tries the rack (WC-AC-...-DSH code at the design-height wall size, dishRackFor()) flush over the sink or flush against the window, keeping it only if the wall run still packs cleanly; otherwise packs the run and placeDishRacks() swaps 1-3 plain wall cabinets for the rack plus an exact re-pack. Neither fits: a warning and no rack. Test: test/dish-rack/dish-rack.test.mjs."
+    },
+    {
+      "id": "filler-to-countertop-dropdown",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-22"
+      ],
+      "statement": "While editing, a base-row filler can be made into a countertop dropdown at its left or right end: exactly countertop_return (30mm), the same countertop return the engine puts at an exposed base run end; any wider filler keeps the rest as a filler. It can be changed back to a filler. It shows in 3D as the run-end dropdown does, and its stone face (depth x height) is billed as countertop area in the estimate and PDF, as is every countertop dropdown.",
+      "implementation": "ui/builder.html editFillerToPanel(side,\"dropdown\") / isDropdownSeg() / canDropdown() (editing panel buttons; normalizeList never merges it); 3D: ui/renderer3d.js filler branch (countertop return = VP-560-15 end panel); pricing: vendor/costEstimate.js enumerateModules() adds the face to counterMm2. Test: test/pricing."
     }
   ],
   "open_questions": [

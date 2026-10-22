@@ -27,6 +27,9 @@ export function enumerateModules(plan) {
         continue;
       }
       if (seg.kind==='filler' && seg.tier!=='tall') counterMm2+=seg.width*(seg.depth??DEPTH.counter);
+      // a countertop dropdown is stone down the cabinet side too: its face is countertop area
+      // (rules.json: filler-to-countertop-dropdown)
+      if (seg.kind==='filler' && seg.tier!=='tall' && /^countertop return/.test(seg.label||'')) counterMm2+=(seg.depth??DEPTH.base)*(seg.height??720);
       if (!['cabinet', 'anchor', 'corner'].includes(seg.kind)) continue;
       if(seg.label==='dishwasher'){counterMm2+=seg.width*(seg.depth??DEPTH.counter);continue;}
       if (seg.kind === 'anchor' && seg.label === 'fridge') { push({ kind: 'tall', W: seg.width, H: seg.height??2100, D:seg.depth??DEPTH.tall, label: 'fridge tower', carries: ['fridge'] }); continue; }

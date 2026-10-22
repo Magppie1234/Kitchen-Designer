@@ -116,3 +116,10 @@ test('accessory prices come from the price master by S.No.; unmapped names are a
   const old = JSON.parse(readFileSync('data/accessories-master/accessories-master.json', 'utf8'))['Kitchen Accessories'];
   assert.ok(old.filter((r) => Number(r[0]) > 0).every((r) => r[5] === ''));
 });
+
+test('a countertop dropdown bills its stone face as countertop area; a plain filler only its top',async()=>{
+  const {enumerateModules}=await import('../../vendor/costEstimate.js');
+  const plan=(label)=>({runs:[{key:'W0',segments:[{kind:'filler',label,width:30,depth:560,height:720}]}]});
+  assert.equal(enumerateModules(plan('filler panel')).counterMm2,30*560);
+  assert.equal(enumerateModules(plan('countertop return')).counterMm2,30*560+560*720);
+});
