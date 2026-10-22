@@ -731,8 +731,8 @@
       "seen_in": [
         "Designer, 2026-10-21"
       ],
-      "statement": "A refrigerator panel closes the top of the fridge opening: the RFP code nearest the opening width (fridge + 50mm each side) — RFP-700, RFP-900 or RFP-1050, 300mm high — stretched (width and model) to run tall-to-tall: across the opening and any filler (up to 100mm) between it and the tall cabinets beside it. Its top is level with the real top of those tall cabinets' models and its face on their shutter plane; the fridge stands below it.",
-      "implementation": "ui/renderer3d.js tallBank fridge branch (RFP_W / RFP_H), model from Models/Additional Items/Refrigerator panels. 3D only, like the chimney panel. Test: test/models/models.test.mjs."
+      "statement": "A refrigerator panel closes the top of the fridge opening: the RFP code nearest the opening width (fridge + 50mm each side) — RFP-700, RFP-900 or RFP-1050, 300mm high — stretched (width and model) to run tall-to-tall: across the opening and any filler (up to 100mm) between it and the tall cabinets beside it. Its top is level with the real top of those tall cabinets' models and its face on their shutter plane; the fridge stands below it. In editing, clicking the fridge lets the designer remove the panel (and add it back).",
+      "implementation": "ui/renderer3d.js tallBank fridge branch (RFP_W / RFP_H; skipped when seg.noFridgePanel), model from Models/Additional Items/Refrigerator panels. 3D only, like the chimney panel. ui/builder.html hasFridgePanel() / toggleFridgePanel() (editing panel button). Test: test/models/models.test.mjs."
     },
     {
       "id": "tall-panel-top",

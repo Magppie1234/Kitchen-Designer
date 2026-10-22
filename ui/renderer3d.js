@@ -745,17 +745,18 @@ function buildKitchen(plan, walls){
             const top=(tu.z??seg.z??0)+(tu.height??seg.height??stack.tall);
             if(!blocked('refrigerator',footprint(px,py,ang,fw,tu.depth??D),0,1800)){
               const fr=box(fw,1800,tu.depth??D,0xcfd3d6,{metalness:0.3,roughness:0.3}); fr.position.copy(world(px,py,900)); fr.rotation.y=ang; g.add(fr);
-              appliance('fridge',fw,at,ang,{mode:'floor',maxH:top-RFP_H,fallback:fr}); }
+              appliance('fridge',fw,at,ang,{mode:'floor',maxH:seg.noFridgePanel?top:top-RFP_H,fallback:fr}); }
             // Refrigerator panel (rules.json: fridge-top-panel): the RFP nearest the opening width,
             // stretched tall-to-tall across the opening and any filler beside it (up to 100mm), its
             // top level with the flanking tall models' real top, its face on their shutter plane.
-            const o0=so, o1=so+wmm, talls=r.segments.filter(t=>t.tier==='tall'&&t.code&&t!==seg);
+            // The designer can remove it in editing (seg.noFridgePanel).
+            if(!seg.noFridgePanel){ const o0=so, o1=so+wmm, talls=r.segments.filter(t=>t.tier==='tall'&&t.code&&t!==seg);
             const lt=talls.find(t=>Math.abs(o0-(t.x0+t.width))<=100), rt=talls.find(t=>Math.abs(t.x0-o1)<=100);
             const p0=lt?lt.x0+lt.width:o0, p1=rt?rt.x0:o1, pw=p1-p0, flank=lt||rt;
             const rfp=RFP_W.reduce((b,x)=>Math.abs(x-pw)<Math.abs(b-pw)?x:b);
             Promise.all([shutterFront(flank,flank?.depth??tu.depth??D),modelTop(flank,top)]).then(([front,ptop])=>{
               const k=front-12, pa=(p0+p1)/2;
-              item(`RFP-${rfp}-${RFP_H}-15`,null,pw,RFP_H,24,world(w.a[0]+u[0]*pa+n[0]*(k+inset),w.a[1]+u[1]*pa+n[1]*(k+inset),ptop-RFP_H/2),ang,0xE7E0D0,'cabinet'); }); }
+              item(`RFP-${rfp}-${RFP_H}-15`,null,pw,RFP_H,24,world(w.a[0]+u[0]*pa+n[0]*(k+inset),w.a[1]+u[1]*pa+n[1]*(k+inset),ptop-RFP_H/2),ang,0xE7E0D0,'cabinet'); }); } }
           else place(wmm,tu.code||seg.code,px,py,tu.z??seg.z??0,ang,0x21433A,tu.height??seg.height??stack.tall,tu.depth??D);
           so+=wmm;});
         off+=ww;continue;}
