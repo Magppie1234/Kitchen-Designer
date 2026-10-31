@@ -820,7 +820,7 @@ const S={
   // Fridge guided config: `pick` = one of the four FRIDGE_PICKS photo looks (null = legacy
   // Built-In default); `type` + options.appliances are derived from it (engine wiring).
   fridge:{pick:null,type:null,width:600,accessories:[]},
-  handle:null, look:null, material:'Calacatta Veined', rendered:false, discount:false,
+  handle:'C & J', look:null, material:'Calacatta Veined', rendered:false, discount:false,
   accSizes:{},   // chosen size (price-master S.No.) per multi-size accessory: {name: sn} — see accSizeSelect
   selectedCab:null,
   // engine state
@@ -877,7 +877,7 @@ window.S=S; window.API=API;
 const ROOM_STATE_KEYS=[
   'method','shape','view','activeStep','steps','hob','sink','fridge','unlockedStages',
   'handle','look','material','rendered','discount','accSizes','selectedCab',
-  'traceImage','upload','kdetect','dims','room','walls','suggested','islandInfo',
+  'traceImage','traceRect','traceAspect','traceCal','roomDraw','roomDrawDone','scaleWall','planPins','pinArm','wallLocks','planGroup','upload','kdetect','dims','room','walls','suggested','islandInfo',
   'anchors','openings','selFx','placing','arm','modules','snapshots','rpActive','rpForceRepick','rpSel','rpBatch',
   'structures','structArm','_dragged','planResult','roomHeightUnit','fieldErr','_tf',
   'layoutTab','panelOpen','style','roomShape','roomMode','roomName','_posTarget',
@@ -887,6 +887,7 @@ const ROOM_STATE_KEYS=[
   'editLog',   // Stage 6.8 — the manual-edit trail (who/when/what, from -> to), also mirrored to the server audit log
   'keeps',     // Stage 8.2 — designer-kept (pinned) cabinets {wall,x0,width,label,code,tol} for regeneration
   'presalesRev', // {n, sig, changed} — the room's pre-sales revision (see presalesRevCheck)
+  'lastScreen',  // the page this room was last on, so opening it again resumes there (see openRoom)
 ];
 // Captured from the pristine S literal above, so a new room starts at exactly the defaults a
 // fresh session used to - no second copy of those defaults to drift out of sync.
@@ -953,7 +954,10 @@ function duplicateRoom(id){
 // design store), not back at Layout.
 function openRoom(id){ const r=switchRoom(id); if(!r) return;
   renderChrome();
-  if(r.design.plan||r.design.reResult){ S.view='2d'; go('result'); return; }
+  const planned=!!(r.design.plan||r.design.reResult), last=r.design.lastScreen;
+  // back on the page it was left on, while that page still has what it shows
+  if(last&&last!=='layout'&&(last==='editor'?(r.design.walls||[]).length:planned)){ if(last==='result')S.view='2d'; go(last); return; }
+  if(planned&&last!=='layout'){ S.view='2d'; go('result'); return; }
   // No per-room "how would you like to begin?" any more — the project decided that once.
   // Every room is drawn/edited on the Layout canvas: scratch rooms start empty, rooms read
   // out of an uploaded drawing arrive with their walls already in place.
@@ -1019,10 +1023,14 @@ const SCREEN_DISP={layout:'grid',editor:'grid',result:'grid',generating:'flex',r
 // Screen changes are real history entries (pushState), not just a JS variable —
 // otherwise the browser Back button has nothing of ours to step through and
 // exits straight to whatever page was open before the builder.
+// Pages a room resumes on when opened again (rules.json: room-resumes-where-left); the others
+// (dashboard, generating, template...) are passed through.
+const RESUME_SCREENS=['layout','editor','result','render','quote','handoff'];
 function go(screen){
   if(screen==='review') screen='result';   // legacy review screen unified into the single Review = 'result' (fix #2)
   unlockStage(STAGE_FOR[screen] ?? -1);
-  S.screen=screen; render(); window.scrollTo(0,0);
+  S.screen=screen; if(RESUME_SCREENS.includes(screen)) S.lastScreen=screen;
+  render(); window.scrollTo(0,0);
   if(!history.state || history.state.screen!==screen) history.pushState({screen}, '', '#'+screen);
 }
 // Modals (setup / step / template) are opened via direct style.display flips,
@@ -1193,16 +1201,10 @@ function pickShapeUi(id){ S.shape=id; renderShape(); }
        (lib/convertDwg.js) and traces the actual kitchen walls/openings from the drawing
        (lib/extractKitchen.js) — real geometry, not a guess. Applied as an EDITABLE DRAFT
        via applyVisionExtract(), same as the AI photo path below.
-     · PDF / JPEG / PNG -> Gemini 3.8 Flash (plan-read.mjs): /api/kitchen-detect finds the
-       kitchen on the page(s), /api/vision-extract reads a close-up of it — walls, open sides,
-       doors/windows, columns, and any cabinetry the plan shows (zones, hob, sink, fridge), in
-       millimeters. Applied as an EDITABLE DRAFT (applyVisionExtract) — every wall,
-       opening and structure lands on the same Layout canvas with the same drag/edit tools as
-       anything placed by hand, since a vision read of a photo can misjudge a dimension or miss
-       a door and the user needs a fast way to fix that, not a black box.
-     · If AI detection fails (no API key configured, network error, unparseable response) ->
-       falls back to the old $0 behavior: the image is shown as a low-opacity background in the
-       Layout canvas to trace over with the Free-to-Draw wall tool.
+     · PDF / JPEG / PNG -> no AI (Gemini is off for Layout). The page(s) are previewed, the
+       designer boxes the kitchen area (openPlanPreview -> useCroppedPlan), and the crop becomes
+       the Layout background, where they draw the room walls over it (Draw room walls) and set
+       one wall's real length to scale the room and the image together.
    ==================================================================== */
 function renderUploadBox(){
   const box=$('uploadBoxBody'); if(!box) return;
@@ -1241,7 +1243,7 @@ function renderUploadBox(){
   } else {
     box.innerHTML=`<div style="width:54px;height:54px;border-radius:14px;background:#EEF0EB;color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px">⤓</div>
       <div style="font-family:'Spectral',serif;font-size:18px;margin-bottom:6px">Drop your layout here</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:38ch;margin:0 auto">PDF, image (JPEG/PNG), or CAD file (DWG/DXF). A PDF with real drawing data auto-builds the room after you confirm one wall's length; a DWG/DXF auto-traces the real walls &amp; openings; a photo or scanned plan is read by AI to auto-build walls, doors, windows, columns &amp; beams as an editable draft (falls back to a trace-over background if that's unavailable).</div>`;
+      <div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:38ch;margin:0 auto">PDF, image (JPEG/PNG), or CAD file (DWG/DXF). A PDF with real drawing data auto-builds the room after you confirm one wall's length; a DWG/DXF auto-traces the real walls &amp; openings; for a PDF or photo you select the kitchen area, then draw its walls over it on the Layout page.</div>`;
   }
 }
 function resetUpload(){ S.upload={stage:'idle',file:null,kind:null,bbox:null,msg:null}; renderUploadBox(); }
@@ -1271,16 +1273,11 @@ async function handleUploadedFile(file){
       // vision/manual. (The previous path here calibrated the WHOLE drawing's bounding box as if
       // it were the kitchen — right only for a single dedicated sheet, badly wrong for any
       // multi-room villa plan, which is exactly what customers upload.)
-      await runKitchenDetection({kind:'pdf',file});
+      openPlanPreview(await pdfPageImages(file));
       return;
     }
     if(/^image\//.test(file.type)){
-      const dataUrl=await readAsDataUrl(file);
-      S.traceImage=dataUrl;
-      // Smart Kitchen Detection first (finds/confirms the kitchen region, handles multi-room
-      // villa plans) — it hands a locked, single-kitchen crop to /api/vision-extract itself
-      // once a region is confirmed, same read this used to run directly on the whole image.
-      await runKitchenDetection({kind:'image',file,dataUrl});
+      openPlanPreview([await readAsDataUrl(file)]);
       return;
     }
     S.upload={stage:'error',file:null,kind:null,bbox:null,msg:'Unsupported file — please upload a PDF, JPEG, PNG, DWG or DXF.'}; renderUploadBox();
@@ -1299,7 +1296,7 @@ async function handleUploadedFile(file){
 function applyVisionExtract(ex,opts){
   const navigate=!(opts&&opts.navigate===false);
   S.anchors=[]; S.openings=[]; S.structures=[]; S.zones=[];
-  S.room={}; rebuildWalls(ex.room.corners_mm); S.room.walls=S.walls;   // rebuildWalls also sets bbox + dims
+  S.room={}; S.wallLocks=[]; rebuildWalls(ex.room.corners_mm); S.room.walls=S.walls;   // rebuildWalls also sets bbox + dims
   S.openWalls=(ex.openWalls||[]).filter(i=>S.walls[i]); S.roomMode=S.openWalls.length?'open':'enclosed';
   S.openings=(ex.openings||[]).map(o=>{
     const w=S.walls[o.wallIndex]; if(!w) return null;
@@ -1365,7 +1362,7 @@ function confirmUploadScale(){
 // JPEG/PNG (or non-vector PDF) fallback: no geometry to trust, so drop into a normal
 // default room and show the photo as a background to trace over with Free-to-Draw.
 function useUploadedReferenceImage(){ resetUpload(); S.roomShape='rect'; go('layout'); }
-function clearTraceImage(){ S.traceImage=null; renderPos('layoutSvg'); renderLayoutPanel(); }
+function clearTraceImage(){ S.traceImage=null; S.traceRect=null; S.traceCal=false; S.planPins=[]; S.pinArm=null; renderPos('layoutSvg'); renderLayoutPanel(); }
 
 // ---- minimal client-side PDF vector-path reader (no library — DXF-style, just a different
 // container format). Finds stream objects, inflates FlateDecode ones via the browser's native
@@ -1812,7 +1809,23 @@ function kcropConfirm(){
   const bbox={ x:Math.min(kmanual.x0,kmanual.x1), y:Math.min(kmanual.y0,kmanual.y1), width:Math.abs(kmanual.x1-kmanual.x0), height:Math.abs(kmanual.y1-kmanual.y0) };
   if(bbox.width<0.02||bbox.height<0.02){ showToast('That box is too small — try drawing a larger one.'); return; }
   kmanual=null;
-  lockKitchenRegion({label:'Manually selected region',boundingBox:bbox});
+  useCroppedPlan(bbox);
+}
+// No AI read (Gemini is off for Layout): the uploaded plan is only previewed. The designer picks
+// the page, boxes the kitchen area, and that crop becomes the Layout background, where they
+// draw the room walls themselves over it (Draw room walls).
+function openPlanPreview(images){
+  S.kdetect={pages:images.map((u,i)=>({pageIndex:i,imageDataUrl:u,detection:{candidates:[]}})),activePage:0,stage:null};
+  if(images.length>1) openKitchenPagePicker(); else openKitchenManual();
+}
+async function useCroppedPlan(bbox){
+  const url=await cropImageDataUrl(currentKitchenPage().imageDataUrl,bbox,0), img=new Image();
+  await new Promise(res=>{ img.onload=img.onerror=res; img.src=url; });
+  S.traceImage=url; S.traceAspect=img.naturalHeight/img.naturalWidth; S.traceRect=null; S.traceCal=false; S.planPins=[]; S.pinArm=null;   // placed over the room on first Layout render
+  S.kdetect=null; $('modalKitchen').style.display='none';
+  S.walls=[]; S.room=null; S.openings=[]; S.anchors=[]; S.structures=[]; S.zones=[]; S.openWalls=[]; S.roomShape='drawn';
+  resetUpload(); refitView(); go('layout');
+  showToast('Click "Draw room walls", then click each corner of the room over the plan.');
 }
 
 // ---- render ----
@@ -1835,14 +1848,14 @@ function renderKitchenPagePick(){
   const anyHits=pages.some(p=>p.detection.candidates.length);
   return `<div style="padding:24px 26px 8px">
       <div class="serif" style="font-size:20px;margin-bottom:4px">${anyHits?'Pick the floor with your kitchen':'Which floor is your kitchen on?'}</div>
-      <div style="font-size:13px;color:var(--muted)">This plan has ${pages.length} pages. ${anyHits?'Tap the floor with the kitchen you want.':'No kitchen label was auto-detected — tap the floor and you can box the kitchen yourself.'}</div>
+      <div style="font-size:13px;color:var(--muted)">This plan has ${pages.length} pages. ${anyHits?'Tap the floor with the kitchen you want.':'Tap the page with your kitchen, then box the area you want.'}</div>
     </div>
     <div style="padding:16px 26px 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px">
       ${pages.map((p,i)=>{ const n=p.detection.candidates.length;
         return `<div onclick="pickKitchenPage(${i})" style="cursor:pointer;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:#fff">
           <img src="${p.imageDataUrl}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;border-bottom:1px solid var(--line)"/>
           <div style="padding:9px 10px 0;font-size:12px;font-weight:600">Page ${p.pageIndex+1}</div>
-          <div style="padding:0 10px 10px;font-size:11px;color:var(--muted)">${n?`${n} kitchen${n>1?'s':''} found`:'No kitchen detected'}</div>
+          ${n?`<div style="padding:0 10px 10px;font-size:11px;color:var(--muted)">${n} kitchen${n>1?'s':''} found</div>`:'<div style="height:10px"></div>'}
         </div>`; }).join('')}
     </div>
     <div style="padding:10px 26px 26px;text-align:center;font-size:11px;color:var(--muted2);text-decoration:underline;cursor:pointer" onclick="cancelKitchenDetection()">Cancel and start over</div>`;
@@ -1878,8 +1891,8 @@ function renderKitchenPick(){
 function renderKitchenManual(){
   const page=currentKitchenPage();
   return `<div style="padding:24px 26px 6px">
-      <div class="serif" style="font-size:20px;margin-bottom:4px">Tap or drag a box around your kitchen</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">No kitchen was auto-detected here — draw a box yourself. Click-drag for a precise rectangle, or a single tap for a default-size box you can redraw.</div>
+      <div class="serif" style="font-size:20px;margin-bottom:4px">Select the kitchen area</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Drag a box around the area you want to design. It opens on the Layout page behind the plan, where you draw the walls over it.</div>
     </div>
     <div style="padding:0 26px">
       <div id="kcropWrap" style="position:relative;width:100%;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:crosshair;user-select:none;touch-action:none"
@@ -2108,7 +2121,7 @@ async function mountLayout(){
   S._posTarget='layoutSvg'; S.editingWallDim=null; if(!S.view||S.view==='walk')S.view='2d';
   refitView();   // fit the room to the viewport on entry; frozen during edits (no shift on wall drag)
   renderLayoutTabs(); renderUnitBar(); renderLayoutPanel();
-  if(!S.walls.length){
+  if(!S.walls.length&&!S.traceImage){   // an uploaded plan waits for the designer to draw the room
     $('layoutRoomMeta').textContent='Loading room…';
     try{ await buildRoomFromShape(S.roomShape); }
     catch(err){ $('layoutRoomMeta').textContent=''; $('layoutPanel').insertAdjacentHTML('afterbegin',
@@ -2135,7 +2148,7 @@ function buildCustomRoom(verts,label){
   S.anchors=[]; S.steps={hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]};
   S.openings=[]; S.suggested=[]; S.islandInfo=null; S.structures=[]; S.snapshots=[]; S.rpActive=null; S.rpForceRepick=false; S.rpSel=[]; S.rpBatch=null;
   S.placing=null; S.arm=null; S.selFx=null;
-  S.room={strategy:'custom',label};
+  S.room={strategy:'custom',label}; S.wallLocks=[];
   rebuildWalls(verts);            // sets S.walls + S.room.bbox + S.dims
   S.room.walls=S.walls; S.dims.shape='custom';
   if(S.roomMode==='enclosed') setDefaultDoorWindow();   // door centred + window opposite (same default as rect/square)
@@ -2155,7 +2168,7 @@ function setLayoutView(v){
   $('layout3d').style.display=v==='3d'?'block':'none';
   $('layoutWalk').style.display=v==='walk'?'block':'none';
   if(v==='2d'){ if(window.stopScene)window.stopScene(); renderPos('layoutSvg'); }
-  else { const shell={runs:[],openings:S.openings}; if(window.startScene)window.startScene(shell,S.walls,v==='walk'?'walk':'orbit','layout3d','layoutWalkCanvas','layoutWalkHint'); }
+  else { const shell={runs:[],openings:S.openings}; if(window.startScene)window.startScene(shell,S.walls,v==='walk'?'walk':'orbit','layout3d','layoutWalkCanvas','layoutWalkHint',false,v==='walk'?walkNeighbours():[]); }
 }
 // Accordion: only ONE section open at a time. Opening a section auto-collapses every other
 // (Room Layouts / Door / Window / Structure / Ceiling & Kitchen Height). Clicking the currently
@@ -2255,9 +2268,20 @@ function renderLayoutPanel(){
       ${['open','enclosed'].map(mo=>`<button onclick="setRoomMode('${mo}')" style="flex:1;padding:8px;border:1.5px solid ${S.roomMode===mo?'var(--accent)':'var(--line2)'};background:${S.roomMode===mo?'#FBF1EC':'#fff'};border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;color:${S.roomMode===mo?'var(--accent)':'var(--ink)'}">${mo==='open'?'Open':'Enclosed'} Kitchen</button>`).join('')}
     </div>
     <div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">${S.roomMode==='open'?'Open kitchen — no door required, room boundary only.':'Enclosed — pick a Door below (Doorless = open threshold).'}</div>
+    <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;font-weight:600;color:#3A352C;cursor:pointer">
+      <span>Resize walls by dragging<span style="display:block;font-size:9.5px;font-weight:400;color:var(--muted2)">${WALL_DRAG?'Drag a wall to move it, or click its length to type one.':'Off: click a wall’s length to type it.'}</span></span>
+      <input type="checkbox" ${WALL_DRAG?'checked':''} onchange="toggleWallDrag()" style="width:16px;height:16px;accent-color:var(--accent)"/></label>
     ${S.traceImage?`<div style="margin-top:10px;padding:8px 10px;background:#FBF1EC;border:1px solid #E8C9BE;border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span style="font-size:10.5px;color:#6B675E;line-height:1.4">Reference image showing — trace over it, then remove it.</span>
-      <button onclick="clearTraceImage()" style="flex:none;padding:5px 10px;border:1px solid var(--line2);border-radius:7px;background:#fff;font-size:10.5px;font-weight:600;cursor:pointer">Remove</button></div>`:''}`;
+      <button onclick="clearTraceImage()" style="flex:none;padding:5px 10px;border:1px solid var(--line2);border-radius:7px;background:#fff;font-size:10.5px;font-weight:600;cursor:pointer">Remove</button></div>`:''}
+    ${S.traceImage?pinPanelHtml():''}
+    <button onclick="toggleRoomDraw()" style="width:100%;margin-top:10px;padding:9px;border:1.5px solid ${S.roomDraw?'var(--accent)':'var(--line2)'};background:${S.roomDraw?'#FBF1EC':'#fff'};border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;color:${S.roomDraw?'var(--accent)':'var(--ink)'}">${S.roomDraw?'✓ Done drawing':'✎ Draw room walls'}</button>
+    ${S.roomDraw?`<div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Click each corner on the <b>inside face</b> of the walls (the room side of the wall line, not its middle or outside). Walls run straight across or down. For an exact wall, point the mouse the way it runs, type its length (${unitAbbr()}) and press Enter.${S.traceImage&&!S.traceCal?' The first time, point at the wall\'s far corner on the plan: that length also sets the plan\'s scale.':''} Click the first corner to close the room, or right-click to stop where you are — the gap back to the start is left open (no wall). After the room, each chain you draw becomes inside walls, but a closed boundary bigger than the room becomes the room. Done also finishes the chain you are drawing. Middle-button drag moves the plan, the wheel zooms. Backspace removes the last corner or digit, Esc finishes.</div>`:''}
+    ${S.scaleWall!=null&&S.walls[S.scaleWall]?`<div style="margin-top:10px;padding:10px;border:1.5px solid var(--accent);border-radius:10px;background:#FBF1EC">
+      <div style="font-size:11.5px;font-weight:600;margin-bottom:6px">Real length of the highlighted wall</div>
+      <div style="display:flex;gap:6px;align-items:center"><input id="scaleWallLen" type="number" min="0" step="${inputStep()}" value="${lenToInput(S.walls[S.scaleWall].length)}" onkeydown="if(event.key==='Enter')applyRoomScale()" style="flex:1;min-width:0;padding:7px;border:1px solid var(--line2);border-radius:7px;font-size:12px"/>
+        <button class="btn" onclick="applyRoomScale()" style="padding:7px 12px;font-size:11.5px">Set</button></div>
+      <div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Every wall and the plan image scale with it. <span style="text-decoration:underline;cursor:pointer" onclick="S.scaleWall=null;renderLayoutPanel();renderPos('layoutSvg')">Keep as drawn</span></div></div>`:''}`;
 
   // Window cards: NO dimension text (consistent with doors — width shown only after placement).
   // A plain click/tap still auto-places (onTileDragRelease, unchanged behavior); pressing and
@@ -2353,7 +2377,18 @@ function renderLayoutPanel(){
   else if(S.selWall!=null && S.walls[S.selWall]){ const w=S.walls[S.selWall];
     const fld=(lbl,mm,fn)=>`<div style="flex:1"><label style="font-size:10px;color:#6B675E;font-weight:600;display:block;margin-bottom:3px">${lbl} <span style="color:var(--muted2);font-weight:400">(${unitAbbr()})</span></label><input type="number" value="${lenToInput(mm)}" step="${inputStep()}" onchange="${fn}" style="width:100%;padding:6px 8px;border:1px solid var(--line2);border-radius:7px;font-size:12px"/></div>`;
     const head=(t)=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)">${t}</span><span onclick="S.selWall=null;renderLayoutPanel();renderPos('layoutSvg')" style="cursor:pointer;color:var(--muted2);font-weight:700">×</span></div>`;
-    selProps=`<div style="margin-bottom:10px;border:1.5px solid var(--accent);border-radius:12px;background:#FBF1EC;padding:11px 12px">${head('Wall · selected')}${fld('Wall Thickness',w.thickness!=null?w.thickness:WALL_MM,'setSelWallThickness(this.value)')}<div style="font-size:9.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Stored per wall — doesn't change the drawn wall or 3D model yet.</div></div>`;
+    selProps=`<div style="margin-bottom:10px;border:1.5px solid var(--accent);border-radius:12px;background:#FBF1EC;padding:11px 12px">${head('Wall · selected')}${fld('Wall Thickness',w.thickness!=null?w.thickness:WALL_MM,'setSelWallThickness(this.value)')}<div style="font-size:9.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Stored per wall — doesn't change the drawn wall or 3D model yet.</div>`
+      +(wallStubAt(S.selWall)!=null?`<button class="btn ghost" onclick="removeWallStub(S.selWall)" style="width:100%;margin-top:10px;padding:8px;font-size:12px">Remove this wall stub</button><div style="font-size:9.5px;color:var(--muted2);margin-top:5px;line-height:1.4">Not in the room? The wall it stands on runs straight through.</div>`:'')
+      +`<div style="display:flex;gap:6px;margin-top:10px">
+         <button class="btn ghost" onclick="removeWall(S.selWall)" style="flex:1;padding:8px;font-size:12px">Remove wall</button>
+         <button class="btn ghost" onclick="S.breakAsk=!S.breakAsk;S.fieldErr=null;renderLayoutPanel()" style="flex:1;padding:8px;font-size:12px;${S.breakAsk?'border-color:var(--accent);color:var(--accent)':''}">Break wall</button></div>
+       ${S.breakAsk?(()=>{ const first=wallStartsFirst(w), end=isWallVertical(w)?'top':'left', near=S.selWallAt==null?w.length/2:(first?S.selWallAt:w.length-S.selWallAt);
+         return `<div style="margin-top:8px;padding:8px;border:1px solid var(--line2);border-radius:9px;background:#fff">
+           <label style="font-size:10px;color:#6B675E;font-weight:600;display:block;margin-bottom:4px">Break it how far from the ${end} end? <span style="color:var(--muted2);font-weight:400">(${unitAbbr()}, wall is ${fmtLen(w.length)})</span></label>
+           <div style="display:flex;gap:6px"><input id="brkAt" type="number" value="${lenToInput(Math.round(near))}" step="${inputStep()}" onkeydown="if(event.key==='Enter')breakSelWall(this.value)" style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line2);border-radius:7px;font-size:12px"/>
+           <button class="btn" onclick="breakSelWall(document.getElementById('brkAt').value)" style="padding:6px 12px;font-size:12px">Break</button></div>
+           ${S.fieldErr&&S.fieldErr.key==='brk'?`<div style="font-size:10px;color:#B4442B;margin-top:4px">${S.fieldErr.msg}</div>`:''}</div>`; })():''}
+       <div style="font-size:9.5px;color:var(--muted2);margin-top:5px;line-height:1.4">Remove: the walls either side join up with square corners (typing a length of 0 does the same). Break: splits it into two walls at the distance you give.</div></div>`;
   }
   // Selected WALL — NO sidebar length control (§7): wall length is edited only in-canvas by clicking
   // the dimension label. Clicking a wall just selects/highlights it (and shows the open-kitchen
@@ -2647,15 +2682,17 @@ function setDefaultDoorWindow(){ if(!S.walls.length) return; S.openings=[];
 }
 
 /* ---------- geometry helpers (engine) ---------- */
-function bounds(){let a={x:1e9,y:1e9},b={x:-1e9,y:-1e9};for(const w of S.walls)for(const p of[w.a,w.b]){a.x=Math.min(a.x,p[0]);a.y=Math.min(a.y,p[1]);b.x=Math.max(b.x,p[0]);b.y=Math.max(b.y,p[1]);}return{a,b};}
+function bounds(){if(!S.walls.length&&S.traceImage){const r=traceRectNow();return{a:{x:r.x,y:r.y},b:{x:r.x+r.w,y:r.y+r.h}};}let a={x:1e9,y:1e9},b={x:-1e9,y:-1e9};for(const w of S.walls)for(const p of[w.a,w.b]){a.x=Math.min(a.x,p[0]);a.y=Math.min(a.y,p[1]);b.x=Math.max(b.x,p[0]);b.y=Math.max(b.y,p[1]);}return{a,b};}
 // Plan→screen transform. FROZEN across renders (S._tf): computed once to fit the room, then
 // kept fixed so editing geometry (e.g. dragging the LEFT wall, which moves the bbox min corner)
 // no longer re-anchors/re-centers the whole view — only the wall itself moves. It is recomputed
 // ONLY on an explicit refitView() (new room / shape change) and mutated by user pan/zoom.
 // cx/cy stay live (current bbox centre) since they only drive inward-normal direction.
 function tf(W,H,PAD){const{a,b}=bounds();
-  if(!S._tf){ const sc=Math.min((W-2*PAD)/((b.x-a.x)||1),(H-2*PAD)/((b.y-a.y)||1));
-    S._tf={sc, ox:PAD-a.x*sc, oy:PAD-a.y*sc}; }
+  if(!S._tf){ const f={a:{...a},b:{...b}};   // fitted around the plan's other rooms too, so the whole layout shows
+    for(const r of planNeighbours()) for(const w of r.design.walls){ f.a.x=Math.min(f.a.x,w.a[0]); f.a.y=Math.min(f.a.y,w.a[1]); f.b.x=Math.max(f.b.x,w.a[0]); f.b.y=Math.max(f.b.y,w.a[1]); }
+    const sc=Math.min((W-2*PAD)/((f.b.x-f.a.x)||1),(H-2*PAD)/((f.b.y-f.a.y)||1));
+    S._tf={sc, ox:PAD-f.a.x*sc, oy:PAD-f.a.y*sc}; }
   const sc=S._tf.sc, ox=S._tf.ox, oy=S._tf.oy;
   return{sc,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox,oy,
     X:x=>ox+x*sc, Y:y=>oy+y*sc, Xi:sx=>(sx-ox)/sc, Yi:sy=>(sy-oy)/sc};}
@@ -2853,7 +2890,7 @@ function renderEditorLeft(){
   S.leftOpen=S.leftOpen||{door:false,window:false};
   // core fixture progress (drives the canvas Generate button + the Place Items header)
   const core=['hob','sink','fridge'].filter(k=>S.steps[k]).length;
-  const canGen=core>=3&&!!S.handle;
+  if(!S.handle) S.handle='C & J';   // default handle (rules.json: handle-default-cj); a saved room may carry none
   S.islandInfo=computeIslandInfo();   // re-check island fit against the CURRENT room geometry (Layout may have changed)
   // Design sidebar is now JUST the "Place Items" step list (fix: everything above it —
   // Room Size / Layout Elements / Structure / Placed Openings / Move Fixtures / Detected
@@ -2867,7 +2904,7 @@ function renderEditorLeft(){
       const i=STEPS.findIndex(s=>s.key===k), st=STEPS[i];
       const done=stepDone(st); const active=S.activeStep===i;
       const islandLocked=false;
-      const next=!done&&['hob','sink','fridge'].indexOf(st.key)===core;
+      const next=false;   // anchors are optional (rules.json: anchors-optional): no "place now" prompt
       const val=islandLocked?`Needs ${S.islandInfo.needMax}×${S.islandInfo.needMin}mm floor · room ${S.islandInfo.spanX}×${S.islandInfo.spanY}mm`:stepValue(st);
       const dotBg=done?'var(--sage)':(active||next)?'var(--accent)':'#fff', dotFg=(done||active||next)?'#fff':'#A39A88', dotBd=(done||active||next)?'transparent':'#D2CABA';
       const cardBd=active?'var(--accent)':next?'var(--accent)':done?'#D8DCD2':'var(--line)', cardBg=active?'#FBF1EC':done?'#F3F5F0':'#fff', valC=done?'#5B6353':'#A39A88';
@@ -2888,7 +2925,7 @@ function renderEditorLeft(){
     </div>`)
     +renderZonePanel()
     +leftSection('anchors','Anchors',`<span style="color:var(--accent)">${core}/3 core</span>`,`
-    <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;line-height:1.5">${core===0?'Start with the HOB — tap below to place it.':core<3?'Now place your '+(['hob','sink','fridge'].find(k=>!S.steps[k]))+'.':'Core fixtures placed — add extras below.'}</div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;line-height:1.5">${core<3?'Optional — place only the appliances you want. Without them the kitchen is built from your zones with library cabinets.':'Core fixtures placed — add extras below.'}</div>
     ${stepCards(ANCHOR_KEYS)}
     <div style="font-size:11px;color:var(--muted2);margin-top:10px;line-height:1.5">Tip: drag a placed hob / sink / fridge on the plan to reposition it — or tap one to select &amp; edit.</div>`)
     +leftSection('extras','Extras',S.handle?'':'<span style="color:var(--accent)">Handle required</span>',`
@@ -2898,8 +2935,6 @@ function renderEditorLeft(){
       <span style="flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${S.options.loft?'var(--sage)':'#fff'};color:${S.options.loft?'#fff':'#A39A88'};border:1px solid ${S.options.loft?'transparent':'#D2CABA'}">${S.options.loft?'✓':'+'}</span>
       <span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:600">Loft</span><span style="display:block;font-size:11px;color:${S.options.loft?'#5B6353':'#A39A88'}">${S.options.loft?'Loft cabinets above the wall cabinets · applies on Generate':'Add loft cabinets above the wall cabinets'}</span></span>
     </button>`);
-  // reflect core-fixture progress on the canvas Generate button
-  const gb=$('edGenBtn'); if(gb){ const missing=[];if(core<3)missing.push('Place hob, sink & fridge');if(!S.handle)missing.push('choose Handle Type in Extras');gb.disabled=!canGen; gb.style.opacity=canGen?'1':'.5'; gb.style.cursor=canGen?'pointer':'not-allowed'; gb.style.pointerEvents=canGen?'auto':'none'; gb.title=canGen?'':missing.join(' and '); }
 }
 // One collapsible sidebar card. Open by default; `badge` sits right of the title.
 function leftSection(key,title,badge,body){
@@ -2993,6 +3028,327 @@ function commitWallDraw(){ const d=S._wd; S._wd=null; if(!d){ renderPos('layoutS
   (S.structures=S.structures||[]).push({type:'partition',x:Math.round((sx+ex)/2),y:Math.round((sy+ey)/2),
     w:h?len:PARTITION_T,d:h?PARTITION_T:len,h:S.options.ceiling||3100});
   renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave(); }
+/* ---- Draw room walls: the room boundary clicked corner by corner (usually over an uploaded plan) ----
+   Each wall runs horizontal or vertical, whichever way the cursor leans from the last corner, to
+   the millimetre; typing a length (in the display unit) and pressing Enter places the next corner
+   exactly that far along the way the cursor points. Corners go on the INSIDE face of the walls —
+   the room side, which is what the engine and 3D read a wall line as (rules.json:
+   room-walls-traced-on-inside-face). The first chain is the room. Clicking its first corner again closes it (the last
+   corner slides along its own wall so the closing wall is straight too); a right-click (or Done /
+   Esc) instead stops it where it is, and the gap back to the start is left open — no wall, a
+   cutout, the same as an Open Kitchen side. Every later chain, ended the same way, becomes inside
+   walls (partitions) — except a closed chain bigger than the room, which replaces it: the closed
+   outer boundary is the room whatever order it was drawn in (rules.json:
+   drawn-room-is-closed-outer-boundary). The room is built like a custom shape (buildCustomRoom),
+   and the designer sets one wall's real length to scale walls and image. */
+function traceRectNow(){ const k=S.traceAspect||1;
+  if(!S.traceRect&&S.walls.length){   // first sight: fit the image over the current room
+    const {a,b}=bounds(), w=b.x-a.x, h=b.y-a.y, iw=Math.min(w,h/k);
+    S.traceRect={x:a.x+(w-iw)/2,y:a.y+(h-iw*k)/2,w:iw,h:iw*k}; }
+  // no room yet: a nominal 6m-wide image, so the walls drawn on it come out kitchen-sized
+  // before the real-length step corrects them
+  if(!S.traceRect) S.traceRect={x:0,y:0,w:6000,h:6000*k};
+  return S.traceRect; }
+function toggleRoomDraw(){
+  // Done / Esc finishes the chain being drawn (as a right-click would) instead of dropping it;
+  // if that chain can't be built yet, stay in drawing mode so nothing is lost.
+  if(S.roomDraw&&S.roomDraw.length>=2){ endRoomChain(); if(S.roomDraw.length) return; }
+  S.roomDraw=S.roomDraw?null:[]; S._rdHover=null; S._rdType=''; S._rdTyped=false;
+  S.roomDrawDone=S.roomShape==='drawn'&&S.walls.length>0;   // drawing again keeps the room already drawn
+  if(S.roomDraw){ S.pinArm=null; S.wallDraw=false; S.structArm=null; S.arm=null; S.selStruct=null; S.selWall=null; S.scaleWall=null; }
+  renderLayoutPanel(); renderPos('layoutSvg'); }
+function roomDrawSnap(ev,svg){ const t=tf(680,520,55), q=svgPoint(svg,ev), x=t.Xi(q.x), y=t.Yi(q.y), pts=S.roomDraw, last=pts[pts.length-1];
+  if(pts.length>=3&&Math.hypot(t.X(pts[0][0])-q.x,t.Y(pts[0][1])-q.y)<=12) return {close:true,p:pts[0]};
+  const g=Math.round;
+  if(!last) return {p:[g(x),g(y)]};
+  return {p:Math.abs(x-last[0])>=Math.abs(y-last[1])?[g(x),last[1]]:[last[0],g(y)]}; }
+function roomDrawHover(ev,svg){ S._rdHover=roomDrawSnap(ev,svg); renderPos('layoutSvg'); }
+// The corner a typed length would place: that far from the last corner, along the way the cursor points.
+function roomDrawTypedPoint(){ const pts=S.roomDraw, last=pts&&pts[pts.length-1], h=S._rdHover&&S._rdHover.p, mm=inputToMm(S._rdType);
+  if(!last||!h||!(mm>0)||(h[0]===last[0]&&h[1]===last[1])) return null;
+  return h[1]===last[1]?[last[0]+Math.sign(h[0]-last[0])*mm,last[1]]:[last[0],last[1]+Math.sign(h[1]-last[1])*mm]; }
+function roomDrawTyped(){ const p=roomDrawTypedPoint();
+  if(!p){ showToast('Point the mouse the way the wall runs, then type its length.'); return; }
+  const pts=S.roomDraw, last=pts[pts.length-1], h=S._rdHover.p, onPlan=Math.hypot(h[0]-last[0],h[1]-last[1]);
+  // The first typed length on an unscaled plan also sets its scale: the cursor sits on that wall's
+  // far corner in the drawing, so the plan (and the corners already clicked on it) is scaled about
+  // the last corner until that corner lands exactly on the typed one.
+  if(S.traceImage&&!S.traceCal&&onPlan>0){ const k=inputToMm(S._rdType)/onPlan, sc=([x,y])=>[Math.round(last[0]+(x-last[0])*k),Math.round(last[1]+(y-last[1])*k)], r=traceRectNow();
+    const [x,y]=[last[0]+(r.x-last[0])*k,last[1]+(r.y-last[1])*k]; S.traceRect={x,y,w:r.w*k,h:r.h*k};
+    S.roomDraw=pts.map(sc); S.planPins=(S.planPins||[]).map(p=>{ const [x,y]=sc([p.x,p.y]); return {...p,x,y}; }); S.traceCal=true; renderLayoutPanel(); showToast('Plan scaled to that wall. Keep typing lengths or clicking corners.'); }
+  S.roomDraw.push(p); S._rdType=''; S._rdHover={p}; S._rdTyped=true; renderPos('layoutSvg'); }
+function roomDrawClick(ev,svg){ const s=roomDrawSnap(ev,svg), pts=S.roomDraw, last=pts[pts.length-1];
+  // A closed chain is the room unless it sits inside the room already drawn (then it is inside walls):
+  // the closed outer boundary wins, whichever order it was drawn in.
+  if(s.close) return !S.roomDrawDone||Math.abs(loopArea(pts))/2>polyAreaM2(S.walls)*1e6?buildDrawnRoom(pts,true):addDrawnWalls(pts.concat([pts[0]]));
+  if(last&&last[0]===s.p[0]&&last[1]===s.p[1]) return;
+  pts.push(s.p); renderPos('layoutSvg'); }
+// Right-click: stop this chain where it is and start the next one wherever the next click lands.
+function endRoomChain(){ const pts=S.roomDraw;
+  if(pts.length<2){ S.roomDraw=[]; S._rdHover=null; renderPos('layoutSvg'); return; }
+  if(S.roomDrawDone) return addDrawnWalls(pts);
+  if(pts.length<3){ showToast('Draw at least two walls of the room before ending it.'); return; }
+  buildDrawnRoom(pts,false); }
+// A drawn inside wall running along a room wall (parallel, within a wall's thickness of its line,
+// at least half its length beside it): the same wall traced twice.
+function partitionOnWall(st,w){ const h=st.w>=st.d, wh=w.a[1]===w.b[1];
+  if(h!==wh||Math.abs(h?st.y-w.a[1]:st.x-w.a[0])>WALL_MM) return false;
+  const c=h?st.x:st.y, half=(h?st.w:st.d)/2, lo=Math.min(h?w.a[0]:w.a[1],h?w.b[0]:w.b[1]), hi=Math.max(h?w.a[0]:w.a[1],h?w.b[0]:w.b[1]);
+  return Math.min(c+half,hi)-Math.max(c-half,lo)>=half; }
+const loopArea=v=>v.reduce((s,c,i)=>{ const d=v[(i+1)%v.length]; return s+c[0]*d[1]-d[0]*c[1]; },0);
+// The room from the first chain. Wall i runs from corner i to corner i+1; open[i] marks the walls
+// that only close the loop (not drawn), which become open edges.
+function buildDrawnRoom(pts,closed){ let p=pts.map(v=>v.slice()), drawn=p.length-1;
+  if(closed){ const n=p.length, a=p[n-2], b=p[n-1]; if(a[1]===b[1]) b[0]=p[0][0]; else b[1]=p[0][1]; drawn=p.length; }
+  else { const a=p[p.length-1], f=p[0];
+    if(a[0]!==f[0]&&a[1]!==f[1]){ const c1=[a[0],f[1]], c2=[f[0],a[1]];   // one corner turns the gap straight; take the roomier one
+      p.push(Math.abs(loopArea(p.concat([c1])))>=Math.abs(loopArea(p.concat([c2])))?c1:c2); } }
+  let open=p.map((_,i)=>i>=drawn);
+  // drop repeated corners, and corners in the middle of a straight run of the same kind of wall
+  for(let ch=true;ch;){ ch=false; const n=p.length;
+    for(let i=0;i<n;i++){ const j=(i-1+n)%n, pr=p[j], c=p[i], nx=p[(i+1)%n];
+      const dup=c[0]===pr[0]&&c[1]===pr[1], col=(pr[0]===c[0]&&c[0]===nx[0])||(pr[1]===c[1]&&c[1]===nx[1]);
+      if(dup||(col&&open[j]===open[i])){ open[j]=open[i]; p.splice(i,1); open.splice(i,1); ch=true; break; } } }
+  if(p.length<4||open.every(Boolean)){ showToast('That does not make a room yet — draw at least two walls.'); return; }
+  if(loopArea(p)<0){ const n=p.length; p.reverse(); open=p.map((_,k)=>open[(2*n-2-k)%n]); }   // same winding as the built-in shapes
+  pushUndo();
+  const replacing=S.roomDrawDone, kept=S.structures||[];
+  S.roomDraw=[]; S._rdHover=null; S.roomDrawDone=true; S.zones=[];
+  S.openWalls=open.flatMap((o,i)=>o?[i]:[]); S.roomMode=S.openWalls.length?'open':'enclosed';
+  buildCustomRoom(p,'Drawn room'); S.roomShape='drawn'; S.openings=[];   // doors/windows go where the plan shows them
+  if(replacing){   // a bigger boundary replaces the earlier drawn room: keep the inside walls, except the ones it now traces
+    S.structures=kept.filter(st=>st.type!=='partition'||!S.walls.some((w,i)=>!open[i]&&partitionOnWall(st,w)));
+    showToast('That boundary is now the room (Ctrl+Z to undo).'); }
+  S.scaleWall=S._rdTyped||S.traceCal?null   // typed lengths are already real; asking again would rescale them
+    :S.walls.reduce((m,w,i)=>!open[i]&&(open[m]||w.length>S.walls[m].length)?i:m,0);   // longest drawn wall: the easiest to read off the plan
+  renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave();
+  $('layoutRoomMeta').textContent=S.room?fmtWH(S.room.bbox.w,S.room.bbox.h):''; }
+// Later chains: each wall becomes a drawn inside wall, the same partition the Draw wall tool makes.
+function addDrawnWalls(pts){ const segs=pts.slice(1).map((b,i)=>[pts[i],b]).filter(([a,b])=>Math.hypot(b[0]-a[0],b[1]-a[1])>=200);
+  S.roomDraw=[]; S._rdHover=null;
+  if(segs.length){ pushUndo();
+    for(const [a,b] of segs){ const h=a[1]===b[1], len=Math.abs(h?b[0]-a[0]:b[1]-a[1]);
+      (S.structures=S.structures||[]).push({type:'partition',x:Math.round((a[0]+b[0])/2),y:Math.round((a[1]+b[1])/2),
+        w:h?len:PARTITION_T,d:h?PARTITION_T:len,h:S.options.ceiling||3100}); }
+    refresh3DIfLive(); scheduleAutosave(); }
+  renderLayoutPanel(); renderPos('layoutSvg'); }
+function applyRoomScale(){ const w=S.walls[S.scaleWall], mm=inputToMm($("scaleWallLen").value);
+  if(!w||!(mm>=200)){ showToast('Enter a wall length of at least 200mm.'); return; }
+  scaleRoomToWall(S.scaleWall,mm,false); }
+// Corners placed so far, the rubber-band wall to the cursor, and the wall being scaled.
+function roomDrawSvg(t){ let o='';
+  if(S.scaleWall!=null&&S.walls[S.scaleWall]){ const w=S.walls[S.scaleWall];
+    o+=`<line x1="${t.X(w.a[0])}" y1="${t.Y(w.a[1])}" x2="${t.X(w.b[0])}" y2="${t.Y(w.b[1])}" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" opacity="0.8"/>`; }
+  const pts=S.roomDraw; if(!pts) return o;
+  const all=pts.concat(S._rdHover&&pts.length?[S._rdHover.p]:[]);
+  if(all.length>1) o+=`<polyline points="${all.map(p=>t.X(p[0])+','+t.Y(p[1])).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  pts.forEach((p,i)=>{ o+=`<circle cx="${t.X(p[0])}" cy="${t.Y(p[1])}" r="${i===0&&S._rdHover?.close?7:4}" fill="${i===0?'var(--accent)':'#fff'}" stroke="var(--accent)" stroke-width="2"/>`; });
+  const tp=S._rdType&&roomDrawTypedPoint(), last=pts[pts.length-1];
+  if(S._rdType&&last){   // a length being typed: show where it lands, and the digits so far
+    if(tp) o+=`<line x1="${t.X(last[0])}" y1="${t.Y(last[1])}" x2="${t.X(tp[0])}" y2="${t.Y(tp[1])}" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/><circle cx="${t.X(tp[0])}" cy="${t.Y(tp[1])}" r="4" fill="#fff" stroke="var(--accent)" stroke-width="2"/>`;
+    const at=tp||last;
+    o+=`<rect x="${t.X(at[0])+8}" y="${t.Y(at[1])-24}" width="${String(S._rdType).length*7.5+44}" height="18" rx="4" fill="var(--accent)"/><text x="${t.X(at[0])+14}" y="${t.Y(at[1])-11}" font-size="11.5" font-weight="700" fill="#fff">${esc(S._rdType)} ${unitAbbr()} ↵</text>`;
+  } else if(S._rdHover&&pts.length){ const [a,b]=[last,S._rdHover.p], len=Math.round(Math.hypot(b[0]-a[0],b[1]-a[1]));
+    if(len) o+=`<text x="${(t.X(a[0])+t.X(b[0]))/2+6}" y="${(t.Y(a[1])+t.Y(b[1]))/2-6}" font-size="11" font-weight="700" fill="var(--accent)">${fmtLen(len)}</text>`; }
+  return o; }
+/* ---- Read the plan with AI, from the designer's pins (rules.json: plan-read-from-pins) ----
+   The designer clicks hints on the uploaded plan (inside the room, a wall, each door, window,
+   column). One Gemini call (POST /api/plan-pins, plan-read.mjs readWithPins) gets the image with
+   the pins drawn on as numbered dots and answers in image coordinates. pinReadToDraft() maps that
+   onto the plan's millimetres (S.traceRect) and squares the walls; the result lands as an ordinary
+   editable room (applyVisionExtract), and one wall's real length scales it (applyRoomScale). */
+const PIN_TYPES=[{id:'room',label:'Inside room',c:'#2F7D5B'},{id:'wall',label:'Wall',c:'#5B4A3A'},
+  {id:'door',label:'Door',c:'#C2410C'},{id:'window',label:'Window',c:'#2563EB'},{id:'column',label:'Column',c:'#7C3AED'}];
+function pinPanelHtml(){ const pins=S.planPins||[];
+  return `<div style="margin-top:10px;padding:10px;border:1px solid var(--line2);border-radius:10px">
+    <div style="font-size:11.5px;font-weight:600;margin-bottom:7px">Read the plan with AI</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${PIN_TYPES.map(k=>{ const on=S.pinArm===k.id;
+      return `<button onclick="armPin('${k.id}')" style="display:flex;align-items:center;gap:5px;padding:5px 8px;border:1.5px solid ${on?k.c:'var(--line2)'};background:${on?'#FBF1EC':'#fff'};border-radius:7px;font-size:10.5px;font-weight:600;cursor:pointer"><span style="width:8px;height:8px;border-radius:50%;background:${k.c}"></span>${k.label}</button>`; }).join('')}</div>
+    <div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Pick a kind, then click where it is on the plan: an <b>Inside room</b> pin in each room you want (name it below; two or more become separate rooms of this project), and one on each wall, door, window and column you want read. Click a pin again to remove it. Esc stops placing.</div>
+    ${pins.some(p=>p.kind==='room')?`<div style="margin-top:7px;display:flex;flex-direction:column;gap:4px">${pins.map((p,i)=>p.kind!=='room'?'':`<label style="display:flex;align-items:center;gap:6px;font-size:10.5px"><span style="flex:none;width:18px;height:18px;border-radius:50%;background:#2F7D5B;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><input value="${esc(p.name||'')}" oninput="S.planPins[${i}].name=this.value" placeholder="Room name" style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--line2);border-radius:6px;font-size:11px"/></label>`).join('')}</div>`:''}
+    <button class="btn" onclick="readPlanWithPins()" ${S.pinBusy?'disabled':''} style="width:100%;margin-top:8px;padding:8px;font-size:12px">${S.pinBusy?'Reading the plan…':`Read plan${roomPinCount()>1?` (${roomPinCount()} rooms)`:pins.length?` (${pins.length} pin${pins.length>1?'s':''})`:''}`}</button>
+    ${pins.length&&!S.pinBusy?`<div style="font-size:10.5px;color:var(--muted2);margin-top:6px;text-align:center;text-decoration:underline;cursor:pointer" onclick="S.planPins=[];renderLayoutPanel();renderPos('layoutSvg')">Clear pins</div>`:''}
+  </div>`; }
+function armPin(kind){ if(S.roomDraw) toggleRoomDraw();
+  S.pinArm=S.pinArm===kind?null:kind; if(S.pinArm){ S.wallDraw=false; S.structArm=null; S.arm=null; }
+  renderLayoutPanel(); renderPos('layoutSvg'); }
+// A click while placing: on an existing pin removes it, anywhere else adds one of the picked kind.
+function placePin(ev,svg){ const t=tf(680,520,55), q=svgPoint(svg,ev), pins=S.planPins=S.planPins||[];
+  const hit=pins.findIndex(p=>Math.hypot(t.X(p.x)-q.x,t.Y(p.y)-q.y)<=10);
+  if(hit>=0) pins.splice(hit,1);
+  else pins.push({kind:S.pinArm,x:Math.round(t.Xi(q.x)),y:Math.round(t.Yi(q.y)),
+    ...(S.pinArm==='room'?{name:roomPinCount()?'Room '+(roomPinCount()+1):(S.roomName||'Kitchen')}:{})});
+  renderLayoutPanel(); renderPos('layoutSvg'); }
+const roomPinCount=()=>(S.planPins||[]).filter(p=>p.kind==='room').length;
+function pinsSvg(t){ if(!S.traceImage) return '';
+  return (S.planPins||[]).map((p,i)=>{ const k=PIN_TYPES.find(x=>x.id===p.kind)||PIN_TYPES[0], x=t.X(p.x), y=t.Y(p.y);
+    return `<circle cx="${x}" cy="${y}" r="9" fill="${k.c}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${i+1}</text>`; }).join(''); }
+const loadImage=src=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('Could not load the plan image.')); im.src=src; });
+function imageCanvas(img,maxPx){ const k=Math.min(1,maxPx/Math.max(img.naturalWidth,img.naturalHeight)), c=document.createElement('canvas');
+  c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); return c; }
+async function readPlanWithPins(){ if(S.pinBusy||!S.traceImage) return;
+  const r=traceRectNow(), pins=S.planPins||[];
+  S.pinBusy=true; S.pinArm=null; renderLayoutPanel(); renderPos('layoutSvg');
+  try{
+    const img=await loadImage(S.traceImage), c=imageCanvas(img,2400), g=c.getContext('2d'), rad=Math.max(9,c.width*0.011);
+    pins.forEach((p,i)=>{ const x=(p.x-r.x)/r.w*c.width, y=(p.y-r.y)/r.h*c.height;
+      g.beginPath(); g.arc(x,y,rad,0,7); g.fillStyle='#E11D48'; g.fill(); g.lineWidth=rad*0.2; g.strokeStyle='#fff'; g.stroke();
+      g.fillStyle='#fff'; g.font=`bold ${Math.round(rad*1.1)}px sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(i+1),x,y); });
+    const res=await fetch(API+'/api/plan-pins',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({imageDataUrl:c.toDataURL('image/jpeg',0.9),pins:pins.map((p,i)=>({n:i+1,kind:p.kind,...(p.name?{name:p.name}:{})}))})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||'The plan reader failed.');
+    if(data.rooms.length>1) return applyPlanRooms(data,r);
+    const ex=pinReadToDraft(data.rooms[0],r), only=pins.find(p=>p.kind==='room'&&p.name);
+    pushUndo(); applyVisionExtract(ex,{navigate:false});
+    S.roomShape='drawn'; S.roomDrawDone=true; S.room.label='Plan read';
+    if(only) renameActiveRoom(only.name);
+    S.scaleWall=S.traceCal?null:S.walls.reduce((m,w,i)=>!isOpenWall(i)&&(isOpenWall(m)||w.length>S.walls[m].length)?i:m,0);   // longest wall: set its real length
+    refitView(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave();
+    $('layoutRoomMeta').textContent=S.room?fmtWH(S.room.bbox.w,S.room.bbox.h):'';
+    showToast(`Plan read: ${S.walls.length} walls, ${S.openings.length} door${S.openings.length===1?'':'s'}/window${S.openings.length===1?'':'s'}.`
+      +(S.traceCal?'':' Set the highlighted wall\'s real length to scale it.')+(data.notes?' '+data.notes:''));
+  }catch(e){ showToast(e.message||'The plan reader failed.'); }
+  finally{ S.pinBusy=false; renderLayoutPanel(); } }
+// Several named rooms read from one plan: each becomes a room of this project (the open one is
+// the first; a room of the same plan with the same name is read again rather than duplicated).
+// They all keep the plan's millimetre frame (S.traceRect) and share S.planGroup, so they stay
+// lined up for the combined walkthrough, and setting the scale once scales them all
+// (rules.json: plan-rooms-split-from-one-read).
+function applyPlanRooms(data,r){
+  const pins=S.planPins||[], roomPins=pins.map((p,i)=>({...p,n:i+1})).filter(p=>p.kind==='room');
+  const seed=activeRoom(), group=S.planGroup||('plan'+Date.now().toString(36)), made=[];
+  const shared={traceImage:S.traceImage,traceAspect:S.traceAspect,traceCal:!!S.traceCal};
+  const taken=new Set(S.rooms.map(x=>x.name.toLowerCase()));
+  const uniq=n=>{ let x=n,k=2; while(taken.has(x.toLowerCase())) x=`${n} ${k++}`; taken.add(x.toLowerCase()); return x; };
+  data.rooms.forEach((room,i)=>{ const pin=roomPins.find(p=>p.n===room.dot)||roomPins[i];
+    const want=(pin&&pin.name||'').trim()||(i?'Room '+(i+1):seed.name);
+    let rec=i===0?seed:S.rooms.find(x=>x!==seed&&x.design.planGroup===group&&x.name.toLowerCase()===want.toLowerCase());
+    if(!rec){ rec=newRoom(uniq(want),seed.typeId); rec.seriesId=seed.seriesId||null; rec.design.roomName=rec.name; S.rooms.push(rec); rec._new=true; }
+    else if(i===0&&want.toLowerCase()!==seed.name.toLowerCase()){ taken.delete(seed.name.toLowerCase()); renameActiveRoom(uniq(want)); }
+    made.push({rec,draft:pinReadToDraft(room,r)}); });
+  pushUndo();   // ponytail: undo covers the open room only; the other rooms are rewritten for good
+  for(const {rec,draft} of made) withRoom(rec,()=>{
+    Object.assign(S,shared,{traceRect:{...r},planPins:pins.map(p=>({...p})),pinArm:null,planGroup:group});
+    applyVisionExtract(draft,{navigate:false});
+    S.roomShape='drawn'; S.roomDrawDone=true; S.room.label=rec.name; S.method='upload-ai';
+    S.scaleWall=S.traceCal?null:S.walls.reduce((m,w,i)=>!isOpenWall(i)&&(isOpenWall(m)||w.length>S.walls[m].length)?i:m,0); });
+  snapPlanNeighbours();
+  for(const {rec} of made){ if(rec===seed) continue; if(rec._new){ delete rec._new; dsCreateRoomFor(rec); } else dsSaveRoomRecord(rec); }
+  refitView(); renderChrome(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave();
+  $('layoutRoomMeta').textContent=S.room?fmtWH(S.room.bbox.w,S.room.bbox.h):'';
+  showToast(`Plan read into ${made.length} rooms: ${made.map(m=>m.rec.name).join(', ')}. Each is designed on its own; open them from the project page.`
+    +(S.traceCal?'':' Set the highlighted wall\'s real length once: every room of this plan scales with it.')+(data.notes?' '+data.notes:''));
+}
+function renameActiveRoom(name){ const r=activeRoom(); if(!r||!name) return; r.name=name; r.design.roomName=name; S.roomName=name; dsUpdateRoomMeta(r); }
+// Moves the open room through P (plan mm -> plan mm): its corners, the doors/windows and anchors
+// along their walls, columns, the plan image and the pins.
+function remapRoom(P){
+  const along=(x,o)=>{ const u=[(x.b[0]-x.a[0])/x.length,(x.b[1]-x.a[1])/x.length]; return [x.a[0]+u[0]*o,x.a[1]+u[1]*o]; };
+  // a span along its wall [s0,s1] -> the same span on the remapped wall
+  const span=(x,s0,s1)=>{ const A=P(...x.a), q0=P(...along(x,s0)), q1=P(...along(x,s1)), D=q=>Math.hypot(q[0]-A[0],q[1]-A[1]); return [D(q0),D(q1)]; };
+  const openings=S.openings.map(o=>{ const x=S.walls[+o.wall.slice(1)]; if(!x) return o;
+    const [s0,s1]=span(x,o.off-o.width/2,o.off+o.width/2); return {...o,off:Math.round((s0+s1)/2),width:Math.round(Math.abs(s1-s0))}; });
+  const anchors=S.anchors.map(a=>{ const x=S.walls[+a.wall.slice(1)]; return x?{...a,off:Math.round(span(x,a.off,a.off)[0])}:a; });
+  S.structures=(S.structures||[]).map(st=>{ const [x0,y0]=P(st.x-st.w/2,st.y-(st.d||st.w)/2), [x1,y1]=P(st.x+st.w/2,st.y+(st.d||st.w)/2);
+    return {...st,x:Math.round((x0+x1)/2),y:Math.round((y0+y1)/2),w:Math.round(x1-x0),...(st.d!=null?{d:Math.round(y1-y0)}:{})}; });
+  if(S.traceRect){ const [x0,y0]=P(S.traceRect.x,S.traceRect.y), [x1,y1]=P(S.traceRect.x+S.traceRect.w,S.traceRect.y+S.traceRect.h); S.traceRect={x:x0,y:y0,w:x1-x0,h:y1-y0}; }
+  S.planPins=(S.planPins||[]).map(p=>{ const [x,y]=P(p.x,p.y); return {...p,x:Math.round(x),y:Math.round(y)}; });
+  rebuildWalls(S.walls.map(x=>P(...x.a)));
+  S.openings=openings; S.anchors=anchors; }
+// A room's straight walls as faces: the axis the face sits on (0 x, 1 y), where, which way is
+// outside (±1) and the span it covers along the other axis. Open edges are not walls.
+function planWallFaces(walls,open){ const sgn=loopArea(walls.map(w=>w.a))>=0?1:-1;
+  return walls.flatMap((w,i)=>{ const h=Math.abs(w.b[1]-w.a[1])<=1, v=Math.abs(w.b[0]-w.a[0])<=1;
+    if(open.includes(i)||!(h||v)||!w.length) return [];
+    const d=h?1:0, out=Math.sign(h?-(w.b[0]-w.a[0])*sgn:(w.b[1]-w.a[1])*sgn);
+    return [{i,d,at:w.a[d],out,lo:Math.min(w.a[1-d],w.b[1-d]),hi:Math.max(w.a[1-d],w.b[1-d])}]; }); }
+// Rooms of one plan that back onto each other share one wall: the neighbour slides (not resized,
+// so its measured walls keep their lengths) until its facing wall is exactly WALL_MM from the open
+// room's, per axis on the pair that overlaps longest. A pair counts when the rooms overlap or stand
+// at most 600mm apart, so rooms across a wider gap stay put (rules.json: plan-rooms-share-walls).
+// ponytail: lines up rooms touching the open room only; a room touching just a neighbour follows
+// once that neighbour is open and measured.
+function snapPlanNeighbours(){ const openOf=d=>d.roomMode==='open'?d.openWalls||[]:[];
+  const mine=planWallFaces(S.walls,openOf(S));
+  for(const rec of planNeighbours()){ const theirs=planWallFaces(rec.design.walls,openOf(rec.design)), move=[0,0];
+    for(const ax of [0,1]){ let best=null;
+      for(const a of mine) if(a.d===ax) for(const b of theirs) if(b.d===ax&&b.out===-a.out){
+        const gap=(b.at-a.at)*a.out, over=Math.min(a.hi,b.hi)-Math.max(a.lo,b.lo);
+        if(over>=300&&gap>=-1200&&gap<=600&&(!best||over>best.over)) best={over,shift:a.at+a.out*WALL_MM-b.at}; }
+      if(best) move[ax]=Math.round(best.shift); }
+    if(move[0]||move[1]) withRoom(rec,()=>remapRoom((x,y)=>[x+move[0],y+move[1]])); }
+  syncSharedDoors(true); }
+// A door or window on a wall the open room shares with a plan neighbour (facing, one wall apart) is
+// one opening: the neighbour's facing wall carries the open room's openings over the shared stretch,
+// the hinge on the same jamb and the swing seen from the other side (rules.json: plan-rooms-share-doors).
+// Copied when the plan is read or measured (force) and whenever the open room's shared openings
+// change; just opening a room changes nothing. Returns the neighbours rewritten.
+const _sharedSig=new Map();
+function syncSharedDoors(force){ const openOf=d=>d.roomMode==='open'?d.openWalls||[]:[], changed=[], num=o=>+String(o.wall).slice(1);
+  const mine=planWallFaces(S.walls,openOf(S));
+  for(const rec of planNeighbours()){ const d=rec.design, theirs=planWallFaces(d.walls,openOf(d)), copies=[], cleared=[];
+    for(const a of mine) for(const b of theirs){
+      if(b.d!==a.d||b.out!==-a.out||Math.abs((b.at-a.at)*a.out-WALL_MM)>100) continue;
+      const lo=Math.max(a.lo,b.lo), hi=Math.min(a.hi,b.hi); if(hi-lo<300) continue;
+      const A=S.walls[a.i], B=d.walls[b.i], k=1-a.d, sA=Math.sign(A.b[k]-A.a[k]), sB=Math.sign(B.b[k]-B.a[k]);
+      const n0=copies.length;
+      for(const o of S.openings){ const x=A.a[k]+sA*o.off; if(o.corner||num(o)!==a.i||x<lo||x>hi) continue;
+        const {required,...c}=o, f=doorFlip(o), hs=sA===sB?f.hingeStart:!f.hingeStart;
+        copies.push({...c,wall:'W'+b.i,off:Math.round((x-B.a[k])*sB),...(o.type==='door'?{flip:(hs?0:1)+(f.inside?2:0)}:{})}); }
+      // a plan read / measurement keeps a neighbour's opening where the open room has none (its reading missed it)
+      if(!force||copies.length>n0) cleared.push({i:b.i,lo,hi,B,sB,k}); }
+    const key=S.activeRoomId+'>'+rec.id, sig=JSON.stringify(copies), was=_sharedSig.get(key); _sharedSig.set(key,sig);
+    if(!force&&(was===undefined||was===sig)) continue;
+    const keep=(d.openings||[]).filter(o=>o.corner||!cleared.some(s=>{ const x=s.B.a[s.k]+s.sB*o.off; return num(o)===s.i&&x>=s.lo&&x<=s.hi; }));
+    const next=[...keep,...copies];
+    if(JSON.stringify(next)!==JSON.stringify(d.openings||[])){ d.openings=next; changed.push(rec); } }
+  return changed; }
+// Model answer (image fractions) -> applyVisionExtract draft in plan millimetres.
+function pinReadToDraft(read,r){
+  const toMm=([fx,fy])=>[r.x+fx*r.w,r.y+fy*r.h];
+  let p=read.corners.map(toMm), open=p.map((_,k)=>(read.openEdges||[]).includes(k));
+  if(loopArea(p)<0){ const n=p.length; p.reverse(); open=p.map((_,k)=>open[(2*n-2-k)%n]); }   // clockwise on screen, as the engine wants
+  const TAN=Math.tan(12*Math.PI/180);
+  const axisOf=(a,b)=>{ const dx=Math.abs(b[0]-a[0]), dy=Math.abs(b[1]-a[1]); return dy<=dx*TAN?'h':dx<=dy*TAN?'v':null; };
+  // A door drawn open shows its leaf at right angles to the wall: a thin rectangle the model can take
+  // for a wall end. A spike that thin (up to 150mm), going in and back out by the same depth beside a
+  // door's end, is that leaf: cut it off so the wall runs straight across.
+  const doorEnds=(read.openings||[]).filter(o=>o.type!=='window').flatMap(o=>[toMm(o.a),toMm(o.b)]), D=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  for(let ch=true;ch&&p.length>4;){ ch=false; const n=p.length;
+    for(let j=0;j<n;j++){ const a=p[(j-1+n)%n], b=p[j], c=p[(j+1)%n], d=p[(j+2)%n], L1=D(a,b), L3=D(c,d), tip=D(b,c);
+      const back=((b[0]-a[0])*(d[0]-c[0])+(b[1]-a[1])*(d[1]-c[1]))/(L1*L3||1)<-0.95;
+      if(tip<=150&&back&&L1>tip&&Math.abs(L1-L3)<=50&&doorEnds.some(e=>Math.min(D(e,a),D(e,d))<=250)){
+        const gone=[j,(j+1)%n]; p=p.filter((_,k)=>!gone.includes(k)); open=open.filter((_,k)=>!gone.includes(k)); ch=true; break; } } }
+  // corners in the middle of one straight wall (or repeated) go first
+  for(let ch=true;ch&&p.length>3;){ ch=false; const n=p.length;
+    for(let i=0;i<n;i++){ const j=(i-1+n)%n, a1=axisOf(p[j],p[i]), a2=axisOf(p[i],p[(i+1)%n]);
+      if(Math.hypot(p[i][0]-p[j][0],p[i][1]-p[j][1])<50||(a1&&a1===a2&&open[j]===open[i])){ p.splice(i,1); open.splice(i,1); ch=true; break; } } }
+  const n=p.length, ax=p.map((a,k)=>axisOf(a,p[(k+1)%n]));
+  // each square wall: one line, the average of its ends. Not snapped to the drawn lines: that moved
+  // walls by a whole wall thickness on real plans (door gaps break the inner line), while the model's
+  // own positions came out in the printed proportions.
+  const val=p.map((a,k)=>{ const b=p[(k+1)%n]; return !ax[k]?null:ax[k]==='h'?(a[1]+b[1])/2:(a[0]+b[0])/2; });
+  // a wall and an open edge running on in the same line share the wall's line
+  for(let k=0;k<n;k++){ const m=(k+1)%n; if(ax[k]&&ax[k]===ax[m]&&open[k]!==open[m]) val[open[k]?k:m]=val[open[k]?m:k]; }
+  const corners=p.map((c,i)=>{ const q=c.slice();
+    for(const k of [(i-1+n)%n,i]) if(ax[k]==='h') q[1]=val[k]; else if(ax[k]==='v') q[0]=val[k];
+    return q.map(Math.round); });
+  if(corners.length<3) throw new Error('The plan reader could not trace the kitchen walls.');
+  const openWalls=open.flatMap((o,k)=>o?[k]:[]);
+  const walls=corners.map((a,k)=>{ const b=corners[(k+1)%corners.length], L=Math.hypot(b[0]-a[0],b[1]-a[1])||1; return {a,b,L,u:[(b[0]-a[0])/L,(b[1]-a[1])/L]}; });
+  const along=(w,P)=>Math.max(0,Math.min(w.L,(P[0]-w.a[0])*w.u[0]+(P[1]-w.a[1])*w.u[1]));
+  const dist=(w,P)=>{ const s=along(w,P); return Math.hypot(P[0]-(w.a[0]+w.u[0]*s),P[1]-(w.a[1]+w.u[1]*s)); };
+  const openings=[];
+  for(const o of read.openings||[]){ const A=toMm(o.a), B=toMm(o.b), M=[(A[0]+B[0])/2,(A[1]+B[1])/2];
+    let best=-1; walls.forEach((w,k)=>{ if(!openWalls.includes(k)&&dist(w,M)<=600&&(best<0||dist(w,M)<dist(walls[best],M))) best=k; });
+    if(best<0) continue;
+    const s0=along(walls[best],A), s1=along(walls[best],B), width=Math.round(Math.abs(s1-s0));
+    if(width<300) continue;
+    openings.push({type:o.type==='window'?'window':'door',...(o.type==='opening'?{variant:'doorless'}:{}),wallIndex:best,width_mm:width,distanceFromStart_mm:Math.round((s0+s1)/2)}); }
+  const structures=(read.columns||[]).map(c=>{ const [x0,y0]=toMm([c.x0,c.y0]), [x1,y1]=toMm([c.x1,c.y1]);
+    return {type:'column',x_mm:Math.round((x0+x1)/2),y_mm:Math.round((y0+y1)/2),width_mm:Math.max(100,Math.round(x1-x0)),depth_mm:Math.max(100,Math.round(y1-y0))}; });
+  return {room:{corners_mm:corners},openWalls,openings,structures,zones:[],fixtures:[],warnings:[]}; }
 // A drawn wall in the room walls' own look: the light wall band with its thin centre line.
 function partitionSvg(cx,cy,w,h){ const along=w>=h, x1=along?cx-w/2:cx, x2=along?cx+w/2:cx, y1=along?cy:cy-h/2, y2=along?cy:cy+h/2;
   return `<rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" fill="#D7D0C2"/>`
@@ -3010,7 +3366,7 @@ function wallDraftSvg(t){ const d=S._wd; if(!d) return '';
 function setStructDim(i,k,v){ if(S.structures[i]){ pushUndo(); S.structures[i][k]=Math.max(50,Math.round(+v||50)); renderPos(); } }
 function removeStructure(i){ pushUndo(); S.structures.splice(i,1); renderEditorLeft(); renderPos(); refresh3DIfLive(); }
 function refresh3DIfLive(){ if((S.view==='3d'||S.view==='walk')&&window.startScene){ const shell={runs:[],openings:S.openings};
-  const L=S.screen==='layout'; window.startScene(shell,S.walls,S.view==='walk'?'walk':'orbit',L?'layout3d':'view3d',L?'layoutWalkCanvas':'walkCanvas',L?'layoutWalkHint':'walkHint'); } }
+  const L=S.screen==='layout'; window.startScene(shell,S.walls,S.view==='walk'?'walk':'orbit',L?'layout3d':'view3d',L?'layoutWalkCanvas':'walkCanvas',L?'layoutWalkHint':'walkHint',false,S.view==='walk'?walkNeighbours():[]); } }
 function renderEditorTabs(){
   const tabs=[{id:'2d',label:'2D Plan'},{id:'3d',label:'3D'},{id:'walk',label:'Walkthrough'}];
   $('edTabs').innerHTML=tabs.map(v=>{ const on=S.view===v.id;
@@ -3053,7 +3409,7 @@ function setEditorView(v){
   $('view3d').style.display=v==='3d'?'block':'none';
   $('viewWalk').style.display=v==='walk'?'block':'none';
   if(v==='2d'){ if(window.stopScene)window.stopScene(); renderPos('posSvg'); }
-  else { const shell={runs:[],openings:S.openings}; if(window.startScene)window.startScene(shell,S.walls,v==='walk'?'walk':'orbit','view3d','walkCanvas','walkHint'); }
+  else { const shell={runs:[],openings:S.openings}; if(window.startScene)window.startScene(shell,S.walls,v==='walk'?'walk':'orbit','view3d','walkCanvas','walkHint',false,v==='walk'?walkNeighbours():[]); }
 }
 
 /* ---------- editor 2D plan (posSvg) ---------- */
@@ -3082,6 +3438,9 @@ function ptOnWall(w,offMm,t){ const u=[(w.b[0]-w.a[0])/w.length,(w.b[1]-w.a[1])/
 // wall's start/end points; the polygon winding only picks the interior side. (Previously
 // this returned the wall-midpoint→room-centroid vector, which is NOT perpendicular on
 // L/convex/concave/polygon shapes and skewed every door swing.)
+// Door/window symbols are drawn centred on a wall of the given thickness; the 2D plan's walls
+// sit OUTSIDE their line, so the symbol moves out by half the thickness to sit in the wall.
+function outwardSym(w,t,svg,WT=WALL_MM*t.sc){ const [ix,iy]=inwardPx(w,t); return `<g transform="translate(${-ix*WT/2},${-iy*WT/2})">${svg}</g>`; }
 function inwardPx(w,t){
   const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]);
   const L=Math.hypot(bx-ax,by-ay)||1; const dx=(bx-ax)/L, dy=(by-ay)/L;
@@ -3163,7 +3522,7 @@ function drawOpeningSym(w,o,t,wallPx){   // wallPx: drawn wall thickness when it
 function openingWidthDim(w,o,t,WT){
   const a0=Math.max(0,o.off-o.width/2), a1=Math.min(w.length,o.off+o.width/2);
   const j0=ptOnWall(w,a0,t), j1=ptOnWall(w,a1,t);
-  const [inx,iny]=inwardPx(w,t); const off=WT/2+11;
+  const [inx,iny]=inwardPx(w,t); const off=11;   // room side: the wall band is all outside the line
   const a2=[j0[0]+inx*off,j0[1]+iny*off], b2=[j1[0]+inx*off,j1[1]+iny*off];
   const mx=(a2[0]+b2[0])/2, my=(a2[1]+b2[1])/2;
   let ta=Math.atan2(w.b[1]-w.a[1],w.b[0]-w.a[0])*180/Math.PI; if(ta>90||ta<-90)ta+=180;
@@ -3702,7 +4061,7 @@ function renderZonePanel(){
 
 function renderPos(svgId){
   svgId=svgId||S._posTarget||'posSvg';
-  const svg=$(svgId); if(!svg||!S.walls.length)return;
+  const svg=$(svgId); if(!svg||!S.walls.length&&!(S.traceImage&&svgId==='layoutSvg'))return;   // an uploaded plan shows before any wall is drawn
   const t=tf(680,520,55), WT=WALL_MM*t.sc; let floor='',walls='',cuts='',syms='',mods='',dims='',hits='',ohits='',shits='',fxhits='',ctrls='',dimlabels='';
   const onLayout=(svgId==='layoutSvg'&&S.screen==='layout');
   // Design phase = the editor canvas. Here the layout-owned geometry (walls/doors/windows/
@@ -3711,22 +4070,24 @@ function renderPos(svgId){
   const designPhase = (svgId==='posSvg');
   if(designPhase && S.sink.veggie) ensureVeggieAnchor();
   floor=`<polygon points="${S.walls.map(w=>`${t.X(w.a[0])},${t.Y(w.a[1])}`).join(' ')}" fill="#FBF9F4" stroke="none"/>`;
-  // thick walls along each centerline. Opened walls (Open Kitchen) are drawn as a
-  // faint dashed "open edge" instead, so they stay visible and clickable to re-add.
+  // Walls are drawn OUTSIDE their line: the line is the inside face (what the engine and the 3D
+  // read a wall as), so each band runs outward from it by the wall thickness, mitred where two
+  // walls meet so the corners fill. Opened walls (Open Kitchen) are drawn as a faint dashed
+  // "open edge" instead, so they stay visible and clickable to re-add; a wall beside one ends square.
+  const nW=S.walls.length, outN=S.walls.map(w=>{ const [ix,iy]=inwardPx(w,t); return [-ix,-iy]; });
+  const cornerOff=(i,k)=>{ const a=outN[k], b=outN[i], d=a[0]*b[0]+a[1]*b[1];   // wall i's band edge at its corner with wall k
+    return isOpenWall(k)||d<-0.9?[b[0]*WT,b[1]*WT]:[(a[0]+b[0])*WT/(1+d),(a[1]+b[1])*WT/(1+d)]; };
   S.walls.forEach((w,i)=>{ const x1=t.X(w.a[0]),y1=t.Y(w.a[1]),x2=t.X(w.b[0]),y2=t.Y(w.b[1]);
     if(isOpenWall(i)){ walls+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C9BEA9" stroke-width="1.4" stroke-dasharray="6 5"/>`; return; }
-    const sel=(onLayout&&S.selWall===i);
-    // square linecap extends each wall band by half its thickness at both ends so adjacent
-    // walls MEET and fill the corner square — butt caps left an unfilled notch at every corner,
-    // which made the walls look detached.
-    walls+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sel?'#E7C3B6':'#D7D0C2'}" stroke-width="${WT}" stroke-linecap="square"/>`;
+    const sel=(onLayout&&S.selWall===i), m0=cornerOff(i,(i-1+nW)%nW), m1=cornerOff(i,(i+1)%nW);
+    walls+=`<polygon points="${x1},${y1} ${x2},${y2} ${x2+m1[0]},${y2+m1[1]} ${x1+m0[0]},${y1+m0[1]}" fill="${sel?'#E7C3B6':'#D7D0C2'}" stroke="${sel?'#E7C3B6':'#D7D0C2'}" stroke-width="0.6"/>`;   // hairline closes the mitre seam
     walls+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sel?'var(--accent)':'#3A352C'}" stroke-width="${sel?1.4:0.7}" stroke-opacity="${sel?0.9:0.5}" stroke-linecap="square"/>`; });
   // cut each opening out of the wall, then draw its symbol
   S.openings.forEach((o,i)=>{ const w=S.walls[+o.wall.slice(1)]; if(!w)return;
     const a0=Math.max(0,o.off-o.width/2), a1=Math.min(w.length,o.off+o.width/2);
-    const p0=ptOnWall(w,a0,t), p1=ptOnWall(w,a1,t);
-    cuts+=`<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="#FBF9F4" stroke-width="${WT+1}" stroke-linecap="butt"/>`;
-    syms+=drawOpeningSym(w,o,t);
+    const p0=ptOnWall(w,a0,t), p1=ptOnWall(w,a1,t), [ix,iy]=inwardPx(w,t), q=WT+0.5;   // the gap in the wall only, not into the room
+    cuts+=`<polygon points="${p0[0]+ix*0.6},${p0[1]+iy*0.6} ${p1[0]+ix*0.6},${p1[1]+iy*0.6} ${p1[0]-ix*q},${p1[1]-iy*q} ${p0[0]-ix*q},${p0[1]-iy*q}" fill="#FBF9F4"/>`;
+    syms+=outwardSym(w,t,drawOpeningSym(w,o,t));
     // width dimension beside every placed DOOR incl. doorless (spec §4: current width
     // must be visible on the plan, in the active unit).
     if(o.type==='door' && o.width>0) dims+=openingWidthDim(w,o,t,WT);
@@ -3821,7 +4182,7 @@ function renderPos(svgId){
   const wind=sa>0?1:-1;   // screen-space winding sign
   S.walls.forEach((w,i)=>{ if(isOpenWall(i))return; const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]);
     const L=Math.hypot(bx-ax,by-ay)||1; const dx=(bx-ax)/L,dy=(by-ay)/L; const mx=(ax+bx)/2,my=(ay+by)/2;
-    let ox=dy*wind, oy=-dx*wind; const off=WT/2+14;   // outward normal from winding only
+    let ox=dy*wind, oy=-dx*wind; const off=WT+14;   // outward normal from winding only; clear of the wall band
     const a2=[ax+ox*off,ay+oy*off], b2=[bx+ox*off,by+oy*off];
     dims+=`<line x1="${a2[0]}" y1="${a2[1]}" x2="${b2[0]}" y2="${b2[1]}" stroke="#9a8a64" stroke-width="0.7"/>`;
     dims+=`<line x1="${a2[0]-ox*3}" y1="${a2[1]-oy*3}" x2="${a2[0]+ox*3}" y2="${a2[1]+oy*3}" stroke="#9a8a64" stroke-width="0.7"/><line x1="${b2[0]-ox*3}" y1="${b2[1]-oy*3}" x2="${b2[0]+ox*3}" y2="${b2[1]+oy*3}" stroke="#9a8a64" stroke-width="0.7"/>`;
@@ -3860,7 +4221,7 @@ function renderPos(svgId){
             </div></foreignObject>`;
         }
       } else {
-        dimlabels+=`<g class="dimlabel" data-wall="${i}" style="cursor:text;pointer-events:all"><rect x="${lx-19}" y="${ly-9}" width="38" height="17" rx="3" fill="transparent" transform="rotate(${ta} ${lx} ${ly})"/><text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" fill="#5a4a2a" transform="rotate(${ta} ${lx} ${ly})" font-family="Hanken Grotesk,sans-serif">${fmtLen(w.length)}</text></g>`;
+        dimlabels+=`<g class="dimlabel" data-wall="${i}" style="cursor:text;pointer-events:all"><rect x="${lx-19}" y="${ly-9}" width="38" height="17" rx="3" fill="transparent" transform="rotate(${ta} ${lx} ${ly})"/><text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" fill="#5a4a2a" transform="rotate(${ta} ${lx} ${ly})" font-family="Hanken Grotesk,sans-serif"${(S.wallLocks||[]).includes(i)&&isPlanRoom()?' font-weight="700"':''}>${(S.wallLocks||[]).includes(i)&&isPlanRoom()?'✓ ':''}${fmtLen(w.length)}</text></g>`;
       }
     } else {
       dims+=`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" fill="#5a4a2a" transform="rotate(${ta} ${lx} ${ly})" font-family="Hanken Grotesk,sans-serif">${fmtLen(w.length)}</text>`;
@@ -3876,7 +4237,7 @@ function renderPos(svgId){
     // against the wall take part too, so the space each side of them shows and can be set.
     const gaps=computeGapsForWall(i,designPhase);
     if(gaps.length){
-      const ix=-ox, iy=-oy, ioff=WT/2+13; // inward normal offset for the dimension line
+      const ix=-ox, iy=-oy, ioff=13; // inward normal offset for the dimension line (the room side has no wall band)
       // an object is only a valid EDIT TARGET in the phase where it's actually the editable layer —
       // Layout owns openings, Design owns anchors (the other is locked base-layer context there).
       const gapObjEditable=(obj)=>obj && (designPhase ? obj.kind==='anchor' : (obj.kind==='opening'||obj.kind==='struct'));
@@ -3907,11 +4268,11 @@ function renderPos(svgId){
   // interaction hit lines. In Open Kitchen mode, EVERY wall (incl. opened ones) is
   // clickable so it can be removed / re-added directly on the canvas.
   const openable=(onLayout&&S.roomMode==='open');
-  S.walls.forEach((w,i)=>{ if(isOpenWall(i)&&!openable)return; const cur=(S.arm||S.selFx)?'crosshair':(openable?'pointer':'grab');
+  S.walls.forEach((w,i)=>{ if(isOpenWall(i)&&!openable)return; const cur=(S.arm||S.selFx)?'crosshair':(openable||!WALL_DRAG?'pointer':'grab');
     hits+=`<line class="wallhit" data-wall="W${i}" x1="${t.X(w.a[0])}" y1="${t.Y(w.a[1])}" x2="${t.X(w.b[0])}" y2="${t.Y(w.b[1])}" stroke="transparent" stroke-width="${Math.max(WT,20)}" style="cursor:${cur}"/>`; });
   // Area only, centered inside the boundary (Layout Studio 2D view). The room-NAME text was
   // removed from the canvas centre (fix #1) — the name stays editable in the sidebar.
-  if(svgId==='layoutSvg'){ const cx=t.X((cc.a.x+cc.b.x)/2), cy=t.Y((cc.a.y+cc.b.y)/2); const area=fmtArea(polyAreaM2(S.walls)*1e6);
+  if(svgId==='layoutSvg'&&S.walls.length){ const cx=t.X((cc.a.x+cc.b.x)/2), cy=t.Y((cc.a.y+cc.b.y)/2); const area=fmtArea(polyAreaM2(S.walls)*1e6);
     dims+=`<text x="${cx}" y="${cy-10}" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="9.5" font-weight="600" letter-spacing=".4" fill="#B5AD9C">AREA</text>`
       +`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="12" font-weight="600" fill="#8A8579">${area}</text>`;
     if($('layoutRoomArea'))$('layoutRoomArea').textContent=area; }
@@ -3983,7 +4344,7 @@ function renderPos(svgId){
   if(!designPhase && _odrag && _odrag.moved && _odrag.cand){
     const o=S.openings[_odrag.idx], gw=S.walls[+_odrag.cand.wall.slice(1)];
     if(o&&gw){ const cand={...o,wall:_odrag.cand.wall,off:_odrag.cand.off}, color=_odrag.valid?GHOST_OK:GHOST_BAD;
-      ghost+=wireframe(drawOpeningSym(gw,cand,t),color);
+      ghost+=wireframe(outwardSym(gw,t,drawOpeningSym(gw,cand,t)),color);
     }
   }
   if(!designPhase && _cdrag && _cdrag.moved){
@@ -3992,7 +4353,7 @@ function renderPos(svgId){
     let sym='';
     [[legIn,_cdrag.origIn],[legOut,_cdrag.origOut]].forEach(([leg,base])=>{
       const gw=S.walls[+String(leg.wall).slice(1)]; if(!gw)return;
-      const cand={...base,...leg}; sym+=drawOpeningSym(gw,cand,t);
+      const cand={...base,...leg}; sym+=outwardSym(gw,t,drawOpeningSym(gw,cand,t));
     });
     ghost+=wireframe(sym,color);
   }
@@ -4013,13 +4374,15 @@ function renderPos(svgId){
       if(gw){ const set=_tileDrag.kind==='door'?LAYOUT_DOORS:LAYOUT_WINDOWS; const T=set.find(x=>x.id===_tileDrag.key)||set[0];
         const cand={type:_tileDrag.kind,variant:_tileDrag.key,wall:_tileDrag.cand.wall,off:_tileDrag.cand.off,width:_tileDrag.cand.width,
           sill:T.sill||0,winH:T.french?frenchHeight():(T.h||1200)};
-        ghost+=wireframe(drawOpeningSym(gw,cand,t),color);
+        ghost+=wireframe(outwardSym(gw,t,drawOpeningSym(gw,cand,t)),color);
       }
     }
   }
   const capture=S.structArm?`<rect id="structCapture" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:crosshair"/>`
-    :onLayout&&S.wallDraw?`<rect id="wallCapture" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:crosshair"/>`:'';
-  if(onLayout) mods+=wallDraftSvg(t);
+    :onLayout&&S.wallDraw?`<rect id="wallCapture" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:crosshair"/>`
+    :onLayout&&S.roomDraw?`<rect id="roomCapture" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:crosshair"/>`
+    :onLayout&&S.pinArm?`<rect id="pinCapture" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:crosshair"/>`:'';
+  if(onLayout) mods+=wallDraftSvg(t)+roomDrawSvg(t)+pinsSvg(t);
   // panBg (bottom, transparent) captures drags on empty space to PAN; all purely-visual layers
   // go in a pointer-events:none group so they never block panning; the interactive hit layers
   // (wall/opening/structure/fixture + controls) stay on top and take precedence.
@@ -4027,27 +4390,38 @@ function renderPos(svgId){
   // the crosshair says so, and the handler below draws instead of panning near a wall.
   const panCur=(designPhase&&S.zoneTool)?'crosshair':(_pan?'grabbing':'grab');
   const panBg=`<rect id="panBg" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:${panCur}"/>`;
-  // Uploaded photo/scanned-plan reference (Shape → Upload a Drawing, image fallback) — a plain
-  // visual aid to trace Free-to-Draw walls over, not geometrically calibrated to the room.
-  const traceImg=(onLayout&&S.traceImage)?`<image href="${S.traceImage}" x="0" y="0" width="680" height="520" preserveAspectRatio="xMidYMid meet" opacity="0.4" pointer-events="none"/>`:'';
+  // Uploaded plan crop (Shape → Upload a Drawing). It lives in room millimetres (S.traceRect),
+  // so it pans and zooms with the walls and is rescaled with them by the wall-length step.
+  const tr=onLayout&&S.traceImage?traceRectNow():null;
+  const traceImg=tr?`<image href="${S.traceImage}" x="${t.X(tr.x)}" y="${t.Y(tr.y)}" width="${tr.w*t.sc}" height="${tr.h*t.sc}" preserveAspectRatio="none" opacity="0.45" pointer-events="none"/>`:'';
   // Bands sit visually UNDER the fixtures and dimensions (they are a backdrop, not an object),
   // but their hit targets sit ABOVE the wall hits so a click on a drawn band selects the band.
   // While the tool is armed the fixture hits are withheld entirely: drawing is a mode, and a
   // half-drawn band that accidentally drags the hob would be worse than no tool at all.
-  svg.innerHTML=panBg+traceImg+`<g pointer-events="none">${floor+walls+cuts+zoneG+syms+mods+dims+cornerHi}</g>`+hits+ohits+shits+zhits+dimlabels+ctrls+capture+(S.zoneTool?'':fxhits)+bulbs+`<g pointer-events="none">${ghost}</g>`+(designPhase?(globalThis.IslandDesigner?.svg(t)||''):'');
+  for(const rec of syncSharedDoors()) dsSaveRoomRecord(rec);
+  const nbr=neighbourRoomsSvg(t,WT);
+  svg.innerHTML=panBg+nbr.hit+`<g pointer-events="none">${floor+traceImg+nbr.draw+walls+cuts+zoneG+syms+mods+dims+cornerHi}</g>`+hits+ohits+shits+zhits+dimlabels+ctrls+capture+(S.zoneTool?'':fxhits)+bulbs+`<g pointer-events="none">${ghost}</g>`+(designPhase?(globalThis.IslandDesigner?.svg(t)||''):'');
   // The island belongs to the Design phase only: Layout owns room geometry, not cabinetry.
   if(designPhase)globalThis.IslandDesigner?.bind(svg,t);
   // panBg is the BOTTOM layer, so the wall lines, drawn bands and their handles all still take
   // precedence over it — this only changes what an otherwise-empty drag means while drawing.
+  // A press on another room opens it on release unless the mouse moved (then it was a pan). Decided
+  // on the window's mouseup: startPan re-renders the canvas, so this element never gets a click.
+  svg.querySelectorAll('.nbrhit').forEach(el=>{ el.onmousedown=ev=>{ if(ev.button!==0) return;
+    const id=el.dataset.room, d=[ev.clientX,ev.clientY];
+    const up=e=>{ window.removeEventListener('mouseup',up); if(Math.hypot(e.clientX-d[0],e.clientY-d[1])<5) openRoom(id); };
+    window.addEventListener('mouseup',up); startPan(ev,svg); }; });
   const pb=svg.querySelector('#panBg');
   if(pb) pb.onmousedown=ev=>(designPhase&&S.zoneTool)?startZoneDrawAt(ev,svg):startPan(ev,svg);
   svg.onwheel=ev=>zoomView(ev,svg);   // wheel = zoom around the cursor (user-controlled, never automatic)
+  if(!svg._midPan){ svg._midPan=true;   // middle-button drag = pan, even mid-drawing
+    svg.addEventListener('mousedown',ev=>{ if(ev.button===1){ ev.stopPropagation(); startPan(ev,svg); } },true); }
   // Walls are click targets in BOTH phases (Layout: select/open-kitchen; Design: place the
   // selected fixture onto a wall). Wall RESIZE-drag is locked in Design (geometry is edited in
   // Layout only) — enabled only outside the Design phase.
   svg.querySelectorAll('.wallhit').forEach(el=>{
     if(designPhase&&S.zoneTool){ el.onmousedown=ev=>startZoneDraw(+String(el.dataset.wall).slice(1),ev); el.onclick=null; return; }
-    el.onclick=ev=>onWallClick(el.dataset.wall,ev); if(!designPhase) el.onmousedown=ev=>startWallDrag(el.dataset.wall,ev); });
+    el.onclick=ev=>onWallClick(el.dataset.wall,ev); if(!designPhase&&WALL_DRAG) el.onmousedown=ev=>startWallDrag(el.dataset.wall,ev); });
   // band: first click selects, a second drag on the selected band moves it; the end handles resize
   svg.querySelectorAll('.zonehit').forEach(el=>{ el.onmousedown=ev=>{ const id=el.dataset.zid;
     if(S.selZone===id) startZoneAdjust(id,'move',ev);
@@ -4100,6 +4474,10 @@ function renderPos(svgId){
   svg.querySelectorAll('.bulbhit').forEach(el=>{ el.onclick=()=>{ const i=+el.dataset.idx; S.bulbFor=(S.bulbFor===i?null:i); renderPos(); }; });
   if(S.structArm){ const cap=svg.querySelector('#structCapture'); if(cap)cap.onclick=ev=>placeStructure(ev); }
   if(onLayout&&S.wallDraw){ const cap=svg.querySelector('#wallCapture'); if(cap)cap.onmousedown=ev=>startWallDraw(ev,svg); }
+  if(onLayout&&S.roomDraw){ const cap=svg.querySelector('#roomCapture');
+    if(cap){ cap.onclick=ev=>roomDrawClick(ev,svg); cap.onmousemove=ev=>roomDrawHover(ev,svg);
+      cap.oncontextmenu=ev=>{ ev.preventDefault(); endRoomChain(); }; } }
+  if(onLayout&&S.pinArm){ const cap=svg.querySelector('#pinCapture'); if(cap)cap.onclick=ev=>placePin(ev,svg); }
 }
 function selFx(f){ S.selFx=S.selFx===f?null:f; S.arm=null; S.placing=null; renderEditorLeft(); renderPos(); }
 function onWallClick(wall,ev){ if(S._dragged){S._dragged=false;return;}
@@ -4107,6 +4485,7 @@ function onWallClick(wall,ev){ if(S._dragged){S._dragged=false;return;}
   // Layout: clicking a wall selects it → shows an editable Length input in the sidebar (fix #5),
   // and in Open Kitchen mode also shows the on-canvas remove/add control.
   if(S.screen==='layout'){ const i=+wall.slice(1); S.selWall=(S.selWall===i?null:i); S.selOpening=null; S.selStruct=null; S.bulbFor=null;
+    S.selWallAt=S.selWall==null?null:offFromEvent(wall,ev); S.breakAsk=false;   // the click point pre-fills "Break wall"
     renderPos('layoutSvg'); renderLayoutPanel(); }
 }
 // ---- editable wall length (fix #5) — RECTILINEAR-PRESERVING ----
@@ -4124,6 +4503,72 @@ function onWallClick(wall,ev){ if(S._dragged){S._dragged=false;return;}
 // vertex, which tilted the adjacent wall into a diagonal and destroyed the shape.) If the move
 // would collapse any wall below 200mm it's reverted, so the polygon can't self-destruct. Labels
 // are recomputed per-segment in renderPos, each bound to its own wall id.
+// An edit is undone only when it shrinks some wall below 200mm. A wall that was already that short
+// (a stub read off a plan) used to block every edit to every wall, silently.
+function collapsesWall(oldLens){ const bad=S.walls.some((x,k)=>x.length<200&&x.length<oldLens[k]);
+  if(bad) showToast('That length would squeeze a neighbouring wall below 200 mm, so it was not applied.');
+  return bad; }
+/* A room drawn or read over an uploaded plan: a typed wall length sets the plan's units, so every
+   other wall resizes with it, except the walls already given a real length (S.wallLocks), which keep
+   theirs (rules.json: plan-room-scales-from-typed-wall). Along each axis the gaps between corner
+   coordinates get new sizes: as close as possible to "old size x the new unit" (weighted least
+   squares), with this wall exactly mm and every measured wall exactly its length. Openings, columns,
+   the plan image and the pins are remapped the same way. The pinned end of the wall stays put. */
+function scaleRoomToWall(i,mm,pinB){ const w=S.walls[i]; if(!w) return;
+  const axisOf=x=>Math.abs(x.b[1]-x.a[1])<=1?0:Math.abs(x.b[0]-x.a[0])<=1?1:-1;   // 0 runs across, 1 runs down
+  const d0=axisOf(w); if(d0<0){ showToast('Only a wall running straight across or down can set the length.'); return; }
+  const locks=(S.wallLocks||[]).filter(k=>k!==i&&S.walls[k]&&axisOf(S.walls[k])>=0);
+  // The plan's rooms are one drawing (rules.json: plan-rooms-one-drawing): their corners are solved
+  // together, so every room keeps its shape from the plan, every room's measured walls keep their
+  // lengths and every wall two rooms share (facing, 0-600mm apart) comes out exactly WALL_MM thick.
+  const others=S.planGroup?planNeighbours():[], openOf=d=>d.roomMode==='open'?d.openWalls||[]:[];
+  const span=x=>{ const d=axisOf(x); return {d,lo:Math.min(x.a[d],x.b[d]),hi:Math.max(x.a[d],x.b[d]),len:x.length}; };
+  const fixed=[...locks.map(k=>S.walls[k]),...others.flatMap(r=>(r.design.wallLocks||[]).map(k=>r.design.walls[k]).filter(x=>x&&axisOf(x)>=0))].map(span);
+  const faces=[planWallFaces(S.walls,openOf(S)),...others.map(r=>planWallFaces(r.design.walls,openOf(r.design)))];
+  faces.forEach((A,p)=>faces.slice(p+1).forEach(B=>{ for(const a of A) for(const b of B){
+    const gap=(b.at-a.at)*a.out, over=Math.min(a.hi,b.hi)-Math.max(a.lo,b.lo);
+    if(b.d===a.d&&b.out===-a.out&&gap>0&&gap<=600&&over>=300) fixed.push({d:a.d,lo:Math.min(a.at,b.at),hi:Math.max(a.at,b.at),len:WALL_MM}); } }));
+  const allWalls=[...S.walls,...others.flatMap(r=>r.design.walls)];
+  const unit=mm/w.length, cs=[0,1].map(d=>[...new Set(allWalls.flatMap(x=>[x.a[d],x.b[d]]))].sort((a,b)=>a-b));
+  const gaps=[];
+  for(const d of [0,1]){ const c=cs[d], g=c.slice(1).map((v,j)=>v-c[j]), t=g.map(x=>x*unit), rows=new Map();
+    const row=s=>[s.lo+':'+s.hi,{m:g.map((_,j)=>c[j]>=s.lo&&c[j+1]<=s.hi?1:0),len:s.len}];
+    for(const s of fixed) if(s.d===d) rows.set(...row(s));
+    if(d===d0){ const [key,r]=row({...span(w),len:mm});
+      if(rows.has(key)&&Math.abs(rows.get(key).len-mm)>1){ showToast(`A wall you already measured fixes this one at ${fmtLen(rows.get(key).len)}.`); return; }
+      rows.set(key,r); }
+    const A=[...rows.values()], n=A.length;
+    // g' = t + W·Aᵀ·λ with W = old gap sizes; solve (A·W·Aᵀ)·λ = len - A·t (small, so plain elimination)
+    const M=A.map(p=>A.map(q=>p.m.reduce((s,v,j)=>s+v*q.m[j]*g[j],0))), r=A.map(p=>p.len-p.m.reduce((s,v,j)=>s+v*t[j],0)), lam=Array(n).fill(0);
+    const piv=[];   // piv[col] = the row solved for that column (Gauss-Jordan); a dependent column keeps λ=0
+    for(let col=0;col<n;col++){ let best=-1; for(let q=0;q<n;q++) if(!piv.includes(q)&&Math.abs(M[q][col])>1e-6&&(best<0||Math.abs(M[q][col])>Math.abs(M[best][col]))) best=q;
+      if(best<0){ piv.push(null); continue; } piv.push(best);
+      for(let q=0;q<n;q++) if(q!==best){ const f=M[q][col]/M[best][col]; for(let c2=0;c2<n;c2++) M[q][c2]-=f*M[best][c2]; r[q]-=f*r[best]; }
+    }
+    piv.forEach((q,col)=>{ if(q!=null) lam[col]=r[q]/M[q][col]; });
+    const g2=t.map((x,j)=>x+g[j]*A.reduce((s,p,q)=>s+p.m[j]*lam[q],0));
+    if(A.some(p=>Math.abs(p.m.reduce((s,v,j)=>s+v*g2[j],0)-p.len)>1)){ showToast('That length does not fit with the walls you already measured.'); return; }
+    if(g2.some(x=>!(x>-0.5))){ showToast('That length would squeeze another wall to nothing.'); return; }   // 0: a step closed (tidyCorners)
+    gaps.push(g2); }
+  const pin=pinB?w.b:w.a;
+  const maps=[0,1].map(d=>{ const c=cs[d], out=[0]; gaps[d].forEach((x,j)=>out.push(out[j]+x));
+    const f=v=>{ if(c.length<2) return v*unit; let j=0; while(j<c.length-2&&v>c[j+1]) j++;
+      return out[j]+(v-c[j])*(out[j+1]-out[j])/(c[j+1]-c[j]); };
+    const shift=pin[d]-f(pin[d]); return v=>f(v)+shift; });
+  const P=(x,y)=>[maps[0](x),maps[1](y)];
+  if([S.walls,...others.map(r=>r.design.walls)].some(ws=>Math.abs(loopArea(ws.map(x=>P(...x.a))))<1e5)){ showToast('That length would squeeze a room to nothing.'); return; }
+  pushUndo();
+  remapRoom(P);
+  S.wallLocks=[...locks,i]; S.traceCal=true; S.scaleWall=null; S.editingWallDim=null;
+  tidyCorners();
+  // The plan's other rooms go through the same map, so they stay where the plan puts them against
+  // this room's measured walls (rules.json: plan-rooms-follow-measured-walls, plan-rooms-one-drawing).
+  if(S.planGroup){
+    for(const rec of others) withRoom(rec,()=>{ remapRoom(P); S.traceCal=true; S.scaleWall=null; tidyCorners(); });
+    snapPlanNeighbours(); for(const rec of planNeighbours()) dsSaveRoomRecord(rec); }
+  reconcileZones(); renderPos('layoutSvg'); renderLayoutPanel(); refresh3DIfLive(); scheduleAutosave();
+  $('layoutRoomMeta').textContent=S.room?fmtWH(S.room.bbox.w,S.room.bbox.h):''; }
+const isPlanRoom=()=>S.roomShape==='drawn'&&!!S.traceImage;
 function setWallLength(i,mm){ const w=S.walls[i]; if(!w)return; pushUndo(); mm=Math.max(300,Math.round(mm));
   const n=S.walls.length, oldLen=w.length||1, delta=mm-oldLen;
   const u=[(w.b[0]-w.a[0])/oldLen,(w.b[1]-w.a[1])/oldLen], j1=(i+1)%n, j2=(i+2)%n;
@@ -4131,8 +4576,8 @@ function setWallLength(i,mm){ const w=S.walls[i]; if(!w)return; pushUndo(); mm=M
   const verts=S.walls.map(x=>x.a.slice());
   verts[j1]=[Math.round(verts[j1][0]+u[0]*delta), Math.round(verts[j1][1]+u[1]*delta)];
   verts[j2]=[Math.round(verts[j2][0]+u[0]*delta), Math.round(verts[j2][1]+u[1]*delta)];
-  rebuildWalls(verts);
-  if(S.walls.some(x=>x.length<200)) rebuildWalls(oldVerts);   // would collapse a wall → revert
+  const oldLens=S.walls.map(x=>x.length); rebuildWalls(verts);
+  if(collapsesWall(oldLens)) rebuildWalls(oldVerts);   // would collapse a wall → revert
   reconcileZones();   // only now, once the geometry has settled (the revert above may have undone it)
   renderPos('layoutSvg'); renderLayoutPanel(); refresh3DIfLive(); }
 // Mirror of setWallLength that pins the wall's B endpoint and moves A instead — same
@@ -4147,8 +4592,8 @@ function setWallLengthFromB(i,mm){ const w=S.walls[i]; if(!w)return; pushUndo();
   const verts=S.walls.map(x=>x.a.slice());
   verts[i]=[Math.round(newA[0]),Math.round(newA[1])];
   verts[jPrev]=[Math.round(verts[jPrev][0]+dv[0]), Math.round(verts[jPrev][1]+dv[1])];
-  rebuildWalls(verts);
-  if(S.walls.some(x=>x.length<200)) rebuildWalls(oldVerts);
+  const oldLens=S.walls.map(x=>x.length); rebuildWalls(verts);
+  if(collapsesWall(oldLens)) rebuildWalls(oldVerts);
   reconcileZones();   // as above — after the settle, never mid-revert
   renderPos('layoutSvg'); renderLayoutPanel(); refresh3DIfLive(); }
 // ---- inline (on-canvas) wall-dimension editing (§7, Apply Left/Right toolbar) ----
@@ -4169,7 +4614,9 @@ function isWallVertical(w){ const t=tf(680,520,55);
   return Math.abs(bx-ax)<Math.abs(by-ay); }
 function applyWallDimSide(i,side,val){
   const w=S.walls[i]; if(!w){ cancelWallDim(); return; }
-  const mm=inputToMm(val); if(!(mm>0)){ cancelWallDim(); return; }
+  const mm=inputToMm(val);
+  if(mm===0&&String(val).trim()!==''){ S.editingWallDim=null; removeWall(i); return; }   // 0: the walls either side join (rules.json: edit-room-walls)
+  if(!(mm>0)){ cancelWallDim(); return; }
   const t=tf(680,520,55);
   const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]);
   const vertical=Math.abs(bx-ax)<Math.abs(by-ay);
@@ -4179,6 +4626,7 @@ function applyWallDimSide(i,side,val){
   const wantsFirst=vertical?(side==='above'):(side==='left');
   const moveA=wantsFirst===aIsFirst;   // true -> move A (pin B); false -> move B (pin A)
   S.editingWallDim=null;
+  if(isPlanRoom()) return scaleRoomToWall(i,mm,moveA);   // plan room: the whole room resizes with it
   if(moveA) setWallLengthFromB(i,mm); else setWallLength(i,mm);
 }
 // Enter commits via whichever button is the visually "primary" (solid navy) one for this
@@ -4617,6 +5065,109 @@ function rebuildWalls(verts){ const n=verts.length;
   const bb=bounds(); S.room=S.room||{}; S.room.bbox={w:Math.round(bb.b.x-bb.a.x),h:Math.round(bb.b.y-bb.a.y)};
   S.dims=S.dims||{}; S.dims.w=S.room.bbox.w; S.dims.h=S.room.bbox.h; // rectangles propagate to the engine
 }
+// A wall stub: three walls going in, across and back out by the same depth from one straight wall
+// (a pier or partition end read off a plan). Returns the index of the wall across its end when
+// wall i is one of the three, else null (rules.json: remove-wall-stub).
+function wallStubAt(i){ const W=S.walls, n=W.length; if(n<7) return null;
+  const at=j=>W[((j%n)+n)%n], u=w=>[(w.b[0]-w.a[0])/(w.length||1),(w.b[1]-w.a[1])/(w.length||1)], dot=(p,q)=>p[0]*q[0]+p[1]*q[1];
+  for(const t of [i,i-1,i+1]){ const a=at(t-1), c=at(t+1), p=at(t-2), q=at(t+2), up=u(p);
+    if(dot(u(a),u(c))>-0.99||Math.abs(a.length-c.length)>30||dot(up,u(q))<0.99) continue;
+    if(Math.abs((q.a[0]-p.a[0])*up[1]-(q.a[1]-p.a[1])*up[0])>30) continue;   // both sides on one line
+    if(dot([q.a[0]-p.b[0],q.a[1]-p.b[1]],up)<=0) continue;   // ...and the line carries on past the stub
+    return ((t%n)+n)%n; }
+  return null; }
+// Takes the stub out: the wall it stands on runs straight through. Doors, windows, fixtures and
+// bands on the far side move onto the joined wall; those on the stub's own walls go with it.
+function removeWallStub(i){ const t=wallStubAt(i); if(t==null) return; pushUndo();
+  const n=S.walls.length, m=j=>((j%n)+n)%n;
+  dropCorners(new Set([m(t-1),m(t),m(t+1),m(t+2)]),new Set([m(t-1),m(t),m(t+1)]));
+  S.selWall=null; S.editingWallDim=null; S.editingGap=null;
+  reconcileZones(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave(); }
+// Removes the open room's corners in `gone`: each removed corner's wall joins the wall before it,
+// and the doors, windows, fixtures and bands on it move onto that wall at the same place; those on
+// walls in `lost` are dropped. A joined wall has a new length, so it is no longer measured.
+function dropCorners(gone,lost=new Set()){ const W=S.walls, n=W.length;
+  const keep=W.map((_,j)=>j).filter(j=>!gone.has(j)), to=new Map(keep.map((j,k)=>[j,k])), joined=new Set();
+  const map=j=>{ if(lost.has(j)||!W[j]) return null; let k=j; while(!to.has(k)) k=(k-1+n)%n;
+    const dx=W[j].a[0]-W[k].a[0], dy=W[j].a[1]-W[k].a[1], L=Math.hypot(W[j].b[0]-W[j].a[0],W[j].b[1]-W[j].a[1]);
+    const add=Math.round(L?(dx*(W[j].b[0]-W[j].a[0])+dy*(W[j].b[1]-W[j].a[1]))/L:Math.hypot(dx,dy));   // along the wall: < 0 when its start was cut back
+    if(k!==j) joined.add(to.get(k)); return {i:to.get(k),add}; };
+  W.forEach((_,j)=>map(j));   // marks every joined wall before the locks are carried over
+  const move=(list,f)=>(list||[]).flatMap(x=>{ const r=map(+String(x.wall).slice(1)); return r?[f({...x,wall:'W'+r.i},r.add)]:[]; });
+  S.openings=move(S.openings,(o,d)=>({...o,off:o.off+d}));
+  S.anchors=move(S.anchors,(a,d)=>({...a,off:a.off+d}));
+  S.zones=move(S.zones,(z,d)=>({...z,s:z.s+d,e:z.e+d}));
+  const idx=list=>[...new Set((list||[]).flatMap(j=>{ const r=map(j); return r?[r.i]:[]; }))];
+  S.openWalls=idx(S.openWalls); S.wallLocks=idx(S.wallLocks).filter(k=>!joined.has(k));
+  if(S.scaleWall!=null){ const r=map(S.scaleWall); S.scaleWall=r?r.i:null; }
+  rebuildWalls(keep.map(j=>W[j].a)); }
+// Corners left with nothing to do: a wall of no length goes, and so does a corner at one of the points
+// `at` (or where such a wall was) that the wall carries straight on through. A corner the designer made
+// by breaking a wall elsewhere is kept.
+function tidyCorners(at=[]){ const v=S.walls.map(w=>w.a), n=v.length, gone=new Set(), pts=[...at];
+  for(let j=0;j<n;j++) if(S.walls[j].length<1&&!gone.has(j)){ gone.add((j+1)%n); pts.push(v[j]); }
+  const prev=j=>{ let p=(j-1+n)%n; while(gone.has(p)) p=(p-1+n)%n; return p; }, next=j=>{ let q=(j+1)%n; while(gone.has(q)) q=(q+1)%n; return q; };
+  for(let j=0;j<n;j++){ if(gone.has(j)||!pts.some(p=>Math.hypot(p[0]-v[j][0],p[1]-v[j][1])<1)) continue;
+    const p=v[prev(j)], q=v[next(j)], ux=v[j][0]-p[0], uy=v[j][1]-p[1], wx=q[0]-v[j][0], wy=q[1]-v[j][1];
+    if(Math.abs(ux*wy-uy*wx)<=Math.hypot(ux,uy)*Math.hypot(wx,wy)*1e-3&&ux*wx+uy*wy>=0) gone.add(j); }
+  if(gone.size&&n-gone.size>=3) dropCorners(gone); }
+// Takes wall i out of the room (rules.json: edit-room-walls). Corners stay square: any angled walls
+// next to it go with it, and the straight walls either side are joined. Running across each other,
+// they meet in one corner; facing back at each other (a stub or nib) the two go too and the room
+// closes straight across, if they are the same length; one carrying on from the other a little off
+// line (a jog), the shorter moves onto the longer's line and they become one wall.
+const isSquareWall=w=>Math.abs(w.b[0]-w.a[0])<=1||Math.abs(w.b[1]-w.a[1])<=1;
+function removeWall(i){ const W=S.walls, n=W.length; if(!W[i]||n<=4) return;
+  const m=j=>((j%n)+n)%n, cut=[i]; let p=m(i-1), q=m(i+1);
+  while(!isSquareWall(W[p])&&cut.length<n-3){ cut.unshift(p); p=m(p-1); }
+  while(!isSquareWall(W[q])&&cut.length<n-3){ cut.push(q); q=m(q+1); }
+  const P=W[p], Q=W[q], refuse=msg=>{ showToast(msg+' The wall was not removed.'); };
+  if(!isSquareWall(P)||!isSquareWall(Q)||n-cut.length<4) return refuse('There are no straight walls either side to join.');
+  const up=[P.b[0]-P.a[0],P.b[1]-P.a[1]], uq=[Q.b[0]-Q.a[0],Q.b[1]-Q.a[1]], cross=up[0]*uq[1]-up[1]*uq[0], Lp=Math.hypot(...up)||1, Lq=Math.hypot(...uq)||1;
+  const corners=(from,to)=>{ const s=new Set(); for(let k=from;k!==m(to+1);k=m(k+1)) s.add(k); return s; };   // vertex indices from..to
+  const unlock=ks=>{ S.wallLocks=(S.wallLocks||[]).filter(k=>!ks.includes(k)); };
+  let at;
+  if(Math.abs(cross)>Lp*Lq*1e-3){   // across each other: one square corner where they meet
+    const s=((Q.a[0]-P.a[0])*uq[1]-(Q.a[1]-P.a[1])*uq[0])/cross, X=[Math.round(P.a[0]+up[0]*s),Math.round(P.a[1]+up[1]*s)];
+    if(!(s>0)||((X[0]-Q.a[0])*uq[0]+(X[1]-Q.a[1])*uq[1])/Lq>=Lq) return refuse('The walls either side would not meet inside the room.');
+    pushUndo(); unlock([p,q]); W[cut[0]]={...W[cut[0]],a:X};
+    dropCorners(corners(m(cut[0]+1),q),new Set(cut)); at=[X]; }
+  else if(up[0]*uq[0]+up[1]*uq[1]<0){   // a stub / nib: close it straight across
+    if(!isSquareWall({a:P.a,b:Q.b})) return refuse('Its two sides are different lengths, so closing it would leave an angled wall. Make them the same length first.');
+    if(n-cut.length-2<4) return refuse('That would leave no room.');
+    pushUndo(); unlock([m(p-1),m(q+1)]); dropCorners(corners(m(p+1),q),new Set([p,...cut,q])); at=[P.a,Q.b]; }
+  else {   // a jog: the shorter side moves onto the longer's line, then the two are one wall
+    pushUndo(); const nx=-up[1]/Lp, ny=up[0]/Lp, off=(Q.a[0]-P.a[0])*nx+(Q.a[1]-P.a[1])*ny;
+    const vs=W.map(w=>w.a.slice()), mv=Lq<=Lp?[q,m(q+1)]:[p,m(p+1)], d=Lq<=Lp?-off:off;
+    for(const k of mv) vs[k]=[Math.round(vs[k][0]+nx*d),Math.round(vs[k][1]+ny*d)];
+    unlock(Lq<=Lp?[q,m(q+1)]:[p,m(p-1)]); rebuildWalls(vs); dropCorners(corners(m(p+1),q),new Set(cut)); at=[vs[p]]; }
+  tidyCorners(at);
+  S.selWall=null; S.editingWallDim=null; S.editingGap=null;
+  reconcileZones(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave(); }
+// Breaks wall i into two at `at` mm from its start; doors, windows, fixtures and bands past the
+// break move onto the second part (rules.json: edit-room-walls).
+function splitWall(i,at){ const W=S.walls, w=W[i]; at=Math.round(at); if(!w||!(at>=50&&at<=w.length-50)) return; pushUndo();
+  const P=[w.a[0]+(w.b[0]-w.a[0])*at/w.length,w.a[1]+(w.b[1]-w.a[1])*at/w.length], vs=W.map(x=>x.a);
+  const shift=j=>j>i?j+1:j, on=(x,f)=>{ const k=+String(x.wall).slice(1); return k===i?f(x):k>i?{...x,wall:'W'+(k+1)}:x; };
+  S.openings=(S.openings||[]).map(o=>on(o,o=>o.off>at?{...o,wall:'W'+(i+1),off:o.off-at}:o));
+  S.anchors=(S.anchors||[]).map(a=>on(a,a=>a.off>at?{...a,wall:'W'+(i+1),off:a.off-at}:a));
+  S.zones=(S.zones||[]).flatMap(z=>{ const k=+String(z.wall).slice(1); if(k!==i) return [on(z,x=>x)];
+    return [...(z.s<at?[{...z,e:Math.min(z.e,at)}]:[]),...(z.e>at?[{...z,id:z.s<at?z.id+'b':z.id,wall:'W'+(i+1),s:Math.max(0,z.s-at),e:z.e-at}]:[])]; });
+  S.openWalls=(S.openWalls||[]).flatMap(j=>j===i?[i,i+1]:[shift(j)]);
+  S.wallLocks=(S.wallLocks||[]).filter(j=>j!==i).map(shift);
+  if(S.scaleWall!=null) S.scaleWall=S.scaleWall===i?null:shift(S.scaleWall);
+  rebuildWalls([...vs.slice(0,i+1),P,...vs.slice(i+1)]);
+  S.selWall=null; S.editingWallDim=null; S.editingGap=null;
+  reconcileZones(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave(); }
+// "Break wall" asks how far from the wall's left (or top, on screen) end; the click point pre-fills it.
+function wallStartsFirst(w){ const t=tf(680,520,55); return isWallVertical(w)?t.Y(w.a[1])<t.Y(w.b[1]):t.X(w.a[0])<t.X(w.b[0]); }
+function breakSelWall(val){ const i=S.selWall, w=S.walls[i]; if(!w) return; const mm=inputToMm(val);
+  if(!(mm>=50&&mm<=w.length-50)){ S.fieldErr={key:'brk',msg:`Give a distance between ${fmtLen(50)} and ${fmtLen(w.length-50)}.`}; renderLayoutPanel(); return; }
+  S.fieldErr=null; S.breakAsk=false; splitWall(i,wallStartsFirst(w)?mm:w.length-mm); }
+// Resizing walls by dragging them on the canvas is a switch; off, lengths are only typed. Remembered
+// per browser (rules.json: edit-room-walls).
+var WALL_DRAG=(()=>{ try{ return localStorage.getItem('wallDrag')!=='0'; }catch(_){ return true; } })();
+function toggleWallDrag(){ WALL_DRAG=!WALL_DRAG; try{ localStorage.setItem('wallDrag',WALL_DRAG?'1':'0'); }catch(_){} renderLayoutPanel(); renderPos('layoutSvg'); }
 
 /* ---------- step popup ---------- */
 function openStep(i){ S.activeStep=i;
@@ -4820,9 +5371,10 @@ function hobSeenResize(){ for(const s of Object.values(S.hob.sides||{})) if(s) d
 function hobDone(){ hobSeenResize(); if(!hobChosenAccs().length) applyHobSkipDefault(); closeStep(); }  // nothing picked anywhere → default
 // Fallback used by Generate / AI-Automate if the wizard was never completed. A hob with no chosen
 // count, or a chosen count but no accessories, gets the Skip-All default.
-function ensureHobDefaults(){ syncHobSidePreset(); if(!S.hob.size)S.hob.size=900;
+// wall=false: the hob is on the island only, so it gets its defaults but no wall position
+function ensureHobDefaults(wall=true){ syncHobSidePreset(); if(!S.hob.size)S.hob.size=900;
   if(!S.hob.drawerCount || !hobChosenAccs().length) applyHobSkipDefault();
-  ensureAnchor('hob', S.hob.size===900?'A':'B'); syncHobStep(); }
+  if(wall) ensureAnchor('hob', S.hob.size===900?'A':'B'); syncHobStep(); }
 
 // ---- wizard setters (each enforces validity, then re-renders) ----
 function setHobSize(sz){ S.hob.size=sz;
@@ -5114,11 +5666,14 @@ function syncSinkStep(){ const s=S.sink;
   S.options.veggieSink = !!s.veggie; }
 // Generate / AI-Automate fallback when the wizard was never completed. A legacy room that
 // only stored `type` keeps it (compact→600, double→900-1200 pick).
-function ensureSinkDefaults(){ const s=S.sink;
+// wall=false: the main sink is on the island only. The veggie sink is its own choice: it gets a
+// wall position only when it is selected and not on the island (rules.json: island-hob, island-sinks).
+function ensureSinkDefaults(wall=true){ const s=S.sink;
   if(!s.pick) s.pick = s.type==='compact'?'600':'900-1200';
   s.type = s.pick==='600'?'compact':'double';
   if(s.type==='double'&&!s.doubleSize)s.doubleSize=900;
-  ensureAnchor('sink', s.type==='double'?'A':'B'); if(s.veggie)ensureVeggieAnchor(); syncSinkStep(); }
+  if(wall) ensureAnchor('sink', s.type==='double'?'A':'B');
+  if(s.veggie&&!globalThis.IslandDesigner?.assigned('veggie'))ensureVeggieAnchor(); syncSinkStep(); }
 function setSinkPick(key){ const s=S.sink; if(!SINK_PICKS.some(p=>p.key===key)) return;
   s.pick=key; s.type = key==='600'?'compact':'double';
   s.doubleSize = key==='600'?null:(s.doubleSize||900);
@@ -5416,12 +5971,14 @@ async function generate(){
   // Stage 2 gate: no generation before the room commits to a series (the server enforces
   // this too — /api/build answers 400 without options.seriesId).
   if(!seriesById(activeRoom().seriesId)){ S._seriesNext='generate'; openSeriesModal(); return; }
-  if(!S.handle){ S.leftOpen={...(S.leftOpen||{}),extras:true}; showToast('Choose a Handle Type in Extras before generating — cabinet placement and the 3D walkthrough depend on it.'); renderEditorLeft(); return; }
-  selectHandleType(S.handle); // normalize all tier rules before serializing the request
-  // ensure each chosen core fixture actually has an anchor (skip fridge if N/A)
-  ensureHobDefaults();   // guarantees a valid hob (size+drawers+types) even if the wizard was skipped
-  ensureSinkDefaults();   // valid sink (type + size + anchor) even if the wizard was skipped
-  ensureFridgeDefaults();  // valid fridge (Built-In/Free Standing) + towers/dishwasher via syncFridgeStep
+  selectHandleType(S.handle||'C & J'); // normalize all tier rules before serializing the request (rules.json: handle-default-cj)
+  // No anchor is required (rules.json: anchors-optional): only the ones the designer placed are
+  // completed; a missing hob/sink/fridge is never placed for them.
+  // A hob or sink on the island counts as placed but gets no wall position (rules.json: island-hob, island-sinks).
+  const onIsland=t=>!!globalThis.IslandDesigner?.assigned(t), placed=t=>S.anchors.some(a=>a.type===t)||onIsland(t);
+  if(placed('hob')) ensureHobDefaults(!onIsland('hob'));   // guarantees a valid hob (size+drawers+types) even if the wizard was skipped
+  if(placed('sink')) ensureSinkDefaults(!onIsland('sink'));   // valid sink (type + size + anchor) even if the wizard was skipped
+  if(placed('fridge')) ensureFridgeDefaults();  // valid fridge (Built-In/Free Standing) + towers/dishwasher via syncFridgeStep
   S.options.seriesId=activeRoom().seriesId;
   S.options.dims=S.dims; S.options.walls=S.walls.map(w=>({...w})); // send the ACTUAL drawn walls
   // beams/columns go along so the engine can DETECT clashes with the generated runs (Stage 5.6)
@@ -5670,8 +6227,37 @@ function setResultView(v){
     $('resPlanMeta').textContent=S.plan?`${Object.values(S.plan.bom||{}).reduce((a,b)=>a+b,0)} modules${S.plan.price?` · ${inr(S.plan.price.breakdown.total)}${S.plan.price.rate!=null?` · ${inr(S.plan.price.rate)}/sqft`:''}`:''}`:''; }
   else if(v==='elev'){ if(window.stopScene)window.stopScene(); apply3DFinish(); drawElevation(); }   // the render uses the chosen finish
   else { apply3DFinish();   // 7.1: the scene opens in the chosen/series-default finish, never beige
-    if(window.startScene)window.startScene(scenePlan(),S.walls,v==='walk'?'walk':'orbit','res3d','resWalkCanvas','resWalkHint'); }
+    if(window.startScene)window.startScene(scenePlan(),S.walls,v==='walk'?'walk':'orbit','res3d','resWalkCanvas','resWalkHint',false,v==='walk'?walkNeighbours():[]); }
 }
+// The other rooms read from the same plan (S.planGroup), for the combined walkthrough: each is
+// built in its own state (withRoom) and placed where the plan puts it, so the designer can walk
+// out through a door into the next room (rules.json: combined-walkthrough-across-plan-rooms).
+// The other rooms read from the same plan as the open one (S.planGroup), with walls.
+function planNeighbours(){ if(!S.planGroup||!S.rooms) return [];
+  const me=activeRoom(); return S.rooms.filter(r=>r!==me&&r.design.planGroup===S.planGroup&&(r.design.walls||[]).length); }
+/* Combined layout (rules.json: combined-layout-on-plan-canvas): on the Layout and Design canvases
+   the plan's other rooms are drawn where the plan puts them, around the open room: floor, walls
+   (outside their line, as the open room's are), door/window gaps and the room's name. They are
+   context only; a click on one opens that room for editing, a drag still pans. */
+function neighbourRoomsSvg(t,WT){ let draw='', hit='';
+  for(const r of planNeighbours()){ const d=r.design, ws=d.walls, sgn=loopArea(ws.map(w=>w.a))>=0?1:-1;
+    const pts=ws.map(w=>`${t.X(w.a[0])},${t.Y(w.a[1])}`).join(' '), open=d.roomMode==='open'?(d.openWalls||[]):[];
+    draw+=`<polygon points="${pts}" fill="#F3F0EA" fill-opacity="0.55" stroke="none"/>`;   // the plan still shows through
+    ws.forEach((w,i)=>{ if(open.includes(i)) return; const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]), L=Math.hypot(bx-ax,by-ay)||1;
+      const ox=(by-ay)/L*sgn*WT, oy=-(bx-ax)/L*sgn*WT;   // outward, the wall's thickness
+      draw+=`<polygon points="${ax},${ay} ${bx},${by} ${bx+ox},${by+oy} ${ax+ox},${ay+oy}" fill="#E4DED3"/>`;
+      for(const o of (d.openings||[]).filter(o=>+String(o.wall).slice(1)===i)){ const s0=Math.max(0,o.off-o.width/2)/w.length, s1=Math.min(w.length,o.off+o.width/2)/w.length;
+        const P=k=>[ax+(bx-ax)*k,ay+(by-ay)*k], [p0x,p0y]=P(s0), [p1x,p1y]=P(s1);
+        draw+=`<polygon points="${p0x},${p0y} ${p1x},${p1y} ${p1x+ox},${p1y+oy} ${p0x+ox},${p0y+oy}" fill="${o.type==='window'?'#DCE7EE':'#F3F0EA'}"/>`; } });
+    const xs=ws.map(w=>t.X(w.a[0])), ys=ws.map(w=>t.Y(w.a[1])), cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
+    draw+=`<text x="${cx}" y="${cy}" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="12" font-weight="700" fill="#8A8579">${esc(r.name)}</text>`
+      +`<text x="${cx}" y="${cy+14}" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="9.5" fill="#B5AD9C">click to open</text>`;
+    hit+=`<polygon class="nbrhit" data-room="${esc(r.id)}" points="${pts}" fill="transparent" style="cursor:pointer"><title>Open ${esc(r.name)}</title></polygon>`; }
+  return {draw,hit}; }
+function walkNeighbours(){
+  return planNeighbours().map(r=>({
+    walls:r.design.walls, run:fn=>withRoom(r,fn),
+    plan:withRoom(r,()=>{ const p=scenePlan(); return p?{...p,openings:p.openings||S.openings}:{runs:[],openings:S.openings}; }) })); }
 function scenePlan(){ const p=S.plan?.island?S.plan:S.reResult?engineToPlan():S.plan; if(p&&!p.openings)p.openings=S.openings; return p; }
 const SNAP_MAX=3;
 // Grabs the CURRENT frame of the Render Portal's capture view (captureSnapshotPair re-renders right
@@ -5796,13 +6382,14 @@ const FUNC_ABBR={'Bottle Pull-Out':'BOTTLE PO','Grain Drawer':'GRAIN','Potato Dr
 function abbrevFunc(f){return FUNC_ABBR[f]||(f||'').toUpperCase();}
 let resultPlanViewport=null,resultPlanFullscreen=null;
 function draw2d(){
+  if(S.editing)syncIsland();   // island cabinets are drawn in their editable row order
   if(S.planStyle!=='classic'&&S.plan)drawDetailedPlan();
   else{
     const wrap=$('resPlanWrap');if(wrap)wrap.style.background='#F8F5EF';
     if(S.plan?.island)draw2dLegacy();else if(S.reResult)drawRulePlan();else draw2dLegacy();
   }
   const svg=$('view2d'),controls=$('planZoomControls');
-  svg?.querySelectorAll('[data-island]').forEach(el=>el.onclick=()=>IslandDesigner.open());
+  svg?.querySelectorAll('[data-island]').forEach(el=>el.onclick=e=>{ if(!(S.editing&&e.target.closest('.mod')))IslandDesigner.open(); });
   if(svg&&controls){
     svg.querySelectorAll('text').forEach(el=>el.setAttribute('font-weight','400'));
     svg.querySelectorAll('.mod').forEach(el=>{el.setAttribute('stroke-width','.75');el.setAttribute('vector-effect','non-scaling-stroke');});
@@ -5976,7 +6563,7 @@ function draw2dLegacy(){
   s+=`<defs><pattern id="planColumn" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="#b4ab9a"/><path d="M0 0V3" stroke="#6f675a" stroke-width=".6"/></pattern></defs>`+(globalThis.DetailedPlan?.structuresSvg(S.structures,t)||'');
   s+=labels;   // labels last: on top of every wall's rects, never under a neighbouring corner unit
   const isl=S.plan.island;
-  if(isl?.rules)s+=IslandRules.svg(isl,isl.rules,t,{interactive:true,invalid:!!isl.problems?.length});
+  if(isl?.rules)s+=IslandRules.svg(isl,isl.rules,t,{interactive:true,invalid:!!isl.problems?.length,push:pushMod});
   // dimension lines
   const ccx=t.X((bounds().a.x+bounds().b.x)/2), ccy=t.Y((bounds().a.y+bounds().b.y)/2); let dg='';
   for(const w of S.walls){const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]);
@@ -6771,7 +7358,7 @@ let _undoStack=[], _redoStack=[];
 function snapshotState(){
   return JSON.stringify({ walls:S.walls, openings:S.openings, structures:S.structures, anchors:S.anchors,
     roomShape:S.roomShape, roomMode:S.roomMode, openWalls:S.openWalls, room:S.room, dims:S.dims, zones:S.zones,
-    island:S.options.island,islandConfig:S.options.islandConfig, veggie:S.sink.veggie });
+    island:S.options.island,islandConfig:S.options.islandConfig, veggie:S.sink.veggie, traceRect:S.traceRect, wallLocks:S.wallLocks });
 }
 // Call at the START of every mutating action, before it changes anything.
 function pushUndo(){ _undoStack.push(snapshotState()); if(_undoStack.length>60)_undoStack.shift(); _redoStack.length=0; scheduleAutosave(); }
@@ -6784,6 +7371,8 @@ function restoreSnapshot(json){
   if('island' in s){S.options.island=s.island;S.options.islandConfig=s.islandConfig;S.steps.island=s.island?'Storage':null;globalThis.IslandDesigner?.refresh(true);}
   if('veggie' in s){S.sink.veggie=s.veggie;syncSinkStep();}
   S.roomShape=s.roomShape; S.roomMode=s.roomMode; S.openWalls=s.openWalls; S.room=s.room; S.dims=s.dims; S.zones=s.zones||[];
+  if(s.traceRect) S.traceRect=s.traceRect;
+  S.wallLocks=s.wallLocks||[];   // the plan image scales with the walls, so it undoes with them
   S.selWall=null; S.selOpening=null; S.selStruct=null; S.editingWallDim=null; S.editingGap=null; S.fieldErr=null;
   renderPos('layoutSvg'); renderPos('posSvg'); renderLayoutPanel(); renderEditorLeft(); refresh3DIfLive();
 }
@@ -6822,6 +7411,14 @@ window.addEventListener('keydown', ev=>{
   if(tag==='input'||tag==='textarea'||(el&&el.isContentEditable)) return;
   const mod=ev.ctrlKey||ev.metaKey, k=ev.key.toLowerCase();
   if(ev.key==='Escape'&&S.wallDraw){ toggleWallDraw(); return; }
+  if(ev.key==='Escape'&&S.pinArm){ S.pinArm=null; renderLayoutPanel(); renderPos('layoutSvg'); return; }
+  if(S.roomDraw&&S.screen==='layout'){
+    if(/^[0-9.]$/.test(ev.key)&&S.roomDraw.length&&!mod){ ev.preventDefault(); S._rdType=(S._rdType||'')+ev.key; renderPos('layoutSvg'); return; }
+    if(ev.key==='Enter'&&S._rdType){ ev.preventDefault(); roomDrawTyped(); return; }
+    if(ev.key==='Escape'){ if(S._rdType){ S._rdType=''; renderPos('layoutSvg'); } else toggleRoomDraw(); return; }
+    if(ev.key==='Backspace'||ev.key==='Delete'){ ev.preventDefault();
+      if(S._rdType) S._rdType=S._rdType.slice(0,-1); else S.roomDraw.pop(); renderPos('layoutSvg'); return; }
+  }
   if(S.screen==='result'&&S.editing){   // cabinet edit mode: Ctrl+Z/Y/C/X/V, Delete, Escape
     if(mod&&k==='z'&&!ev.shiftKey){ ev.preventDefault(); stepPlan(_planUndo,_planRedo,'undo'); return; }
     if(mod&&(k==='z'&&ev.shiftKey||k==='y')){ ev.preventDefault(); stepPlan(_planRedo,_planUndo,'redo'); return; }
@@ -6836,6 +7433,8 @@ window.addEventListener('keydown', ev=>{
   if((ev.key==='Backspace'||ev.key==='Delete') && S.screen==='layout' && S.roomMode==='open' && S.selWall!=null && S.walls[S.selWall]){
     ev.preventDefault(); const i=S.selWall; S.selWall=null; toggleWall(i);
   }
+  else if(ev.key==='Delete' && S.screen==='layout' && S.selWall!=null && S.walls[S.selWall] && !/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName||'')){
+    ev.preventDefault(); removeWall(S.selWall); }
 });
 
 /* ====================================================================
@@ -7137,7 +7736,7 @@ function roomSwitch(){
 }
 function pickRoomFromMenu(id){ const mm=$('roomMenu'); if(mm)mm.style.display='none';
   if(id===S.activeRoomId) return;
-  switchRoom(id); renderChrome(); render(); renderKeepBar(); }
+  openRoom(id); renderKeepBar(); }
 
 /* ====================================================================
    EDITING + CABINET LIBRARY — Stage 6. The SERVER PLAN (S.plan, whose
@@ -7155,9 +7754,26 @@ function pickRoomFromMenu(id){ const mm=$('roomMenu'); if(mm)mm.style.display='n
 S.selModRef=null;   // {run:'W0', tier:'base'|'wall'|'loft', idx} — transient, not persisted
 S.libData=null; S.libKey=null; S.libCross=true; S.libBrowse='width'; S.libFitOnly=false; S.planElevKey=null;
 function editableList(ref){ if(!ref||!S.plan) return null;
+  if(islandRun(ref.run)!=null) return ref.tier==='base'?islandRow(+islandRun(ref.run)):null;
   if(ref.tier==='base'){ const r=(S.plan.runs||[]).find(x=>x.key===ref.run); return r?r.segments:null; }
   const t=S.plan.tiers&&S.plan.tiers[ref.run]; return t?t[ref.tier]:null; }
 function selSeg(){ const l=editableList(S.selModRef); return l?l[S.selModRef.idx]:null; }
+// Each island storage row edits like a wall's base run (rules.json: island-modules): run
+// 'island:0' is the row opening north, 'island:1' the row behind it. A row is the island's own
+// module objects in order, any gap given as open space, so it spans the island end to end;
+// recalcPositions writes it back to island.working.
+const islandRun=run=>/^island:(\d)$/.exec(run||'')?.[1], _islandRows=new WeakMap();
+const runName=run=>islandRun(run)!=null?`island row ${+islandRun(run)+1}`:run;
+function islandRow(row){ const i=S.plan?.island, w=i?.working; if(!w||!(row<i.rows)) return null;
+  let rows=_islandRows.get(w); if(!rows) _islandRows.set(w,rows=[]);
+  if(!rows[row]){ const list=rows[row]=[], open=width=>({kind:'filler',open:true,label:'open space',width}); let x=0;
+    for(const m of w.filter(m=>m.row===row).sort((a,b)=>a.at-b.at)){ if(m.at>x) list.push(open(m.at-x)); list.push(m); x=Math.max(x,m.at+m.width); }
+    if(i.length>x) list.push(open(i.length-x)); }
+  return rows[row]; }
+function syncIsland(){ const i=S.plan?.island; if(!i?.working) return;
+  const rows=Array.from({length:i.rows||0},(_,r)=>islandRow(r));
+  rows.forEach((list,row)=>{ let x=0; for(const m of list){ Object.assign(m,{row,at:x,x0:x,x1:x+m.width}); x+=m.width; } });
+  i.working.splice(0,i.working.length,...rows.flat()); }
 // Older saved layouts classified these occupancy markers as cabinets.
 function isReservedSpace(s){ return !!s && [s.func,s.label].some(v=>['perpendicular cabinet footprint','unresolved corner reservation'].includes(v)); }
 function normalizeReservedSpaces(plan){
@@ -7232,7 +7848,7 @@ function reservedSpaceHtml(s){
 function recalcPositions(){ if(!S.plan) return;
   for(const r of (S.plan.runs||[])){ let x=0; for(const s of r.segments){ s.x0=Math.round(x); x+=s.width; s.x1=Math.round(x); } r.total=x; }
   for(const t of Object.values(S.plan.tiers||{})) for(const tier of ['wall','loft']){ let x=0; for(const s of (t[tier]||[])){ s.x0=s.x0??Math.round(x); x=s.x0+s.width; s.x1=Math.round(x); } }
-  markOccupiedSpace(S.plan); }
+  syncIsland(); markOccupiedSpace(S.plan); }
 // merge consecutive fillers / drop empties; returns the new index of the tracked seg.
 // Open spaces side by side always become one open space (tall if any part was tall), so a run of
 // deleted units reads as one gap; solid fillers merge only within a tier. openOnly: merge open space only.
@@ -7406,7 +8022,8 @@ function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
     else if(need&&need!==h) warn.push(`its top is at ${counterTop+h}mm, the wall cabinets end at ${counterTop+need}mm`); }
   // The picked cabinet decides what it is, not the zone it lands in: a tall in a base slot is a
   // tall unit, a base cabinet in a tall slot is a base cabinet. Unknown entries keep the slot's kind.
-  const tall=entry?.category?/^tall/.test(entry.category):s.tier==='tall';
+  const tall=entry?.category?/^tall/.test(entry.category):s.tier==='tall', island=islandRun(S.selModRef.run)!=null;
+  if(tall&&island){ showToast('A tall cabinet can’t go in the island — the island top covers every cabinet at worktop height.'); return; }
   if(tall&&S.selModRef.tier!=='base'){ showToast('A tall cabinet stands on the floor — select the space in the base row to place it.'); return; }
   const emptySlot=s.kind==='gap'||(s.kind==='filler'&&s.open), side=emptySlot&&w<s.width?runSide(list,li):'left';
   const z0=tall?0:midWall?counterTop:wallZ??(s.z??(S.selModRef.tier==='base'?100:0));
@@ -7438,18 +8055,18 @@ function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
     ...((S.selModRef.tier==='loft'||s.spare)&&s.open?{open:true,label:'open space',spare:s.spare}:{})}); }   // what is left of an open loft / spare upper slot stays open
   const ni=normalizeList(list,li); S.selModRef.idx=ni>=0?ni:li;
   // A run never grows past its wall end: there is a wall there (rules.json: no-run-past-wall-end).
-  const wallLen=S.walls?.[+String(S.selModRef.run).slice(1)]?.length??Infinity;
+  const wallLen=island?S.plan.island.length:S.walls?.[+String(S.selModRef.run).slice(1)]?.length??Infinity;   // an island row ends at the island's length
   const endOf=l=>S.selModRef.tier==='base'?l.reduce((a,q)=>a+q.width,0):Math.max(0,...l.map(q=>(q.x0??0)+q.width));
   const runEnd=endOf(list);
   if(runEnd>Math.max(wallLen,endOf(before))+0.5){   // an older overrun is not made worse
     list.splice(0,list.length,...before); S.selModRef.idx=idx0;
-    showToast(`${code} doesn't fit — it needs ${Math.round(runEnd-wallLen)}mm more than the free space on this wall. Free up space first or pick a narrower cabinet.`);
+    showToast(`${code} doesn't fit — it needs ${Math.round(runEnd-wallLen)}mm more than the free space on this ${island?'island row':'wall'}. Free up space first or pick a narrower cabinet.`);
     return;
   }
   // A base blind (BB / BBL) from the library is a corner like a generated one: its concealed end is
   // the end nearer the wall's corner, and its door starts past the adjoining run's front (base depth
   // + blind_shutter_clearance), so only its body occupies the adjoining wall (markOccupied).
-  if(S.selModRef.tier==='base'&&!tall&&/^BBL?-/.test(code)){ let x=0; for(const q of list){ if(q===rep) break; x+=q.width; }
+  if(S.selModRef.tier==='base'&&!tall&&!island&&/^BBL?-/.test(code)){ let x=0; for(const q of list){ if(q===rep) break; x+=q.width; }
     const L=Number.isFinite(wallLen)?wallLen:runEnd, near0=x<=L-x-w, reach=(S.rulesCfg?.depths?.base||560)+(S.rulesCfg?.params?.blind_shutter_clearance??40);
     const f0=near0?Math.min(x+w,Math.max(x,reach)):x, f1=near0?x+w:Math.max(x,Math.min(x+w,L-reach));
     Object.assign(rep,{kind:'corner',corner:{end:near0?'from':'to'},shutter:{x0:f0,x1:f1,width:f1-f0}}); }
@@ -7656,17 +8273,26 @@ let _md=null;
 function startModDrag(ev,i){ const m=S.modules[i]; if(!S.editing||!m||m.run==null||m.segTier!=='base') return;
   const list=editableList({run:m.run,tier:'base'}); const s=list&&list[m.seg]; if(!s||!['cabinet','anchor','corner','tallBank'].includes(s.kind)) return;
   if(!S.selModRef||S.selModRef.run!==m.run||S.selModRef.idx!==m.seg||S.selModRef.tier!=='base') selectModule(i);   // one press selects and drags
-  const w=S.walls[+m.run.slice(1)], t=tf(680,520,40),pointer=svgPoint($('view2d'),ev);
-  const ax=t.X(w.a[0]), ay=t.Y(w.a[1]), bx=t.X(w.b[0]), by=t.Y(w.b[1]);
-  const Lpx=Math.hypot(bx-ax,by-ay)||1, ux=(bx-ax)/Lpx, uy=(by-ay)/Lpx;
-  const bb=bounds(), cxpx=t.X((bb.a.x+bb.b.x)/2), cypx=t.Y((bb.a.y+bb.b.y)/2);
-  let nx=-uy, ny=ux; const mx=(ax+bx)/2, my=(ay+by)/2;
-  if(nx*(cxpx-mx)+ny*(cypx-my)<0){ nx=-nx; ny=-ny; }
-  _md={ref:{...S.selModRef},W:s.width,startX0:s.x0||0,ax,ay,ux,uy,nx,ny,sc:t.sc,
-       px0:pointer.x,py0:pointer.y,target:s.x0||0,runLen:w.length,raf:false};
+  const t=tf(680,520,40),pointer=svgPoint($('view2d'),ev), row=islandRun(m.run);
+  let axis;
+  if(row!=null) axis=islandAxis(+row,t);
+  else { const w=S.walls[+m.run.slice(1)];
+    const ax=t.X(w.a[0]), ay=t.Y(w.a[1]), bx=t.X(w.b[0]), by=t.Y(w.b[1]);
+    const Lpx=Math.hypot(bx-ax,by-ay)||1, ux=(bx-ax)/Lpx, uy=(by-ay)/Lpx;
+    const bb=bounds(), cxpx=t.X((bb.a.x+bb.b.x)/2), cypx=t.Y((bb.a.y+bb.b.y)/2);
+    let nx=-uy, ny=ux; const mx=(ax+bx)/2, my=(ay+by)/2;
+    if(nx*(cxpx-mx)+ny*(cypx-my)<0){ nx=-nx; ny=-ny; }
+    axis={ax,ay,ux,uy,nx,ny,runLen:w.length}; }
+  _md={ref:{...S.selModRef},W:s.width,startX0:s.x0||0,...axis,sc:t.sc,
+       px0:pointer.x,py0:pointer.y,target:s.x0||0,raf:false};
   ev.preventDefault();
   window.addEventListener('mousemove',onModDrag); window.addEventListener('mouseup',endModDrag);
 }
+// An island row's drag axis on screen: from the row's start along the island, and across the
+// row's cabinet band (row 0 ends at the back line, row 1 starts there).
+function islandAxis(row,t){ const i=S.plan.island, r=i.rules, k0=r.cabinet_depth-(row?0:depthOf('base'));
+  const P=(a,k)=>{ const [x,y]=IslandRules.point(i,r,a,k); return [t.X(x),t.Y(y)]; }, o=P(0,k0), e=P(1000,k0), d=P(0,k0+1000), u=1000*t.sc;
+  return {ax:o[0],ay:o[1],ux:(e[0]-o[0])/u,uy:(e[1]-o[1])/u,nx:(d[0]-o[0])/u,ny:(d[1]-o[1])/u,runLen:i.length}; }
 function onModDrag(ev){ if(!_md) return;
   const pointer=svgPoint($('view2d'),ev);
   const d=((pointer.x-_md.px0)*_md.ux+(pointer.y-_md.py0)*_md.uy)/_md.sc;
@@ -7683,7 +8309,7 @@ function onModDrag(ev){ if(!_md) return;
       g.setAttribute('stroke-width','1.6'); g.setAttribute('stroke-dasharray','6 4');
       g.setAttribute('pointer-events','none'); svg.appendChild(g); }
     g.setAttribute('points',pts);
-    $('libSelPos')&&($('libSelPos').textContent=`drop at ${_md.target}–${_md.target+_md.W}mm on ${_md.ref.run}`);
+    $('libSelPos')&&($('libSelPos').textContent=`drop at ${_md.target}–${_md.target+_md.W}mm on ${runName(_md.ref.run)}`);
   });
 }
 function endModDrag(){ if(!_md) return;
@@ -7701,7 +8327,7 @@ async function loadLibrary(){
   if(!r.ok) throw new Error('library unavailable');
   S.libData=await r.json(); S.libKey=key; return S.libData;
 }
-function zoneForSel(){ const ref=S.selModRef; if(!ref) return 'other';
+function zoneForSel(){ const ref=S.selModRef; if(!ref) return 'other'; if(islandRun(ref.run)!=null) return 'island';
   const run=(S.plan.runs||[]).find(x=>x.key===ref.run); if(!run) return 'other';
   const s=selSeg(); const c=s?(s.x0+s.x1)/2:0;
   const reach=(S.rulesCfg&&S.rulesCfg.zones&&S.rulesCfg.zones.reach)||1200;
@@ -7839,12 +8465,12 @@ function toggleCabAcc(i){ const o=(S._cabAccOpts||[])[i], s=selSeg(); if(!o||!s)
   scheduleAutosave(); renderLibPanelBody(); }
 // Every cabinet-held accessory in the plan, at its cabinet's width, for the estimate.
 function cabAccItems(plan=S.plan){ if(!plan) return [];
-  const lists=[...(plan.runs||[]).map(r=>r.segments||[]),...Object.values(plan.tiers||{}).flatMap(t=>[t.wall||[],t.loft||[]])];
+  const lists=[...(plan.runs||[]).map(r=>r.segments||[]),...Object.values(plan.tiers||{}).flatMap(t=>[t.wall||[],t.loft||[]]),plan.island?.working||[]];
   return lists.flat().flatMap(g=>(g.accs||[]).map(a=>({name:a.name,width:g.width,code:g.code}))); }
 // A regenerate rebuilds every cabinet: picks follow a cabinet of the same code at the same
 // place on the same wall and tier; the rest are listed back as removed.
 function carryCabAccs(from,to){ const lost=[]; if(!from) return lost;
-  const lists=p=>[...(p.runs||[]).map(r=>[r.key+'|base',r.segments||[]]),...Object.entries(p.tiers||{}).flatMap(([k,t])=>['wall','loft'].map(tr=>[k+'|'+tr,t[tr]||[]]))];
+  const lists=p=>[...(p.runs||[]).map(r=>[r.key+'|base',r.segments||[]]),...Object.entries(p.tiers||{}).flatMap(([k,t])=>['wall','loft'].map(tr=>[k+'|'+tr,t[tr]||[]])),['island',p.island?.working||[]]];
   const target=new Map(lists(to));
   for(const [key,list] of lists(from)) for(const g of list) if(g.accs&&g.accs.length){
     const m=(target.get(key)||[]).find(q=>q.code===g.code&&Math.abs((q.x0||0)-(g.x0||0))<=1);
@@ -7860,7 +8486,7 @@ function renderLibPanelBody(){
   box.innerHTML=`
     <div style="font-size:15px;font-weight:600;line-height:1.35"><span id="libSelDesc">${esc(isGap?(DetailedPlan.emptyKind(s)==='free'?'Extend area':'Dead space'):isFiller?(s.open?'Open space (no filler)':isPanelSeg(s)?'Visible panel':isDropdownSeg(s)?'Countertop dropdown':'Filler'):s.func||(s.code?'':s.label||s.kind))}</span>${s.crossSeries?' <span style="font-size:10px;font-weight:700;color:#B4533A">CROSS-SERIES</span>':''}</div>
     <div style="margin-top:6px;font-size:22px;font-weight:700;color:var(--ink)">${s.width} mm <span style="font-size:12px;font-weight:600;color:var(--muted)">wide${s.height||s.h?` · ${s.height||s.h} H`:''}${s.depth?` · ${s.depth} D`:''}</span></div>
-    <div id="libSelPos" style="font-size:11.5px;color:var(--muted2);margin-top:2px">at ${s.x0}–${s.x1}mm on ${ref.run} (${ref.tier})</div>
+    <div id="libSelPos" style="font-size:11.5px;color:var(--muted2);margin-top:2px">at ${s.x0}–${s.x1}mm on ${runName(ref.run)} (${ref.tier})</div>
     ${s.code?`<div title="${esc(s.code)}" style="font-size:10.5px;font-family:monospace;color:var(--muted2);margin-top:4px;overflow-wrap:anywhere">${esc(s.code)}</div>`:''}
     ${isGap?`<div style="margin-top:8px;font-size:12px;line-height:1.55;color:#8A5A1E;background:#FBF3E4;border:1px solid #E8D3AE;border-radius:8px;padding:7px 9px">${DetailedPlan.emptyKind(s)==='free'?'Free space beside the run — add a cabinet or filler below and it goes against the run.':`${esc(s.label||'Unused space')} — too narrow for a cabinet.`}</div>`:''}
     ${isFiller?'':`<div id="libSelPrev" style="margin-top:10px;border:1px solid var(--line);border-radius:11px;background:linear-gradient(150deg,#F4F1EB,#E5DECF);height:150px;display:none;align-items:center;justify-content:center;overflow:hidden">
@@ -7890,7 +8516,7 @@ function renderLibPanelBody(){
       <div><div style="font-size:10.5px;color:var(--muted2);margin-bottom:3px">Shutter (this cabinet)</div>
         <select onchange="setSegShutter(this.value)" style="width:100%;padding:7px;border:1px solid var(--line2);border-radius:8px;font-size:12px;background:#fff">
           ${['solid','glass'].map(o=>`<option ${((s.shutter||'solid')===o)?'selected':''}>${o}</option>`).join('')}</select></div>
-      ${ref.tier==='base'?`<div><div style="font-size:10.5px;color:var(--muted2);margin-bottom:3px">Keep on regenerate</div>
+      ${ref.tier==='base'&&islandRun(ref.run)==null?`<div><div style="font-size:10.5px;color:var(--muted2);margin-bottom:3px">Keep on regenerate</div>
         <div style="display:flex;gap:6px;align-items:center">
           <button class="btn ghost" onclick="toggleKeep()" style="flex:1;padding:7px;font-size:11.5px;${keepMatching(ref)?'color:#B4533A;border-color:#D9A79A;background:#FBF1EC':''}">${keepMatching(ref)?'📌 Kept':'Keep'}</button>
           <input id="keepTol" type="number" min="0" step="10" value="${(keepMatching(ref)||{}).tol||0}" onchange="setKeepTol(this.value)" title="Tolerance mm (0 = pinned exactly)" style="width:64px;padding:7px;border:1px solid var(--line2);border-radius:8px;font-size:12px">
@@ -7904,7 +8530,7 @@ function renderLibPanelBody(){
         <button class="btn ghost" onclick="editMoveBy(10)" style="flex:1;padding:7px;font-size:12px">10 ▶</button>
         <button class="btn ghost" onclick="editMoveBy(50)" style="flex:1;padding:7px;font-size:12px">50 ▶</button>
       </div>
-      <div style="font-size:11px;color:var(--muted2);margin-top:5px">Or drag it anywhere on its wall — cabinets in the way get pushed aside, and you'll be asked before any are removed.</div>
+      <div style="font-size:11px;color:var(--muted2);margin-top:5px">Or drag it anywhere on its ${islandRun(ref.run)!=null?'island row':'wall'} — cabinets in the way get pushed aside, and you'll be asked before any are removed.</div>
     </div>`:''}
     <div style="margin-top:16px">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">${isFiller?'Add cabinet here':'Replace with'} · ${slack}mm free (any cabinet can be used)</div>
@@ -8668,7 +9294,7 @@ const DS={on:false, projectId:null, saving:false, timer:null, lastSavedJson:null
 // the frozen view transform (_tf, recomputed on render), and the trace-over background image
 // (traceImage - a multi-MB data URL; the geometry extracted FROM it is saved, the underlay
 // itself is not, so it does not survive a reload. Flagged, not an oversight).
-const DS_TRANSIENT=['kdetect','upload','_tf','traceImage'];
+const DS_TRANSIENT=['kdetect','upload','_tf','traceImage','traceRect','traceAspect','traceCal','roomDraw','roomDrawDone','scaleWall','_rdType','planPins','pinArm','pinBusy'];
 const isUuid=id=>/^[0-9a-f]{8}-[0-9a-f]{4}/.test(String(id));
 function serializeRoomDesign(r){
   const out={};

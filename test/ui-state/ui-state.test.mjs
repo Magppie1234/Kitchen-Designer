@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {RULE_PARAMS} from '../../core/config.mjs';
 const html=readFileSync('ui/builder.html','utf8');
 const between=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)));
 const plain=x=>JSON.parse(JSON.stringify(x));
@@ -247,6 +248,33 @@ test('editing places any cabinet type anywhere, but never into a column or under
   assert.equal(ctx.S.plan.tiers.W0.wall[0].code,'WALL');assert.match(ctx.message,/stands on the floor/);
 });
 
+test("island-modules: island cabinets are edited like a wall run, inside the island's length",()=>{
+  const cab=(code,width,at,extra={})=>({kind:'cabinet',label:'drawers',code,width,at,x0:at,row:0,height:720,depth:560,...extra});
+  const S={editing:true,options:{ceiling:3100},structures:[],walls:[],selModRef:{run:'island:0',tier:'base',idx:0},
+    plan:{runs:[],tiers:{},island:{x:2000,y:2000,length:1800,rows:1,rotation:0,rules:RULE_PARAMS.island,
+      working:[cab('DW-600',600,0),cab('BC-HO-900',900,600,{kind:'anchor',label:'hob'}),cab('DW-300',300,1500)]}}};
+  const ctx=vm.createContext({S,TALL_ANCHORS:['fridge'],showToast:m=>ctx.message=m,confirm:()=>true,afterEdit:()=>ctx.recalcPositions()});
+  vm.runInContext(readFileSync('ui/island-rules.js','utf8'),ctx);
+  vm.runInContext(between('function editableList','// merge consecutive')+between('function normalizeList','function highlightSelection')
+    +between('function editDelete','/*__RELOCATE_CORE_START__*/')+between('/*__RELOCATE_CORE_START__*/','// A blind / LeMans corner'),ctx);
+  const row=()=>plain(S.plan.island.working.map(m=>[m.open?'open':m.code,m.at,m.width])), base=['BC-DW',720,false,{category:'base',d:560}];
+  assert.equal(ctx.editableList({run:'island:0',tier:'wall'}),null);assert.equal(ctx.editableList({run:'island:1',tier:'base'}),null,'a single-row island has no row 1');
+  ctx.editDelete();
+  assert.deepEqual(row(),[['open',0,600],['BC-HO-900',600,900],['DW-300',1500,300]],'delete leaves open space under the top');
+  ctx.editReplacePick('BC-DW-450',450,...base.slice(1));
+  assert.deepEqual(row(),[['open',0,150],['BC-DW-450',150,450],['BC-HO-900',600,900],['DW-300',1500,300]],'a library cabinet fills open space, against its neighbour');
+  S.selModRef.idx=3;ctx.editReplacePick('BC-DW-900',900,...base.slice(1));
+  assert.match(ctx.message,/needs 450mm more than the free space on this island row/);assert.equal(row()[3][0],'DW-300','the row never grows past the island');
+  ctx.editReplacePick('TALL-600',600,2400,false,{category:'tall2400',d:560});
+  assert.match(ctx.message,/can.t go in the island/);assert.equal(row()[3][0],'DW-300');
+  S.selModRef.idx=1;assert.equal(ctx.relocateSelected(0),true);
+  assert.deepEqual(row(),[['BC-DW-450',0,450],['open',450,150],['BC-HO-900',600,900],['DW-300',1500,300]],'moved along its row');
+  const mods=[],svg=ctx.IslandRules.svg(S.plan.island,RULE_PARAMS.island,{sc:.1,X:x=>x*.1,Y:y=>y*.1},{push:m=>mods.push(m)-1});
+  assert.deepEqual(plain(mods.map(m=>[m.run,m.seg,m.W])),[['island:0',0,450],['island:0',1,150],['island:0',2,900],['island:0',3,300]]);
+  assert.match(svg,/class="island-mod mod" data-mod="2"/);
+  S.plan.island=JSON.parse(JSON.stringify(S.plan.island));   // undo restores a copy: its row is rebuilt from it
+  assert.equal(ctx.editableList({run:'island:0',tier:'base'})[0].code,'BC-DW-450');
+});
 test('space an adjoining cabinet stands in, or in front of, is occupied — not an extend area',()=>{
   const walls=[{a:[0,0],b:[4000,0],length:4000},{a:[4000,0],b:[4000,3000],length:3000},{a:[4000,3000],b:[0,3000],length:4000},{a:[0,3000],b:[0,0],length:3000}];
   const ctx=vm.createContext({});vm.runInContext(readFileSync('ui/geometry.js','utf8'),ctx);
@@ -380,4 +408,99 @@ test('a cabinet can be dragged into free empty space; moving leaves open space, 
   ctx.relocateApply(list,cab,plan);
   assert.deepEqual(plain(list.map(s=>[s.kind,!!s.open,s.width])),[['filler',true,600],['cabinet',false,450],['filler',true,450],['cabinet',false,600],['filler',true,150]]);
   assert.equal(ctx.relocateCore([cab,{kind:'gap',label:'concealed corner space',width:900}],cab,700).ok,false,'concealed corner space is not free');
+});
+
+// rules.json: room-resumes-where-left
+test('picking a room reopens it on the page it was left on',()=>{
+  const S={screen:'layout',rooms:[],project:{},unlockedStages:[]};
+  const ctx=vm.createContext({S,STAGE_FOR:{layout:1,editor:2,result:3,quote:4},history:{state:null,pushState(){}},window:{scrollTo(){}},location:{hash:''}});
+  for(const n of ['unlockStage','render','renderChrome','renderKeepBar','stashRoom','applyRoom','dsSaveRoomRecord'])ctx[n]=()=>{};
+  ctx.$=()=>null;
+  vm.runInContext(between('const RESUME_SCREENS','// Modals (setup'),ctx);
+  vm.runInContext(between('function openRoom(','/* ---------- room modal'),ctx);
+  vm.runInContext(between('function pickRoomFromMenu(','\n}')+'}',ctx);
+  // switching moves S onto the record and back, like stashRoom/applyRoom
+  const rooms={a:{id:'a',design:{plan:{},walls:[1]}},b:{id:'b',design:{walls:[1]}}};
+  ctx.switchRoom=id=>{ const r=rooms[id]; if(S.activeRoomId!==id){ if(S.activeRoomId) rooms[S.activeRoomId].design.lastScreen=S.lastScreen; S.lastScreen=r.design.lastScreen; S.activeRoomId=id; } return r; };
+  ctx.openRoom('a'); assert.equal(S.screen,'result','a generated room never left opens at Review');
+  ctx.go('quote');
+  ctx.pickRoomFromMenu('b'); assert.equal(S.screen,'layout','a room never generated opens at Layout');
+  ctx.go('editor');
+  ctx.pickRoomFromMenu('a'); assert.equal(S.screen,'quote');
+  ctx.go('layout');   // gone back to edit the walls
+  ctx.pickRoomFromMenu('b'); assert.equal(S.screen,'editor');
+  ctx.pickRoomFromMenu('a'); assert.equal(S.screen,'layout','a generated room left at Layout reopens at Layout');
+});
+
+// rules.json: remove-wall-stub
+test('a wall stub can be removed: the wall it stands on runs straight, openings carried across',()=>{
+  const S={anchors:[{type:'sink',wall:'W4',off:100}],openings:[{type:'door',wall:'W7',off:500,width:900},{type:'window',wall:'W6',off:1000,width:600}],
+    structures:[],zones:[],openWalls:[],wallLocks:[2,6,7],scaleWall:null};
+  const ctx=vm.createContext({S,WALL_MM:230});
+  for(const n of ['pushUndo','reconcileZones','renderLayoutPanel','renderPos','refresh3DIfLive','scheduleAutosave','updateBeamFullSpan'])ctx[n]=()=>{};
+  ctx.snapColumnToWall=()=>null;
+  ctx.bounds=()=>{ const p=S.walls.map(w=>w.a); return {a:{x:Math.min(...p.map(q=>q[0])),y:Math.min(...p.map(q=>q[1]))},b:{x:Math.max(...p.map(q=>q[0])),y:Math.max(...p.map(q=>q[1]))}}; };
+  vm.runInContext(between('function rebuildWalls(','\n/* ---------- step popup'),ctx);
+  // a 2900 x 2400 room with a 300mm stub 750mm deep standing on the bottom wall
+  ctx.rebuildWalls([[0,0],[2900,0],[2900,2400],[2300,2400],[2300,1650],[2000,1650],[2000,2400],[0,2400]]);
+  assert.equal(ctx.wallStubAt(0),null,'a plain wall is not a stub');
+  assert.equal(ctx.wallStubAt(3),4,'a side of the stub finds its end');
+  ctx.removeWallStub(3);
+  assert.deepEqual(plain(S.walls.map(w=>w.a)),[[0,0],[2900,0],[2900,2400],[0,2400]]);
+  assert.deepEqual(plain(S.openings),[{type:'door',wall:'W3',off:500,width:900},{type:'window',wall:'W2',off:1900,width:600}]);
+  assert.deepEqual(plain(S.anchors),[],'what stood on the stub goes with it');
+  assert.deepEqual(plain(S.wallLocks),[3],'the joined wall is no longer a measured length');
+  assert.equal(ctx.wallStubAt(2),null);
+});
+
+// rules.json: edit-room-walls
+function wallsCtx(corners,state={}){
+  const S={anchors:[],openings:[],structures:[],zones:[],openWalls:[],wallLocks:[],scaleWall:null,...state};
+  const ctx=vm.createContext({S,WALL_MM:230});
+  for(const n of ['pushUndo','reconcileZones','renderLayoutPanel','renderPos','refresh3DIfLive','scheduleAutosave','updateBeamFullSpan'])ctx[n]=()=>{};
+  ctx.snapColumnToWall=()=>null; ctx.showToast=m=>{ ctx.toast=m; };
+  ctx.bounds=()=>{ const p=S.walls.map(w=>w.a); return {a:{x:Math.min(...p.map(q=>q[0])),y:Math.min(...p.map(q=>q[1]))},b:{x:Math.max(...p.map(q=>q[0])),y:Math.max(...p.map(q=>q[1]))}}; };
+  vm.runInContext(between('function rebuildWalls(','\n/* ---------- step popup'),ctx);
+  ctx.rebuildWalls(corners);
+  return {ctx,S,corners:()=>plain(S.walls.map(w=>w.a))};
+}
+test('removing a wall: the walls either side run on until they meet',()=>{
+  const {ctx,S,corners}=wallsCtx([[0,0],[3000,0],[4000,1000],[4000,3000],[0,3000]],{openings:[{type:'door',wall:'W2',off:500,width:800}],wallLocks:[0,3]});
+  ctx.removeWall(1);   // the corner cut off at 45 degrees
+  assert.deepEqual(corners(),[[0,0],[4000,0],[4000,3000],[0,3000]]);
+  assert.deepEqual(plain(S.openings),[{type:'door',wall:'W1',off:1500,width:800}],'the door stays where it was');
+  assert.deepEqual(plain(S.wallLocks),[2],'the two walls that changed length are no longer measured');
+});
+test('removing the end of a stub closes it straight across, as removing the stub does',()=>{
+  const stub=[[0,0],[2900,0],[2900,2400],[2300,2400],[2300,1650],[2000,1650],[2000,2400],[0,2400]];
+  const {ctx,corners}=wallsCtx(stub);
+  ctx.removeWall(4);
+  assert.deepEqual(corners(),[[0,0],[2900,0],[2900,2400],[0,2400]]);
+});
+test('a jog of a few mm, removed or typed to 0, makes the two walls one',()=>{
+  const {ctx,S,corners}=wallsCtx([[0,0],[4800,0],[4800,2400],[1500,2400],[1500,2410],[0,2410]],{openings:[{type:'window',wall:'W4',off:500,width:600}]});
+  ctx.removeWall(3);
+  assert.deepEqual(corners(),[[0,0],[4800,0],[4800,2400],[0,2400]],'the shorter wall moves onto the longer one\'s line');
+  assert.deepEqual(plain(S.openings),[{type:'window',wall:'W2',off:3800,width:600}]);
+});
+test('breaking a wall makes two, and what stands past the break moves to the second',()=>{
+  const {ctx,S,corners}=wallsCtx([[0,0],[4000,0],[4000,3000],[0,3000]],{openings:[{type:'door',wall:'W0',off:1500,width:800},{type:'window',wall:'W1',off:1000,width:600}],wallLocks:[0,1]});
+  ctx.splitWall(0,1000);
+  assert.deepEqual(corners(),[[0,0],[1000,0],[4000,0],[4000,3000],[0,3000]]);
+  assert.deepEqual(plain(S.openings),[{type:'door',wall:'W1',off:500,width:800},{type:'window',wall:'W2',off:1000,width:600}]);
+  assert.deepEqual(plain(S.wallLocks),[2]);
+  ctx.tidyCorners();   // a later tidy (after measuring) keeps the break
+  assert.equal(S.walls.length,5);
+});
+test('removing a piece of an angled nib takes its angled walls with it; corners stay square',()=>{
+  const {ctx,corners}=wallsCtx([[0,0],[3000,0],[3000,3000],[0,3000],[0,2000],[500,2000],[560,1980],[560,1920],[500,1900],[0,1900]]);
+  ctx.removeWall(6);   // the short end between the two angled pieces
+  assert.deepEqual(corners(),[[0,0],[3000,0],[3000,3000],[0,3000]]);
+});
+test('a stub with sides of different lengths is not closed into an angled wall',()=>{
+  const room=[[0,0],[2900,0],[2900,2400],[2300,2400],[2300,1650],[2000,1650],[2000,2300],[0,2300]];
+  const {ctx,corners}=wallsCtx(room);
+  ctx.removeWall(4);
+  assert.deepEqual(corners(),room);
+  assert.match(ctx.toast,/different lengths/);
 });

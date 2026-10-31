@@ -273,6 +273,16 @@
       "consequence": "STD is the pre-rename value, not a separate handle. It resolves to the group's ordinary handle — TTS for base and tall, NHX for wall and loft — so the ~25 rows still carrying it are correct as they stand. No bulk edit needed."
     },
     {
+      "id": "handle-default-cj",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-30"
+      ],
+      "statement": "The handle type is C & J by default. The designer changes it only when they want another handle (Design → Extras → Handle Type); they never have to pick C & J before generating.",
+      "implementation": "ui/builder.html: S.handle starts as 'C & J', renderEditorLeft() fills it for a saved room that has none, generate() sends it without asking. server.mjs toEngineInput(): no handle sent = CJ; an unrecognised one is still an input problem. Test: test/server/server.test.mjs 'toEngineInput defaults the handle to C & J and preserves a chosen catalogue code'."
+    },
+    {
       "id": "panel-vs-filler",
       "status": "stated",
       "hard": true,
@@ -386,7 +396,7 @@
         "BC-SK-CJ-ST-XXX-LHS-XXX-600-720-560-15",
         "TC-REF-TTS-ST-1SX-LHS-XXX-600-2400-560-15"
       ],
-      "note": "Hob, main sink and refrigerator are required appliance anchors; the optional veggie sink is a separate anchor. The vegetable-basket requirement was cancelled by the user; every sink gets a dish rack above it (dish-rack-above-sink).",
+      "note": "Hob, main sink and refrigerator are the appliance anchors, each optional (anchors-optional); the optional veggie sink is a separate anchor. The vegetable-basket requirement was cancelled by the user; every sink gets a dish rack above it (dish-rack-above-sink).",
       "preferred": [
         {
           "item": "hob",
@@ -971,7 +981,9 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Use eligible catalogue cabinets for storage. Island length is a designer-entered whole-millimetre dimension, with no fixed preset maximum; the room and clearances determine its limit. Close residual storage-row gaps with cut-to-size panels. Seating-only islands do not require cabinet modules."
+      "statement": "Use eligible catalogue cabinets for storage. Island length is a designer-entered whole-millimetre dimension, with no fixed preset maximum; the room and clearances determine its limit. Close residual storage-row gaps with cut-to-size panels. Seating-only islands do not require cabinet modules. After generation the island's cabinets are edited like the cabinets along a wall: in Start editing the designer selects any island cabinet on the 2D plan and deletes it (leaving open space under the top), replaces it or fills open space from the library, adds fillers or panels, moves it with the arrows or by dragging it along its row, copies/pastes it and undoes. Each storage row is edited on its own and never grows past the island's length; a tall cabinet cannot go in the island, since the island top covers every cabinet at worktop height.",
+      "seen_in_note": "Designer, 2026-10-31: allow editing on island cabinets as well.",
+      "implementation": "ui/builder.html: editableList() returns an island storage row for run 'island:0' / 'island:1' (islandRow(): the island's own module objects in order, gaps as open space); recalcPositions() → syncIsland() writes the rows back to island.working, so pricing (/api/reprice), the 3D view and undo read the edit. editReplacePick() caps a row at island.length, refuses tall cabinets on the island and skips blind-corner logic there; startModDrag() drags along the island row (islandAxis()); zoneForSel() is 'island' for island cabinets' accessories; Keep on regenerate is not offered (the island is rebuilt from its configuration). ui/island-rules.js svg({push}) registers each island cabinet as a selectable .mod (ui/detailed-plan.js and draw2dLegacy pass it). ui/renderer3d.js draws nothing for island open space. Test: test/ui-state/ui-state.test.mjs 'island-modules: island cabinets are edited like a wall run, inside the island's length'."
     },
     {
       "id": "island-work-aisle",
@@ -1027,7 +1039,9 @@
       "status": "stated",
       "hard": false,
       "seen_in": [],
-      "statement": "Show up to four illustrated standard-width choices: 600, 900, 976 and 1200mm, with their purpose and a starting length that fits. Group rotations instead of listing duplicates. Provide a prominent custom length field; suggested lengths are not restrictions."
+      "statement": "Show up to four illustrated standard-width choices: 600, 900, 976 and 1200mm, with their purpose and a starting length that fits. Group rotations instead of listing duplicates. Provide a prominent custom length field; suggested lengths are not restrictions.",
+      "note": "Choices are searched at all four turns (0, 90, 180, 270). Seen 2026-10-30 on an L-shaped room: a door swing 1050mm from every north-facing storage front left no option at 0/90, while at 180 the fronts face the hob run and the back only has to clear the swing.",
+      "implementation": "ui/island-rules.js candidates() default rotations [0,90,180,270]. Test: test/island/island.test.mjs 'a door swing facing the storage front is cleared by turning the island 180'."
     },
     {
       "id": "island-sidebar",
@@ -1041,7 +1055,9 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Keep entrances, door swings and access routes clear. Check cabinet and appliance opening space without collisions."
+      "statement": "Keep entrances, door swings and access routes clear. Check cabinet and appliance opening space without collisions. Only a door that swings into the kitchen claims floor for its swing: a door swinging outward, a sliding door (it slides into the wall) and a doorless opening put no swing in the island's way; the island still keeps its walkway from the wall.",
+      "note": "User, 2026-10-30: an outward-swinging door was blocking every island option as if it swung into the room.",
+      "implementation": "core/island.mjs islandContext(): a door adds a 'door swing' obstacle only when flip is 0/1 (swings in) and its variant is not sliding or doorless — the same convention as fridge-clear-of-door-swing. Test: test/island/island.test.mjs 'only a door swinging into the kitchen blocks the island'."
     },
     {
       "id": "island-storage",
@@ -1090,14 +1106,18 @@
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "Main and veggie sinks may be independently assigned to the island. No distance requirement applies between the two sinks. Confirm plumbing and preparation space."
+      "statement": "Main and veggie sinks may be independently assigned to the island. No distance requirement applies between the two sinks. Confirm plumbing and preparation space. A sink does not need placing on a wall first: the designer can put it straight on the island, and each of the hob, main sink and veggie sink is decided on its own (any one, any two, all or none on the island, the rest on the walls or left out), alongside the island's cabinets. On the Design plan each one on the island is drawn on its storage row like a wall anchor and the designer drags it along the row, as along a wall: it moves in 10mm steps, stays on the island, never overlaps another island fixture (it holds at its last clear spot), and on a double-storage island it crosses to the row under the pointer. The position is saved on release. Like a wall anchor, each island row with a fixture shows its free lengths, measured along the cabinet row: from each island end to the nearest fixture and between fixtures. They are drawn outside the top on that row's open side and update live while dragging.",
+      "seen_in_note": "Designer, 2026-10-31: no need to add the hob/sink beforehand to put one or both on the island; treat them individually.",
+      "implementation": "ui/island-ui.js: ticking Hob, Main sink or Veggie sink adds it to the island without asking for a wall placement (width from the hob/sink settings); server.mjs toEngineInput() adds an island anchor for a ticked fixture with no wall anchor, and moves one that has a wall anchor onto the island; ui/builder.html generate() gives an island-only hob or sink its defaults without a wall position (ensureHobDefaults/ensureSinkDefaults(false)), and places a selected veggie sink on a wall only when it is not on the island. Dragging: ui/island-ui.js fixturesSvg() draws each island fixture on its row with a data-island-fx target; startFixtureDrag() moves it along the row (10mm steps, clamped to the island, held clear of other fixtures, row switch on a double island) and commits once on mouseup; fixturesSvg() also draws each row's free lengths (data-island-gap, 60mm slivers skipped as on walls) from the live drag position. Tests: test/island/island.test.mjs 'island-hob, island-sinks: a hob or sink goes on the island with no wall placement first, each on its own'; test/island/island-ui.test.mjs 'island-sinks: a hob or sink on the island is drawn on its row and dragged along it like a wall anchor'."
     },
     {
       "id": "island-hob",
       "status": "stated",
       "hard": true,
       "seen_in": [],
-      "statement": "An island hob is explicit. Preserve existing hob-to-sink separation and selected cabinet shapes; verify extraction and the appliance's countertop and installation clearances."
+      "statement": "An island hob is explicit. Preserve existing hob-to-sink separation and selected cabinet shapes; verify extraction and the appliance's countertop and installation clearances. The hob does not need placing on a wall first: the designer can put it straight on the island, independently of where the sinks go (see island-sinks).",
+      "seen_in_note": "Designer, 2026-10-31: no need to add the hob/sink beforehand to put one or both on the island; treat them individually.",
+      "implementation": "ui/island-ui.js: ticking Hob, Main sink or Veggie sink adds it to the island without asking for a wall placement (width from the hob/sink settings); server.mjs toEngineInput() adds an island anchor for a ticked fixture with no wall anchor, and moves one that has a wall anchor onto the island; ui/builder.html generate() gives an island-only hob or sink its defaults without a wall position (ensureHobDefaults/ensureSinkDefaults(false)), and places a selected veggie sink on a wall only when it is not on the island. Test: test/island/island.test.mjs 'island-hob, island-sinks: a hob or sink goes on the island with no wall placement first, each on its own'."
     },
     {
       "id": "island-plumbing",
@@ -1277,6 +1297,182 @@
       "statement": "The countertop is billed at the worktop depth, not the cabinet depth: each base-row piece (cabinet, hob/sink, dishwasher, filler, concealed corner space, countertop dropdown face) counts its cabinet depth plus the front overhang (depths.counter - depths.base = 600 - 560 = 40mm), so a standard 560mm run bills 600mm deep, as the 3D worktop is drawn. Both the stone (Section A) and the countertop installation (Section B) use this area.",
       "note": "Was billed at the cabinet depth (560mm) until 2026-10-22. The island top keeps its own measured depth.",
       "implementation": "vendor/costEstimate.js enumerateModules(): worktopD() = (seg.depth ?? depths.base) + COUNTER_OVER for every counterMm2 term; the 3D uses the same COUNTER_OVER (ui/renderer3d.js worktop()). Test: test/pricing."
+    },
+    {
+      "id": "room-walls-traced-on-inside-face",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-23"
+      ],
+      "statement": "A room drawn over an uploaded plan is traced on the INSIDE face of its walls (the room side), not the wall's centre line or outside face, because a wall line is the face the cabinets stand against. Lengths are to the millimetre: a typed length places the next corner exactly that far, and the first typed length on an unscaled plan also sets the plan's scale.",
+      "note": "The engine and the 3D already read a wall line as its inside face (3D builds the thickness outward). The 2D Layout and Design plans draw the band outward from the line too (builder.html renderPos: mitred wall polygons, outward opening cuts, outwardSym() for door/window symbols), the same as the detailed plan and the 3D.",
+      "implementation": "ui/builder.html Draw room walls: roomDrawSnap() rounds to 1mm; roomDrawTypedPoint()/roomDrawTyped() place typed lengths and calibrate the plan on the first one (S.traceCal); applyRoomScale() scales about the reference wall's start so that wall is exact; the drawing hint states the inside-face rule."
+    },
+    {
+      "id": "drawn-room-is-closed-outer-boundary",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "When drawing room walls, the closed outer boundary is the room, not just the first chain drawn: a closed chain with a bigger area than the current drawn room replaces it, and the inside walls drawn before are kept, except ones that trace the new room's walls. Clicking Done (or Esc) finishes the chain being drawn, as a right-click does, instead of discarding it.",
+      "note": "Until 2026-10-24 the first chain was always the room (an early right-click left a tiny room with the real boundary as inside walls), Done threw the unfinished chain away, and drawing again rebuilt the room and wiped the inside walls.",
+      "implementation": "ui/builder.html: roomDrawClick() picks buildDrawnRoom() for a closed chain bigger than polyAreaM2(S.walls); buildDrawnRoom() keeps S.structures when replacing, dropping partitions partitionOnWall() finds on the new walls; toggleRoomDraw() calls endRoomChain() on Done and sets S.roomDrawDone from the existing drawn room on re-entry."
+    },
+    {
+      "id": "plan-rooms-split-from-one-read",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "An uploaded plan with several rooms is read in one AI call: the designer puts a named 'Inside room' pin in each room (Kitchen, Store, ...), and each named room becomes its own room of the project, designed and estimated on its own. The rooms keep their positions from the plan, so they line up with each other, and the first real wall length set in any of them scales all of them.",
+      "note": "A second read of the same plan reuses a room of the same name instead of adding a copy. The plan image itself is still not saved with the project, so it is gone after a reload; the rooms are.",
+      "implementation": "plan-read.mjs PIN_READ/toPinRead() return { rooms: [...] } (named room dots in the prompt); ui/builder.html applyPlanRooms() creates or reuses the rooms (withRoom, dsCreateRoomFor) with a shared S.planGroup and S.traceRect; scaleRoomToWall() passes every scale to the group (see plan-rooms-follow-measured-walls)."
+    },
+    {
+      "id": "plan-rooms-follow-measured-walls",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-26"
+      ],
+      "statement": "Every wall length typed in a room read from a plan moves the plan's other rooms the same way, not just the first one, so they stay where the plan puts them against the measured walls instead of overlapping the room. A room whose own walls have been measured keeps those lengths but still moves and scales with the plan (see plan-rooms-one-drawing).",
+      "note": "Until 2026-10-26 only the first typed length scaled the other rooms; later measurements reshaped the open room alone, so Store/Utility drew across the kitchen's walls. Until 2026-10-29 a room with measured walls was not moved at all, only slid against the open room, so two measured rooms drew one shared wall as two.",
+      "implementation": "ui/builder.html scaleRoomToWall() builds the plan-mm map P and applies it with remapRoom(P) to the open room and, via withRoom, to every other room of the same S.planGroup (saved with dsSaveRoomRecord)."
+    },
+    {
+      "id": "plan-rooms-one-drawing",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-29"
+      ],
+      "statement": "The rooms read from one plan are one drawing: what the layout shows is kept, only lengths and widths change. A wall length typed in any of them is solved over all of their corners together, so every room keeps its shape and place from the plan, every measured wall in every room keeps its length, and every wall two rooms share comes out as one wall, exactly one wall thickness (230mm) thick. Where the two rooms' readings of a shared wall differ (e.g. a ~100mm step in one room only), the step closes and the wall runs straight; doors, windows and fixtures on it stay where they were. A length that cannot fit every room's measured walls is refused with a message.",
+      "note": "Seen on Room 2 and Room 3, side by side and both measured: Room 3's left wall carried a ~100mm step that Room 2's right wall did not have, so the shared wall drew as two walls overlapping Room 2.",
+      "implementation": "ui/builder.html scaleRoomToWall(): the corner coordinates of the open room and planNeighbours() go into one weighted least-squares solve per axis, with rows for every room's S.wallLocks, the typed wall, and every facing pair of walls of two rooms 0-600mm apart (= WALL_MM). Gaps may close to 0; tidyCorners() then drops zero-length walls and straight-through corners per room via dropCorners() (shared with removeWallStub), carrying openings/anchors/zones across. Test: test/ui-state/plan-rooms-follow.test.mjs."
+    },
+    {
+      "id": "plan-rooms-share-walls",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-26"
+      ],
+      "statement": "Rooms read from one plan that back onto each other share one wall: the facing walls of the open room and a neighbour stay exactly one wall thickness (230mm) apart, when the plan is read and after every wall length typed. The neighbour slides into place; when a wall length is typed, the shared walls are part of the solve over all rooms (plan-rooms-one-drawing), and measured walls keep their lengths. Walls count as shared when they face each other, overlap by at least 300mm along their length, and the rooms overlap or stand at most 600mm apart; rooms further apart stay where they are.",
+      "note": "Seen on a utility / servant pantry with the kitchen beside it: measuring the utility's 8585mm wall (bottom end fixed) left the measured kitchen about 460mm low, its floor running through the utility's step wall. Only rooms touching the open room are lined up; a room touching just a neighbour follows when that neighbour is open and measured.",
+      "implementation": "ui/builder.html planWallFaces() lists a room's straight, non-open walls with their outward side; snapPlanNeighbours() picks per axis the longest-overlapping facing pair and translates the neighbour with remapRoom(); called in applyPlanRooms() and scaleRoomToWall(). Test: test/ui-state/plan-rooms-follow.test.mjs."
+    },
+    {
+      "id": "plan-rooms-share-doors",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-28"
+      ],
+      "statement": "A door or window on a wall two plan rooms share is one opening: the same position and width in both rooms. Reading the plan, measuring a wall, or adding, moving, resizing, flipping or deleting the opening in the open room rewrites it on the neighbour's facing wall; the hinge stays on the same jamb and the swing is seen from the other side (into the kitchen = out of the store). Just opening a room changes nothing.",
+      "note": "Seen on a kitchen and the room beside it: the kitchen's door had been measured (661 / 1058 / 691) while the neighbour still showed its own first reading of the same door, so the gaps did not line up across the wall. When the plan is read, the open room's reading of the door wins.",
+      "implementation": "ui/builder.html syncSharedDoors(force): for each facing wall pair one WALL_MM apart (planWallFaces), replaces the neighbour's openings over the shared stretch with the open room's, mirrored (wall direction, doorFlip). Forced from snapPlanNeighbours(); otherwise run in renderPos() and applied only when the open room's shared openings changed since the last render, then the neighbour is saved. Test: test/ui-state/plan-rooms-follow.test.mjs."
+    },
+    {
+      "id": "room-resumes-where-left",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-28"
+      ],
+      "statement": "Opening a room (from the room menu at the top or Continue on the dashboard) shows the page that room was last on: Layout, Design, Review, Render, Quote or Handoff. A page that needs a generated plan, or walls for Design, is only resumed while the room still has them. A room never left yet opens at Review when it has generated, else at Layout.",
+      "note": "Seen switching from Main Kitchen's Review to Room 2 from the room menu: Room 2 (layout in progress) was shown on the Review page, because the menu kept the current page instead of the room's.",
+      "implementation": "ui/builder.html: 'lastScreen' is a per-room key (ROOM_STATE_KEYS), set by go() for RESUME_SCREENS; openRoom() resumes it; pickRoomFromMenu() goes through openRoom(). Test: test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "remove-wall-stub",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-29"
+      ],
+      "statement": "A wall stub in the room outline (three walls going in from a straight wall, across, and back out by the same depth, e.g. a pier or partition end read off a plan that is not really there) can be removed: selecting any of its three walls on Layout offers 'Remove this wall stub', and the wall it stands on then runs straight through. Doors, windows, fixtures and cabinet bands on that wall's far side move onto the joined wall at the same place; those on the stub's own walls go with it. The joined wall's measured length is cleared, since it is a new length.",
+      "note": "Seen on Room 2: a 313mm x 746mm stub standing on the bottom wall that was not part of the initial layout.",
+      "implementation": "ui/builder.html wallStubAt(i) finds the stub's end wall (sides antiparallel, equal depth within 30mm, base walls on one line within 30mm and continuing past it); removeWallStub(i) drops its four corners, renumbers openings/anchors/zones/openWalls/wallLocks/scaleWall and rebuilds the walls; the button sits in the selected-wall panel (renderLayoutPanel). Test: test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "edit-room-walls",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-29"
+      ],
+      "statement": "On Layout the designer can reshape the room outline wall by wall, and corners always stay square: no edit makes an angled (non-orthogonal) wall. Remove any wall (button on the selected wall, the Delete key, or typing its length as 0): any angled walls next to it go with it, and the nearest straight walls either side are joined. Running across each other, they meet in one square corner; facing back at each other (a stub or nib) both go and the room closes straight across, but only when they are the same length (otherwise it is refused with a message, as it would leave an angled wall); one carrying on from the other slightly off line (a jog of a few mm), the shorter one moves onto the longer's line and they become a single wall. Break a wall into two: 'Break wall' asks how far from the wall's left (or top) end, pre-filled with where the wall was clicked, and refuses a point within 50mm of an end. Doors, windows, fixtures and cabinet bands stay where they are on the walls that remain; those on a removed wall go with it, and any wall whose length changed is no longer marked measured. A switch, 'Resize walls by dragging', allows moving walls with the mouse; when it is off, wall lengths can only be typed. The switch is remembered per browser and is on by default.",
+      "note": "Asked for on a room with a nib of angled pieces read off a plan that was not in the room, and a 175mm jog between two bottom walls a few mm off line.",
+      "implementation": "ui/builder.html removeWall(i) (meet at the crossing / close a stub / align a jog), splitWall(i,at) with the click point from offFromEvent stored as S.selWallAt, dropCorners() and tidyCorners(at) shared with removeWallStub and scaleRoomToWall; applyWallDimSide() sends a typed 0 to removeWall; WALL_DRAG + toggleWallDrag() gate startWallDrag on the wall hit lines; buttons in the selected-wall panel and the switch in the Room Layouts section (renderLayoutPanel). Test: test/ui-state/ui-state.test.mjs."
+    },
+    {
+      "id": "anchors-optional",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-24 (multi-room projects)",
+        "Designer, 2026-10-30 (every project)"
+      ],
+      "statement": "No anchor is mandatory, in any project. Whether to place the hob, sink or fridge before generating is the designer's choice: the kitchen is generated with whichever of them the designer placed, or none. With no anchor, the drawn zones are simply filled with cabinets from the library. The tool never places a missing anchor itself. A room with no hob skips the chimney and the hob-side storage requirements (grain trolley, bottle pullout by the hob). Island options need only drawn zones.",
+      "note": "Replaces anchors-optional-in-multi-room-projects (2026-10-24), which still required all three anchors in a one-room project and silently placed any missing one on Generate.",
+      "implementation": "ui/builder.html generate(): completes only the anchors the designer placed (no ensureAnchor for a missing one); the Generate button is never disabled for missing anchors. core/checkInput.mjs allows zero or one of each anchor (anchors must be a list). core/engine.mjs requires an appliance and the hob storage only when its anchor is present. core/island.mjs islandContext() ready = zones drawn. Test: test/server/server.test.mjs 'anchors-optional: a one-room kitchen with drawn zones and no anchor is built from library cabinets'."
+    },
+    {
+      "id": "combined-layout-on-plan-canvas",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "Rooms read from one plan are shown as one combined layout: on the Layout and Design canvases the plan's other rooms are drawn around the open room, where the plan puts them, with their walls, door and window gaps and names, and the view fits all of them. They are context only; clicking one opens it for editing. Each room keeps its own design and estimate.",
+      "implementation": "ui/builder.html planNeighbours() (same S.planGroup), neighbourRoomsSvg() drawn under the open room in renderPos() with .nbrhit click targets (openRoom; a drag pans), tf() fits around them."
+    },
+    {
+      "id": "walkthrough-room-beige",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-30"
+      ],
+      "statement": "In the 3D view and the walkthrough, the walls are a very light, subtle beige (#F1E8D8), never a dull or rusty tone. The floor is polished Armani brown marble (taupe-brown with fine white veins running mostly on one diagonal) laid as 1200mm slabs, so floor and walls are always easy to tell apart. The 2D plan and the elevations keep their own look.",
+      "note": "The walls were already set near-white, but the 3D scene's physical-unit lighting (an olive-tinted hemisphere light plus a warm directional light) showed them at about a fifth of their colour, a muddy grey-brown (#8A877A). Columns standing in the room take the wall colour. 2026-10-30: the floor was first the wall beige too, and merged with the walls; the designer asked for a darker travertine/Botticino stone feel; then, the same day, for Armani brown marble (their reference: a polished taupe slab with white crisscross veining).",
+      "implementation": "ui/renderer3d.js: buildKitchen() tags the floor and every wall piece and column with userData.shell; startScene() calls roomShellBeige(), which gives walls #F1E8D8 as colour and glow (0.6), and the floor the armaniBrown() canvas texture (taupe #978575 base, soft cloudy tones, white diagonal veins with branches, 1200mm joints, four different slabs per 2400mm repeat; deterministic) as map and glow (0.3), roughness 0.28 for a polish. The elevation renders (renderElevation) build the same walls and floor but are not touched."
+    },
+    {
+      "id": "combined-walkthrough-across-plan-rooms",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "The walkthrough of a room read from a plan with other rooms shows those rooms too, where the plan puts them, with their walls, doors and generated cabinets; the designer can walk out through a door into the next room.",
+      "note": "Only in walk mode (the orbit 3D stays one room). The other rooms are shown in the open room's finish.",
+      "implementation": "ui/builder.html walkNeighbours() hands startScene() the other rooms of S.planGroup; ui/renderer3d.js builds each (buildKitchen in its own room state), offsets it by the difference of room centres, and walkPointInside() also allows the other rooms and a strip through every door (doorStrips)."
+    },
+    {
+      "id": "plan-room-scales-from-typed-wall",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "In a room drawn or read over an uploaded plan, typing a wall's length sets the plan's units: every other wall resizes by the same factor, except the walls already given a real length, which keep it. The wall typed is exact and becomes one of the measured walls. A length that cannot fit the measured walls is refused with a message.",
+      "note": "Before 2026-10-24 typing a wall's length moved only that wall and its neighbours, and an edit was silently undone whenever any wall in the room was under 200mm (common in a plan read with a short stub wall). Rooms not from a plan keep the old one-wall edit, now undone only when the edit itself squeezes a wall under 200mm, with a message.",
+      "implementation": "ui/builder.html scaleRoomToWall(): per axis, the gaps between corner coordinates are solved by weighted least squares toward old size x (typed/current length), with the typed wall and every wall in S.wallLocks as exact constraints; openings, anchors, columns, S.traceRect and the pins are remapped; applyWallDimSide() and applyRoomScale() use it when isPlanRoom(); a measured wall's label shows a tick. collapsesWall() guards setWallLength()/setWallLengthFromB()."
+    },
+    {
+      "id": "plan-read-from-pins",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-10-24"
+      ],
+      "statement": "An uploaded plan is imported as it is, and the designer places hint pins on it (inside the room, walls, doors, windows, columns). One Gemini call reads the plan with those pins and draws the room, doors, windows and columns from the boundaries it detects. The model gives positions on the image, not lengths: millimetres come from the plan's scale (one wall's real length), walls are squared (not snapped to the drawn lines, which jumped walls across their thickness), and everything lands editable. A second call happens only when the designer clicks Read again.",
+      "note": "Replaces the old two-call flow (kitchen-detect + vision-extract) for this path; the designer boxes the kitchen themselves. Draw room walls stays as the manual fallback. An open door's leaf (the thin rectangle at right angles to the wall where the swing arc ends) is never a wall: the prompt says so, and pinReadToDraft() cuts a spike up to 150mm thick that goes in and back out by the same depth (within 50mm) beside a door's end (2026-10-24, read as a 4in wall stub on a real plan).",
+      "implementation": "plan-read.mjs PIN_READ/readWithPins()/toPinRead() behind POST /api/plan-pins (server.mjs); ui/builder.html pinPanelHtml()/placePin()/readPlanWithPins() draw the pins on the image as numbered dots, pinReadToDraft() maps the answer to mm and squares it, applyVisionExtract() applies it, applyRoomScale() then sets the scale. Test: test/plan-read."
     }
   ],
   "open_questions": [

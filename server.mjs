@@ -31,7 +31,7 @@ import { priceSaleable } from './vendor/saleablePricing.js';
 import { specOf } from './core/engine.mjs';
 import {suggestIslands} from './core/island.mjs';
 import { renderSnapshot } from './render.mjs';
-import { findKitchens, readKitchen } from './plan-read.mjs';
+import { findKitchens, readKitchen, readWithPins } from './plan-read.mjs';
 import { modelManifest, modelFile, MODEL_ROOTS } from './core/models.mjs';
 import { requestUser, supabaseEnv, userFromToken } from './vendor/supabase.js';
 
@@ -108,9 +108,10 @@ export function toEngineInput(anchors = [], options = {}) {
   const notes = [];
   const inputProblems = [];
   const selectedHandle=options.handles?.base ?? options.handles;
-  const handle=/^(tts|titus|eh)$/i.test(String(selectedHandle ?? '')) ? 'TTS'
-    : /^(cj|c\s*(?:&|and)\s*j)$/i.test(String(selectedHandle ?? '')) ? 'CJ' : null;
-  if(!handle) inputProblems.push('Choose a Handle Type in Design → Extras before generating. Cabinet placement and the 3D walkthrough require it.');
+  // C & J unless the designer picked another handle (rules.json: handle-default-cj)
+  const handle=selectedHandle==null ? 'CJ' : /^(tts|titus|eh)$/i.test(String(selectedHandle)) ? 'TTS'
+    : /^(cj|c\s*(?:&|and)\s*j)$/i.test(String(selectedHandle)) ? 'CJ' : null;
+  if(!handle) inputProblems.push(`Unknown Handle Type "${selectedHandle}". Choose C & J or Titus in Design → Extras.`);
   const worldOrigin=options.walls?.[0]?.a??[0,0];
   const island=options.island&&options.islandConfig?structuredClone(options.islandConfig):null;
   if(options.island&&!island)inputProblems.push('Select and place an island from the island sidebar before generating.');
@@ -139,7 +140,11 @@ export function toEngineInput(anchors = [], options = {}) {
   const wallId = (w) => String(w).replace(/^W/, '');
 
   const mapped = [];
-  for (const a of anchors) {
+  // A hob, sink or veggie sink ticked on the island needs no wall placement first: one with no
+  // wall anchor is added here and goes straight onto the island (rules.json: island-hob, island-sinks).
+  const islandOnly = (Array.isArray(island?.fixtures) ? island.fixtures : [])
+    .filter((f) => f && !anchors.some((a) => a.type === f.type)).map((f) => ({ type: f.type, width: f.width }));
+  for (const a of [...anchors, ...islandOnly]) {
     if (!ANCHOR_WIDTH[a.type]) { notes.push(`anchor "${a.type}" is not one this engine places`); continue; }
     const applianceWidth = a.type==='fridge' ? (a.applianceWidth ?? options.fridgeWidth) : null;
     const wall = wallId(a.wall), width = applianceWidth != null ? applianceWidth + 100
@@ -459,7 +464,7 @@ export async function handler(req, res) {
     if (path.startsWith('/api/') && !(req.method === 'GET' && (path === '/api/share' || path === '/api/models'))) {
       user = await userFromToken(req.headers.authorization?.replace(/^Bearer /i, ''));
       if (!user) return send(res, 401, { error: 'Sign in required.' });
-      if (user.role === 'admin' && ['/api/render', '/api/kitchen-detect', '/api/vision-extract'].includes(path)) return send(res, 403, { error: 'Admin accounts are view-only.' });
+      if (user.role === 'admin' && ['/api/render', '/api/kitchen-detect', '/api/vision-extract', '/api/plan-pins'].includes(path)) return send(res, 403, { error: 'Admin accounts are view-only.' });
     }
   } catch (e) { return send(res, e?.status ?? 500, { error: String(e?.message ?? e) }); }
   return requestUser.run(user, () => route(req, res, url, path));
@@ -491,6 +496,12 @@ async function route(req, res, url, path) {
     if(path==='/api/kitchen-detect'||path==='/api/vision-extract'){
       if(req.method!=='POST')return send(res,405,{error:path==='/api/kitchen-detect'?'POST {pages:[imageDataUrl]}':'POST {imageDataUrl}'});
       try{const body=await readBody(req);return send(res,200,await (path==='/api/kitchen-detect'?findKitchens(body):readKitchen(body)));}
+      catch(e){return send(res,e.status||500,{error:e.message});}
+    }
+    // Uploaded plan + the designer's hint pins -> Gemini, one call, answered in image coordinates.
+    if(path==='/api/plan-pins'){
+      if(req.method!=='POST')return send(res,405,{error:'POST {imageDataUrl, pins:[{n,kind}]}'});
+      try{return send(res,200,await readWithPins(await readBody(req)));}
       catch(e){return send(res,e.status||500,{error:e.message});}
     }
     if (path === '/api/build') {

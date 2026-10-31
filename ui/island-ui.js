@@ -1,6 +1,6 @@
 // Island editing uses the same geometry and catalogue validation as generation.
 (function(){
-  let data=null,stamp='',pending='',sequence=0,opened=false,error='',timer,drag=null;
+  let data=null,stamp='',pending='',sequence=0,opened=false,error='',timer,drag=null,fxDrag=null;
   const panel=()=>document.getElementById('islandSidebar');
   const config=()=>S.options.islandConfig;
   const assigned=type=>!!(S.options.island&&config()?.fixtures?.some(f=>f.type===type));
@@ -62,9 +62,12 @@
     "#islandSidebar input[type=text]{width:100%}",
     "#islandSidebar label.isl-f select{width:150px}",
     "#islandSidebar input:focus-visible,#islandSidebar select:focus-visible{outline:none;border-color:var(--sage);box-shadow:0 3px 10px #342d241a}",
-    "#islandSidebar .isl-fx{border:1px solid var(--line);border-radius:12px;background:#fff;padding:11px 14px;margin:9px 0}",
-    "#islandSidebar .isl-fx .isl-chip{border:none;background:none;padding:0;font-weight:600;font-size:13px;color:var(--ink)}",
+    // the whole fixture card is the tick target (not just its name), with a visible tick box
+    "#islandSidebar .isl-fx{border:1px solid var(--line);border-radius:12px;background:#fff;padding:0;margin:9px 0}",
+    "#islandSidebar .isl-fx .isl-chip{display:flex;width:100%;box-sizing:border-box;gap:10px;border:none;background:none;padding:11px 14px;font-weight:600;font-size:13px;color:var(--ink)}",
+    "#islandSidebar .isl-fx .isl-chip input{position:static;opacity:1;width:16px;height:16px;margin:0;accent-color:var(--accent);cursor:pointer}",
     "#islandSidebar .isl-fx .isl-chip:has(input:checked){color:var(--accent)}",
+    "#islandSidebar .isl-fx>:not(.isl-chip){margin:0 14px 11px}",
     "#islandSidebar .isl-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin:9px 0}",
     "#islandSidebar .isl-issues{margin:0;padding-left:18px}",
     "#islandSidebar .isl-issues li{margin:4px 0}",
@@ -109,8 +112,9 @@
       if(key.startsWith('seat.')){const side=key.slice(5);i.seatSides=(i.seatSides||[]).filter(s=>s!==side);if(value)i.seatSides.push(side);}
       else if(key.startsWith('fixture.')){
         const type=key.slice(8);i.fixtures=(i.fixtures||[]).filter(f=>f.type!==type);
-        if(value){const a=S.anchors.find(a=>a.type===type);if(!a){showToast('Place this fixture first, then assign it to the island.');draw();return;}
-          i.fixtures.push({type,row:0,at:0,width:type==='sink'?sinkWidth():fxWidthMm(a)});}
+        // rules.json: island-hob, island-sinks — no wall placement needed first
+        if(value){const a=S.anchors.find(a=>a.type===type);
+          i.fixtures.push({type,row:0,at:0,width:type==='sink'?sinkWidth():fxWidthMm(a||{type})});}
       }else if(key.startsWith('unit.')){const [,type,field]=key.split('.');const f=(i.fixtures||[]).find(f=>f.type===type);if(f)f[field]=el.tagName==='SELECT'?Number(el.value):value;}
       else if(key.includes('.')){const [group,field]=key.split('.');(i[group]??={})[field]=value;}
       else i[key]=value;
@@ -201,7 +205,7 @@
       if(i.rows===0)for(const side of ['north','south'])h+=chip(SIDE[side],'seat.'+side,i.seatSides?.includes(side));
       else h+=`<span>${i.seatSides?.includes('south')?'Back seating · 376 mm knee space':'Storage only; choose 976 mm to add back seating.'}</span>`;
       h+='</div></section>';
-      h+='<section><h3>Fixtures on the island</h3><p class="isl-hint">Only a fixture you have already placed can move onto the island.</p>';
+      h+='<section><h3>Fixtures on the island</h3><p class="isl-hint">Tick any of them to put it on the island; each is your choice on its own. It doesn’t need placing on a wall first, and one already on a wall moves onto the island.</p>';
       if(i.rows===0)h+='<p class="isl-hint">Seating-only islands have no cabinets or fixtures underneath the tabletop.</p>';
       for(const type of i.rows===0?[]:['hob','sink','veggie']){
         const f=i.fixtures?.find(f=>f.type===type);
@@ -276,6 +280,7 @@
       g+='</g>';
     }
     g+=IslandRules.svg(i,data.rules,t,{interactive:true,modules:false,invalid:!v.valid||(!drag&&current&&!!data.selected?.problems?.length)});
+    g+=fixturesSvg(i,t);
     if(drag&&drag.blocked){
       // Anchored under the island, not pinned to a fixed corner of the canvas.
       const b=IslandRules.shape(i,data.rules);
@@ -284,7 +289,69 @@
     }
     return g;
   }
+  // The hob and sinks on the island, drawn like the wall anchors (same fills, burners, bowls and
+  // label) on their storage row, each with its own drag target (rules.json: island-sinks).
+  function fixturesSvg(i,t){
+    const list=config()?.fixtures||[];if(!i.rows||!list.length)return '';
+    const r=data.rules,b=IslandRules.shape(i,r),sc=t.sc,a=b.angle,lx=x=>(x-(b.left+b.right)/2)*sc,ly=y=>(y-(b.top+b.bottom)/2)*sc;
+    const d=560*sc,back=ly(r.cabinet_depth);
+    let g=`<g transform="translate(${t.X(i.x)},${t.Y(i.y)}) rotate(${a})">`;
+    const placed=list.map(f=>fxDrag?.type===f.type?{...f,at:fxDrag.at,row:fxDrag.row}:f).filter(f=>f.row<i.rows);
+    for(const f of placed){
+      const x=lx(f.at),w=f.width*sc,y=f.row===0?back-d:back,cx=x+w/2,cy=y+d/2,tapY=f.row===0?y+d*.84:y+d*.16;
+      let s=`<rect x="${x}" y="${y}" width="${w}" height="${d}" rx="2" fill="${f.type==='hob'?'#F0E6D6':'#E7EFF1'}" stroke="#3A352C" stroke-width="1"/>`;
+      if(f.type==='hob'){const rr=Math.min(w,d)*.15;
+        for(const fx of [.3,.7])for(const fy of [.3,.7])s+=`<circle cx="${x+w*fx}" cy="${y+d*fy}" r="${rr}" fill="none" stroke="#9b6a3a" stroke-width="1.3"/><circle cx="${x+w*fx}" cy="${y+d*fy}" r="${rr*.42}" fill="#9b6a3a"/>`;
+      }else{const bowls=f.type==='veggie'||f.width<=600?1:2,bw=w*.78/bowls,top=f.row===0?y+d*.22:y+d*.3;
+        for(let k=0;k<bowls;k++)s+=`<rect x="${x+w*.11+k*bw+2}" y="${top}" width="${bw-5}" height="${d*.48}" rx="4" fill="#cdd9dd" stroke="#6f8a93" stroke-width="1"/>`;
+        s+=`<circle cx="${cx}" cy="${tapY}" r="${d*.07}" fill="none" stroke="#6f8a93" stroke-width="1.4"/>`;}
+      s+=`<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="7.5" fill="#3A352C" transform="rotate(${-a} ${cx} ${cy})" font-family="Hanken Grotesk,sans-serif">${f.type==='veggie'?'VEGGIE':f.type.toUpperCase()} ${(globalThis.fmtLen||String)(f.width)}</text>`;
+      g+=`<g pointer-events="none" opacity="${fxDrag?.type===f.type&&!fxDrag.valid?.55:1}">${s}</g>`
+        +`<rect data-island-fx="${f.type}" x="${x}" y="${y}" width="${w}" height="${d}" fill="transparent" style="cursor:grab"/>`;
+    }
+    // Free lengths along each row, as along a wall: island end to fixture and fixture to fixture,
+    // outside the top on the row's open side, live while dragging (rules.json: island-sinks).
+    const ac='stroke="var(--accent)" stroke-width="0.8"',up=a>90&&a<=270?180:0;
+    for(let row=0;row<i.rows;row++){
+      const cuts=[0,...placed.filter(f=>f.row===row).sort((p,q)=>p.at-q.at).flatMap(f=>[f.at,f.at+f.width]),i.length];
+      if(cuts.length<3)continue;
+      const out=row===0?-1:1,y=row===0?ly(b.top)-9:ly(b.bottom)+9;
+      for(let k=0;k<cuts.length;k+=2){const x0=lx(cuts[k]),x1=lx(cuts[k+1]),mx=(x0+x1)/2,ty=y+out*6;
+        if(cuts[k+1]-cuts[k]<60)continue;   // skip slivers
+        g+=`<g pointer-events="none" data-island-gap="${cuts[k+1]-cuts[k]}"><line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" ${ac}/>`
+          +[x0,x1].map(x=>`<line x1="${x}" y1="${y-3}" x2="${x}" y2="${y+3}" ${ac}/>`).join('')
+          +`<text x="${mx}" y="${ty}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-weight="600" fill="var(--accent)" transform="rotate(${up} ${mx} ${ty})" font-family="Hanken Grotesk,sans-serif">${(globalThis.fmtLen||String)(cuts[k+1]-cuts[k])}</text></g>`;}
+    }
+    return g+'</g>';
+  }
+  // Drag a fixture along its row like a wall anchor: it follows the pointer in 10 mm steps, stays
+  // on the island, holds at its last clear spot rather than overlap another fixture, and on a
+  // double island crosses to the row under the pointer. Saved once, on release; a click with no
+  // move opens the island panel.
+  function startFixtureDrag(e,svg,t,type){
+    if(e.button!==0)return;e.preventDefault();e.stopPropagation();
+    const i=config(),f=i?.fixtures?.find(f=>f.type===type);if(!f||!data?.rules)return;
+    const r=data.rules,b=IslandRules.shape(i,r),rad=b.angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad),start=svgPoint(svg,e);
+    fxDrag={type,at:f.at,row:f.row,valid:true,moved:false};
+    const move=ev=>{
+      const p=svgPoint(svg,ev),dx=(p.x-start.x)/t.sc,dy=(p.y-start.y)/t.sc;
+      const at=Math.max(0,Math.min(i.length-f.width,Math.round((f.at+dx*cos+dy*sin)/10)*10));
+      let row=f.row;
+      if(i.rows===2){const qx=(p.x-t.X(i.x))/t.sc,qy=(p.y-t.Y(i.y))/t.sc;row=-qx*sin+qy*cos+(b.top+b.bottom)/2<r.cabinet_depth?0:1;}
+      const clash=i.fixtures.some(o=>o!==f&&o.row===row&&o.at<at+f.width&&at<o.at+o.width);
+      fxDrag.moved=true;fxDrag.valid=!clash;if(!clash){fxDrag.at=at;fxDrag.row=row;}
+      renderPos();
+    };
+    const up=()=>{
+      window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);
+      const d=fxDrag;fxDrag=null;
+      if(d.moved&&(d.at!==f.at||d.row!==f.row)){pushUndo();f.at=d.at;f.row=d.row;changed();}
+      else{renderPos();if(!d.moved)open();}
+    };
+    window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
+  }
   function bind(svg,t){
+    svg.querySelectorAll('[data-island-fx]').forEach(h=>h.onmousedown=e=>startFixtureDrag(e,svg,t,h.dataset.islandFx));
     const el=svg.querySelector('[data-island]');if(!el)return;
     el.onmousedown=e=>{
       if(e.button!==0)return;e.preventDefault();e.stopPropagation();open();

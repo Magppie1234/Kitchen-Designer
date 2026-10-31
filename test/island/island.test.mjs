@@ -198,3 +198,42 @@ test('drag clamps at cabinet and seating boundaries and never produces an invali
     const moved=IslandRules.moveWithin(c,i,r,target);assert.equal(IslandRules.check(c,moved.position,r,{services:false}).valid,true);
   }
 });
+test('a door swing facing the storage front is cleared by turning the island 180',()=>{
+  // L-shaped room read from a designer's plan: a door swing above, the hob run below
+  const pts=[[0,0],[1775,0],[1775,2130],[7270,2130],[7270,6180],[0,6180]];
+  const cab=(x0,x1,y0,y1)=>({x0,x1,y0,y1,label:'cabinets',clearance:1050});
+  const c={ready:true,walls:pts.map((a,k)=>({a,b:pts[(k+1)%pts.length]})),obstacles:[
+    cab(0,1775,0,600),cab(0,750,0,6180),cab(0,5910,5580,6180),cab(4263,7270,2130,2730),cab(6670,7270,2130,4840),
+    {x0:2344,x1:3705,y0:2130,y1:3491,label:'door swing',clearance:0}]};
+  const options=IslandRules.candidates(c,{seatSides:[],fixtures:[]},r,[1200,1800,2400]);
+  assert.ok(options.some(o=>o.rows===1&&o.rotation===180));
+  assert.equal(IslandRules.candidates(c,{seatSides:[],fixtures:[]},r,[1200],[0,90]).length,0);
+});
+test('only a door swinging into the kitchen blocks the island',()=>{
+  const swings=door=>{const j=input();j.openings=[{type:'door',wall:j.walls[0].id,at:1000,width:900,...door}];
+    return islandContext(j).obstacles.some(o=>o.label==='door swing');};
+  assert.equal(swings({}),true);
+  assert.equal(swings({flip:1}),true);
+  assert.equal(swings({flip:2}),false,'swings out');
+  assert.equal(swings({flip:3}),false,'swings out');
+  assert.equal(swings({variant:'sliding'}),false);
+  assert.equal(swings({variant:'doorless'}),false);
+});
+test('island-hob, island-sinks: a hob or sink goes on the island with no wall placement first, each on its own',()=>{
+  const walls=rectangle(),zones=[{tier:'base',wall:'W0',s:0,e:6000}],handles={base:'CJ',wall:'NHX',tall:'TTS',loft:'NHX'};
+  const build=(anchors,fixtures)=>{const {input:j}=toEngineInput(anchors,{walls,zones,handles,island:true,islandConfig:island({length:3000,fixtures})});return j;};
+  // hob only, on the island; no anchor anywhere else
+  const hob=build([],[{type:'hob',row:0,at:900,width:900}]);
+  assert.deepEqual(hob.anchors.map(a=>[a.item,a.location]),[['hob','island']]);
+  assert.ok(!check(hob).some(p=>/hob/.test(p)),check(hob).join('; '));
+  assert.ok(validateIsland(hob,cat).working.some(m=>m.label==='hob'));
+  assert.ok(!validateIsland(hob,cat).problems.some(p=>/explicitly assigned/.test(p)));
+  assert.ok(!layout(hob,cat).problems.some(p=>/missing|explicitly assigned/.test(p)),layout(hob,cat).problems.join('; '));
+  // sink on the island, hob on the wall: each is its own choice
+  const mixed=build([{type:'hob',wall:'W0',off:1200,width:900}],[{type:'sink',row:0,at:0,width:900}]);
+  assert.deepEqual(mixed.anchors.map(a=>[a.item,a.location??'wall']).sort(),[['hob','wall'],['sink','island']]);
+  // both on the island, nothing placed beforehand
+  const both=build([],[{type:'hob',row:0,at:2100,width:900},{type:'sink',row:0,at:0,width:900}]);
+  assert.deepEqual(both.anchors.map(a=>a.item).sort(),['hob','sink']);
+  assert.ok(both.anchors.every(a=>a.location==='island'));
+});

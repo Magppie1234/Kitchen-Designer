@@ -57,7 +57,7 @@ async function readyEditor(){
   resolve(e.calls[1],{...reply(),selected:{...selected,working:[],problems:[],unresolved:[]}});await flush();return e;
 }
 function beginDrag(e){
-  const hit={},svg={querySelector:()=>hit},t={sc:1,X:x=>x,Y:y=>y};
+  const hit={},svg={querySelector:()=>hit,querySelectorAll:()=>[]},t={sc:1,X:x=>x,Y:y=>y};
   e.c.IslandDesigner.bind(svg,t);hit.onmousedown({button:0,x:3000,y:3000,preventDefault(){},stopPropagation(){}});return t;
 }
 test('drag shades permitted centres, blocks outside drops and only saves a checked position',async()=>{
@@ -107,4 +107,32 @@ test('width selector preserves a custom length and supports a seating-only layou
   assert.match(e.panel().innerHTML,/Seating-only islands have no cabinets/);
   assert.doesNotMatch(e.panel().innerHTML,/data-field="fixture.sink"/);
   e.change('standardWidth','1200','select');assert.equal(e.S.options.islandConfig.rows,2);assert.equal(e.S.options.islandConfig.length,2377);
+});
+test('island-sinks: a hob or sink on the island is drawn on its row and dragged along it like a wall anchor',async()=>{
+  const e=await readyEditor();e.c.fxWidthMm=a=>a.width??900;   // as the builder: a hob with no wall anchor is S.hob.size||900
+  e.change('fixture.hob',true,'checkbox');e.change('fixture.sink',true,'checkbox');
+  const i=e.S.options.islandConfig;i.fixtures.find(f=>f.type==='hob').at=900;   // hob 900..1800, sink 0..900
+  const t={sc:1,X:x=>x,Y:y=>y},drawn=e.c.IslandDesigner.svg(t);
+  assert.match(drawn,/data-island-fx="hob"/);assert.match(drawn,/data-island-fx="sink"/);assert.match(drawn,/HOB 900/);
+  const gaps=()=>[...e.c.IslandDesigner.svg(t).matchAll(/data-island-gap="(\d+)"/g)].map(m=>+m[1]);
+  assert.deepEqual(gaps(),[],'sink and hob fill the row: no free length to show');
+  const hits={},svg={querySelector:()=>null,querySelectorAll:()=>['hob','sink'].map(k=>hits[k]={dataset:{islandFx:k}})};
+  e.c.IslandDesigner.bind(svg,t);
+  const grab=(k,x,y)=>hits[k].onmousedown({button:0,x,y,preventDefault(){},stopPropagation(){}});
+  // the sink slides right but stops where the hob starts, holding its last clear spot
+  const undo=e.undos();grab('sink',2000,3000);e.events.mousemove({x:2304,y:3000});
+  assert.equal(i.fixtures.find(f=>f.type==='sink').at,0,'nothing is saved mid-drag');
+  e.events.mousemove({x:2600,y:3000});e.events.mouseup();
+  assert.equal(i.fixtures.find(f=>f.type==='sink').at,0,'it cannot overlap the hob, so it holds');
+  // the hob slides left in 10mm steps and never leaves the island
+  grab('hob',3000,3000);e.events.mousemove({x:2696,y:3000});e.events.mouseup();
+  assert.equal(i.fixtures.find(f=>f.type==='hob').at,900,'blocked by the sink at 0..900');
+  e.change('fixture.sink',false,'checkbox');
+  grab('hob',3000,3000);e.events.mousemove({x:2696,y:3000});e.events.mouseup();
+  assert.equal(i.fixtures.find(f=>f.type==='hob').at,600,'304mm left, rounded to 10mm');
+  assert.deepEqual(gaps(),[600,300],'free lengths from each island end, as along a wall');
+  grab('hob',3000,3000);e.events.mousemove({x:9000,y:3000});
+  assert.deepEqual(gaps(),[900],'updated live while dragging');e.events.mouseup();
+  assert.equal(i.fixtures.find(f=>f.type==='hob').at,900,'clamped to the island end (1800 - 900)');
+  assert.ok(e.undos()>undo);assert.equal(e.events.mousemove,undefined);
 });

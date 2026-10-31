@@ -38,7 +38,8 @@ export function check(j) {
   const wall = Object.fromEntries(j.walls.map((w) => [w.id, w]));
   const openings = j.openings ?? [];
   const columns = j.columns ?? [];
-  const anchors = j.anchors ?? [];
+  if (!Array.isArray(j.anchors)) return ['input: anchors must be a list (it may be empty)'];
+  const anchors = j.anchors;
   if(j.island){
     const i=j.island;
     if(![i.x,i.y,i.length].every(Number.isFinite)||!Number.isSafeInteger(i.length)||i.length<1200||![0,1,2].includes(i.rows)||![0,90,180,270].includes(i.rotation??0)
@@ -89,7 +90,10 @@ export function check(j) {
       if (found.length > 1) problems.push('at most one veggie sink anchor is allowed');
       continue;
     }
-    if (found.length !== 1) problems.push(`exactly one ${item} anchor is required, found ${found.length}`);
+    // Every appliance is the designer's choice (rules.json: anchors-optional): none is fine,
+    // more than one is not.
+    if (found.length > 1)
+      problems.push(`at most one ${item} anchor is allowed, found ${found.length}`);
   }
   for (const a of anchors) {
     if (!ANCHOR_TIER[a.item]) problems.push(`${a.item}: only hob, sink, veggie and fridge may be anchors`);

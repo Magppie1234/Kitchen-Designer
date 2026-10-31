@@ -29,7 +29,7 @@ test('6450mm room generates cabinets after repairing the 12mm fridge overhang',a
 });
 
 test('input preparation does not bypass other errors or exceed the movement allowance',()=>{
-  for(const change of [j=>j.anchors.find(a=>a.item==='fridge').at=400,j=>j.anchors.find(a=>a.item==='fridge').at=-1,j=>j.walls[0].length+=10,j=>j.anchors.pop(),j=>j.openings.push({wall:'3',type:'door',at:530,width:600})]){
+  for(const change of [j=>j.anchors.find(a=>a.item==='fridge').at=400,j=>j.anchors.find(a=>a.item==='fridge').at=-1,j=>j.walls[0].length+=10,j=>j.openings.push({wall:'3',type:'door',at:530,width:600})]){
     const j=input();change(j);const before=JSON.stringify(j),prepared=prepareAnchorInput(j);
     assert.equal(JSON.stringify(prepared),before);assert.ok(check(prepared).length);
   }

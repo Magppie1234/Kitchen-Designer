@@ -219,7 +219,7 @@
     const xs=walls.flatMap(w=>[w.a[0],w.b[0]]),ys=walls.flatMap(w=>[w.a[1],w.b[1]]);
     const cx=t.X((Math.min(...xs)+Math.max(...xs))/2),cy=t.Y((Math.min(...ys)+Math.max(...ys))/2);
     if(plan.island?.rules&&root.IslandRules){
-      s+=root.IslandRules.svg(plan.island,plan.island.rules,t,{interactive:true,invalid:!!plan.island.problems?.length});
+      s+=root.IslandRules.svg(plan.island,plan.island.rules,t,{interactive:true,invalid:!!plan.island.problems?.length,push});
     }else{
       const label=(state.roomName&&state.roomName!=='Unnamed'?state.roomName:'KITCHEN').toUpperCase(),tw=Math.max(44,label.length*4.1+8);
       s+=rect(cx-tw/2,cy-7,tw,12,`fill="#ffffffbb" stroke="${red}" stroke-width=".6"`)+`<text x="${cx}" y="${cy+1.5}" text-anchor="middle" fill="${ink}" font-size="6.5">${esc(label)}</text>`;

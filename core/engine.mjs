@@ -1394,14 +1394,20 @@ function solve(input, cat) {
   if(island)problems.push(...island.problems);
   const islandRoles=new Set((island?.working||[]).map(m=>m.label));
   if(islandRoles.has('hob'))islandRoles.add('chimney');
+  // An appliance is only mandatory when the designer placed its anchor
+  // (rules.json: anchors-optional); the chimney goes with the hob.
+  const ANCHOR_OF={hob:'hob',sink:'sink',refrigerator:'fridge',chimney:'hob'};
+  const hasAnchor=item=>input.anchors.some(a=>a.item===item);
   for (const role of ['hob', 'sink', 'refrigerator', 'chimney'])
-    if(!islandRoles.has(role))
+    if(!islandRoles.has(role)&&hasAnchor(ANCHOR_OF[role]))
     if (!Object.values(placed).some((items) => items.some((p) => p.role === role)))
       problems.push(`mandatory component missing: ${role}`);
   if (input.anchors.some(a=>a.item==='veggie') && !islandRoles.has('veggie sink') && !placed.base.some(p=>p.role==='veggie sink'))
     problems.push('selected veggie sink is missing');
 
-  problems.push(...requiredStorageProblems({...placed,base:[...placed.base,...(island?.working||[]).map(m=>({...m,wall:'island-'+m.row}))]}));
+  // grain trolley / bottle pullout by the hob are kitchen storage: a room with no hob skips them
+  if(hasAnchor('hob'))
+    problems.push(...requiredStorageProblems({...placed,base:[...placed.base,...(island?.working||[]).map(m=>({...m,wall:'island-'+m.row}))]}));
 
   if (dw && sink && (dw.wall !== sink.wall || (dw.at !== sink.at + sink.width && dw.at + dw.width !== sink.at)))
     problems.push('dishwasher is present but is not immediately beside the sink');
@@ -1669,7 +1675,9 @@ function shiftBoundary(input, b, d) {
 
 function solveAll(input, cat, fast) {
   const islandHob=input.anchors.find(a=>a.item==='hob')?.location==='island';
-  const hobWidths = input.lockAnchors||islandHob ? [input.anchors.find(a => a.item === 'hob').width]
+  const hob=input.anchors.find(a=>a.item==='hob');
+  const hobWidths = !hob ? [0]   // a room with no hob (multi-room project): nothing to size
+    : input.lockAnchors||islandHob ? [hob.width]
     : [...RULE_PARAMS.hob_widths].sort((a, b) => b - a);
   // Position scans must evaluate the complete appliance bank too. Omitting
   // it during scans can make a promising position worse when it is restored.

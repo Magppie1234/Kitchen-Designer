@@ -177,3 +177,86 @@ export function toDraft(read) {
   return { room: { corners_mm: pts }, openWalls, openings, structures, zones, fixtures, dishwasher,
     confidence: c >= 0.85 ? 'high' : c >= 0.6 ? 'medium' : 'low', warnings, layout: read.layout || null };
 }
+
+// ---- Read with the designer's pins (POST /api/plan-pins) ----
+// The designer clicks hints on the uploaded plan (room inside, a wall, each door, window, column);
+// the browser draws them on the image as numbered dots and sends the list. The model answers in
+// IMAGE coordinates, not millimetres: locating things on a picture is what it does well, reading
+// lengths is not. The browser converts to mm with the plan's scale, squares the walls
+// (ui/builder.html pinReadToDraft), and one wall's real length sets the scale.
+export const PIN_KINDS = { room: 'a point INSIDE a room', wall: 'on a wall of a room boundary',
+  door: 'on a door', window: 'on a window', column: 'on a column' };
+// A room dot may carry the designer's name for it ("Kitchen", "Store"): several room dots = several rooms.
+const pinLine = (p) => `- dot ${p.n}: ${PIN_KINDS[p.kind]}${p.kind === 'room' && p.name ? ` — the room "${p.name}"` : ''}`;
+
+export const PIN_READ = (pins) => {
+  const rooms = pins.filter((p) => p.kind === 'room');
+  return `This is a crop of an architectural floor plan centred on a KITCHEN, seen from above.
+The designer has added numbered red dots as hints. The dots are NOT part of the drawing:
+${pins.length ? pins.map(pinLine).join('\n') : '- (no dots: find the kitchen yourself)'}
+
+Return ONLY JSON:
+{
+  "rooms": [ {
+    "dot": n | null,
+    "corners": [[y, x], ...],
+    "open_edges": [k, ...],
+    "openings": [ { "type": "door" | "window" | "opening", "from": [y, x], "to": [y, x], "dot": n | null } ],
+    "columns": [ { "box_2d": [ymin, xmin, ymax, xmax], "dot": n | null } ]
+  } ],
+  "notes": ""
+}
+Every coordinate is normalised 0-1000 on THIS image, in [y, x] order.
+
+ROOMS: ${rooms.length > 1 ? `one entry per "inside a room" dot (${rooms.map((p) => p.n).join(', ')}), in that order, "dot" set to it`
+  : rooms.length ? `one entry, for the room with dot ${rooms[0].n}` : 'one entry, for the kitchen ("dot": null)'}.
+Wall, door, window and column dots belong to the room they are on. A door between two of these rooms is listed in both.
+CORNERS: the room's floor boundary, traced along the INSIDE FACE of its walls — the room side of each wall's drawn
+thickness, never the wall's middle or outer face. Clockwise, starting at the top-left corner, one point per corner:
+every jog, alcove, wall stub and column face is its own corner. Edge k runs from corner k to corner k+1 (the last one
+back to corner 0). The boundary must enclose the room's dot and run along every "wall" dot on it.
+OPEN_EDGES: edges where the room opens into another space with no wall drawn.
+OPENINGS: every door, window or wall opening on the boundary — each dotted one, plus any you clearly see. "from" and
+"to" are its two ends (the jambs), on the boundary line. A plain gap in a wall with no door leaf is "opening".
+A door drawn open shows its leaf as a thin rectangle at right angles to the wall, where the swing arc ends. That
+leaf is part of the door, NEVER a wall: the boundary runs straight across the doorway, not around the leaf.
+COLUMNS: each column on or inside the boundary, as its box.
+Only report what is drawn. A dot you cannot match to anything: say so in notes.`;
+};
+
+const yx = (v) => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isFinite(+n))
+  ? [Math.max(0, Math.min(1000, +v[1])) / 1000, Math.max(0, Math.min(1000, +v[0])) / 1000] : null;
+
+// One room of the model answer -> image fractions [x, y] (0-1, y down), which the browser maps onto the plan.
+function toRoom(read) {
+  const corners = (read?.corners || []).map(yx).filter(Boolean);
+  if (corners.length < 3) return null;
+  const n = corners.length;
+  return {
+    dot: Number.isInteger(+read.dot) && read.dot !== null ? +read.dot : null,
+    corners,
+    openEdges: [...new Set((read.open_edges || []).map(Number).filter((k) => Number.isInteger(k) && k >= 0 && k < n))],
+    openings: (read.openings || []).map((o) => ({ type: ['door', 'window', 'opening'].includes(o?.type) ? o.type : 'door', a: yx(o?.from), b: yx(o?.to) }))
+      .filter((o) => o.a && o.b),
+    columns: (read.columns || []).filter((c) => Array.isArray(c?.box_2d) && c.box_2d.length === 4).map((c) => {
+      const [y0, x0, y1, x1] = c.box_2d.map((v) => Math.max(0, Math.min(1000, +v || 0)) / 1000);
+      return { x0: Math.min(x0, x1), y0: Math.min(y0, y1), x1: Math.max(x0, x1), y1: Math.max(y0, y1) };
+    }).filter((c) => c.x1 > c.x0 && c.y1 > c.y0),
+  };
+}
+// The whole answer: { rooms: [...], notes }. A bare single-room answer (no "rooms") is read as one room.
+export function toPinRead(read) {
+  const rooms = (Array.isArray(read?.rooms) ? read.rooms : [read]).map(toRoom).filter(Boolean);
+  if (!rooms.length) throw fail(502, 'The plan reader could not trace the room walls.');
+  return { rooms, notes: String(read.notes || '').slice(0, 400) };
+}
+
+// body: { imageDataUrl (with the dots drawn on), pins: [{ n, kind, name? }] }
+export async function readWithPins(body) {
+  const img = parseDataUrl(body?.imageDataUrl);
+  const pins = (Array.isArray(body?.pins) ? body.pins : []).filter((p) => PIN_KINDS[p?.kind] && Number.isInteger(+p.n))
+    .slice(0, 60).map((p) => ({ n: +p.n, kind: p.kind, ...(p.kind === 'room' && p.name ? { name: String(p.name).replace(/["\r\n]/g, '').slice(0, 40) } : {}) }));
+  const { json, text } = await ask([{ type: 'text', text: PIN_READ(pins) }, { type: 'image', ...img, resolution: 'ultra_high' }]);
+  if (!json) throw fail(502, text?.trim() ? 'The plan reader could not trace the room walls.' : 'The plan reader returned nothing.');
+  return toPinRead(json);
+}

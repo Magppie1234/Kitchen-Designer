@@ -167,9 +167,24 @@ test('loft: one loft cabinet sits on each wall cabinet, is priced, and never bea
   assert.deepEqual(toPlan(result,{...input,ceiling:3100},[],{}).tiers.W0.loft,[],'off unless chosen');
 });
 
-test('toEngineInput requires a chosen handle and preserves its catalogue code', () => {
+test('toEngineInput defaults the handle to C & J and preserves a chosen catalogue code', () => {
   const missing = toEngineInput(anchors, { ...options, handles: null }).input;
-  assert.ok(missing.inputProblems.some((p) => /Handle Type/.test(p)));
+  assert.equal(missing.handle, 'CJ');
+  assert.ok(!missing.inputProblems.some((p) => /Handle Type/.test(p)));
+  assert.ok(toEngineInput(anchors, { ...options, handles: { base: 'XYZ' } }).input.inputProblems.some((p) => /Handle Type/.test(p)));
   assert.equal(toEngineInput(anchors, { ...options, handles: { base: 'EH' } }).input.handle, 'TTS');
   assert.equal(toEngineInput(anchors, options).input.handle, 'CJ');
+});
+
+test('anchors-optional: a one-room kitchen with drawn zones and no anchor is built from library cabinets', () => {
+  const { ok: cat } = loadCatalog();
+  const zones = [{ wall: 'W0', tier: 'base', s: 0, e: 3000 }, { wall: 'W0', tier: 'wall', s: 0, e: 3000 }];
+  const { input } = toEngineInput([], { ...options, handles: null, zones });
+  assert.equal(input.handle, 'CJ');
+  const out = layout(input, cat);
+  assert.deepEqual(out.problems, []);
+  assert.ok(out.placed.base.some((p) => p.code && !p.blocker), 'base cabinets from the library');
+  assert.ok(!Object.values(out.placed).flat().some((p) => ['hob', 'sink', 'refrigerator', 'chimney'].includes(p.role)), 'no appliance placed for the designer');
+  // a hob still brings its required storage with it
+  assert.ok(layout(toEngineInput(anchors, options).input, cat).placed.base.some((p) => p.role === 'hob'));
 });

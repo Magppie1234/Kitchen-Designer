@@ -50,7 +50,7 @@
     // Inflate the whole footprint to certify every centre inside a shaded cell.
     b.x0-=positionMargin;b.x1+=positionMargin;b.y0-=positionMargin;b.y1+=positionMargin;
     if(i.length<r.minimum_length||b.depth<r.minimum_depth)problems.push(`Island must be at least ${r.minimum_length} × ${r.minimum_depth} mm.`);
-    if(!context.ready)problems.push('Draw cabinet zones and place the hob, main sink and fridge before confirming an island.');
+    if(!context.ready)problems.push('Draw cabinet zones before confirming an island.');
     if(i.rows>0&&(i.seatSides||[]).some(s=>i.rows===2||s!=='south'))
       problems.push('Choose 600 mm storage only, 976 mm storage with back seating, or 1200 mm double storage. Use 900 mm for seating only.');
     if(i.rows===0&&!(i.seatSides||[]).length)problems.push('Choose at least one seating edge for the 900 mm seating-only island.');
@@ -96,7 +96,8 @@
     }
     return {valid:problems.length===0,problems:[...new Set(problems)],unresolved,clearances,seats,footprint:b};
   }
-  function candidates(context,template,r,lengths,rotations=[0,90],variants=presets(r)){
+  // All four turns: a storage front facing the other way can clear a door swing the back only needs to avoid.
+  function candidates(context,template,r,lengths,rotations=[0,90,180,270],variants=presets(r)){
     if(!context.ready||!context.walls.length)return [];
     const xs=context.walls.flatMap(w=>[w.a[0],w.b[0]]),ys=context.walls.flatMap(w=>[w.a[1],w.b[1]]);
     const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),cx=(minX+maxX)/2,cy=(minY+maxY)/2,out=[];
@@ -196,7 +197,9 @@
     }
     return out;
   }
-  function svg(i,r,t,{invalid=false,interactive=false,labels=true,modules:showModules=true}={}){
+  // push: the editor's module register (pushMod). Each cabinet becomes a selectable .mod on
+  // run 'island:<row>', seg = its index in the row (rules.json: island-modules).
+  function svg(i,r,t,{invalid=false,interactive=false,labels=true,modules:showModules=true,push=null}={}){
     if(!i||!r||![i.x,i.y,i.length].every(finite))return '';
     // modules:false — the Design screen: the island's type and size only. Cabinet modules,
     // their widths and even indicative seams stay hidden until Generate Design picks them.
@@ -232,9 +235,10 @@
         if(showModules)for(let at=600;at<i.length;at+=600)g+=`<line x1="${lx(at)}" x2="${lx(at)}" y1="${y}" y2="${y+d}" stroke="${ink}" stroke-width=".4" stroke-dasharray="2 2"/>`;
         continue;
       }
-      for(const m of modules){
+      for(const [k,m] of modules.entries()){
         const x=lx(m.at),mw=m.width*sc,d=(m.depth||560)*sc,y=open<0?back-d:back,filler=m.kind==='filler';
-        g+=`<rect class="island-mod" data-island-module="${m.row}:${m.at}" x="${x}" y="${y}" width="${mw}" height="${d}" fill="${filler?'#ebe6dc':'#f7f6f2'}" stroke="${ink}" ${hair} ${filler?'stroke-dasharray="2 1.5"':''}><title>${describe(m).join(' · ')} · ${m.width} × ${m.height||720} × ${m.depth||560} mm\n${m.code||'Custom finishing piece'}</title></rect>`;
+        const id=push?push({tier:'base',label:m.label,W:m.width,H:m.height||720,D:m.depth||560,code:m.code||null,run:'island:'+row,segTier:'base',seg:k}):null;
+        g+=`<rect class="island-mod${id==null?'':' mod'}" ${id==null?'':`data-mod="${id}" `}data-island-module="${m.row}:${m.at}" x="${x}" y="${y}" width="${mw}" height="${d}" fill="${m.open?'#fff':filler?'#ebe6dc':'#f7f6f2'}" stroke="${ink}" ${hair} ${filler?'stroke-dasharray="2 1.5"':''}><title>${describe(m).join(' · ')} · ${m.width} × ${m.height||720} × ${m.depth||560} mm\n${m.code||'Custom finishing piece'}</title></rect>`;
         if(filler)continue;
         const fy=open<0?y+2:y+d-2;
         g+=`<line x1="${x+1}" x2="${x+mw-1}" y1="${fy}" y2="${fy}" stroke="${ink}" stroke-width=".55" vector-effect="non-scaling-stroke"/>`;

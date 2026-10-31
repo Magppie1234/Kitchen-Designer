@@ -17,10 +17,11 @@ export function islandContext(input,placed){
   for(const a of input.anchors||[])if(a.location!=='island')add(a.wall,a.at,a.width,Math.max(600,a.depth||0),a.item,P.island.working_aisle,a.openDepth||P.island.default_open_depth);
   if(placed)for(const tier of ['base','tall'])for(const p of placed[tier]||[])if(!p.blocker)
     add(p.wall,p.at,p.width,Math.max(600,(p.depth||560)+(p.offset||0)),p.role,P.island.working_aisle,p.openDepth||P.island.default_open_depth);
-  for(const o of input.openings||[])if(o.type==='door')add(o.wall,o.at,o.width,o.width,'door swing',0);
+  // only a door swinging into the kitchen claims floor: flip 2/3 swings out, sliding and doorless have no swing
+  for(const o of input.openings||[])if(o.type==='door'&&((o.flip||0)%4+4)%4<2&&!['sliding','doorless'].includes(o.variant))add(o.wall,o.at,o.width,o.width,'door swing',0);
   for(const c of input.columns||[])add(c.wall,c.at,c.width,c.depth||600,'column',P.island.walkway);
   for(const s of input.structures||[])if(s.z0<(P.counter_height||850))obstacles.push({...s,label:s.type||'structure',clearance:P.island.walkway});
-  return {walls,obstacles,ready:input.drawnZones===true&&['hob','sink','fridge'].every(t=>input.anchors?.some(a=>a.item===t))};
+  return {walls,obstacles,ready:input.drawnZones===true};   // anchors are optional (rules.json: anchors-optional)
 }
 const pack=(length,units)=>{
   if(!Number.isSafeInteger(length)||length<0||!units.length)return length===0?[]:null;
@@ -162,5 +163,5 @@ export function suggestIslands(input,cat,template={}){
   for(const c of candidates){const built=assembleIsland({...input,island:c},cat);if(!built.problems.length)options.push({...c,working:built.working});}
   const selected=input.island?validateIsland(input,cat):null;
   return {rules:P.island,context,options,selected,ready:context.ready,
-    reason:!context.ready?'Draw cabinet zones and place the core fixtures first.':!options.length?'No buildable island fits the current zones, openings and selected features.':null};
+    reason:!context.ready?'Draw cabinet zones first.':!options.length?'No buildable island fits the current zones, openings and selected features.':null};
 }

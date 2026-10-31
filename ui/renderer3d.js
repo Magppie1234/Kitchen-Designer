@@ -355,7 +355,7 @@ function buildKitchen(plan, walls){
   walls.forEach((w,i)=>{ const px=(w.a[0]-cx)*MM, py=-(w.a[1]-cy)*MM; i===0?fshape.moveTo(px,py):fshape.lineTo(px,py); });
   fshape.closePath();
   const floor=new THREE.Mesh(new THREE.ShapeGeometry(fshape), std(0xEDE7DA,{roughness:0.96}));
-  floor.rotation.x=-Math.PI/2; g.add(floor);
+  floor.rotation.x=-Math.PI/2; floor.userData.shell='floor'; g.add(floor);
   wallMeshes=[];
   // ---- Walls: real WALL_MM-thick geometry with TRUE cut-through openings ----
   // Each wall is assembled from solid boxes (full thickness = WALL_MM, the same value the
@@ -373,7 +373,7 @@ function buildKitchen(plan, walls){
     if(length<=0.5||height<=0.5) return;
     const thick=w.thickness||T; const px=w.a[0]+u[0]*alongC+np[0]*thick/2, py=w.a[1]+u[1]*alongC+np[1]*thick/2;
     const m=box(length,height,w.thickness||T,wallColor,wallOpts);
-    m.position.copy(world(px,py,vc)); m.rotation.y=ang; g.add(m);
+    m.position.copy(world(px,py,vc)); m.rotation.y=ang; m.userData.shell='wall'; g.add(m);
     wallMeshes.push({mesh:m, mx:(px-cx)*MM, mz:(py-cy)*MM, nx:np[0], nz:np[1]});
   };
   walls.forEach((w,wi)=>{ if(openSet.includes(wi))return;
@@ -422,7 +422,7 @@ function buildKitchen(plan, walls){
   for(const st of ((window.S&&window.S.structures)||[])){
     // a drawn wall: the same finish as the room walls, no column model
     if(st.type==='partition'){ const ph=st.h||WALL_H;
-      const m=box(st.w,ph,st.d||st.w,wallColor,wallOpts); m.position.copy(world(st.x,st.y,ph/2)); g.add(m); }
+      const m=box(st.w,ph,st.d||st.w,wallColor,wallOpts); m.position.copy(world(st.x,st.y,ph/2)); m.userData.shell='wall'; g.add(m); }
     else if(st.type==='beam'){ const bh=st.h||300; const m=box(st.w,bh,st.d||230,0xC9BCA3,{roughness:0.85});
       m.position.copy(world(st.x,st.y,WALL_H-bh/2)); g.add(m);
       fitModel(structureModel('beam'),st.w,bh,st.d||230,world(st.x,st.y,WALL_H-bh),0,m); }
@@ -867,6 +867,7 @@ function buildKitchen(plan, walls){
     const islandAt=(a,k,y)=>{ const [x,y2]=IslandRules.point(i,r,a,k); return world(x,y2,y); };
     const holes=[]; let slab=null;
     for(const m of i.working||[]){
+      if(m.open) continue;   // a deleted island cabinet leaves open space under the top
       const d=m.depth||r.cabinet_depth;
       const [x,y]=islandPoint(i,r,m), face=ang+(m.row===0?Math.PI:0);
       place(m.width,m.code,x,y,stack.baseTop-stack.counterThickness-(m.height||720),face,colorFor(m.kind,m.label),m.height||720,d,m.kind==='filler');
@@ -964,11 +965,52 @@ function teardown(){
 }
 let sceneRequest=0;
 let walkPose=null;   // where the last walk scene was standing: the capture view opens on the same angle
+// Combined walkthrough: the other rooms of the same plan, and a strip through each door, are
+// walkable too. Empty for a single room, which keeps the plain one-room test below.
+let walkRegions=[];
 function walkPointInside(x,z){
   const px=x/MM+bounds.cx,py=z/MM+bounds.cy;
-  return KitchenGeometry.containsRect({x0:px-350,x1:px+350,y0:py-350,y1:py+350},roomWalls);
+  if(KitchenGeometry.containsRect({x0:px-350,x1:px+350,y0:py-350,y1:py+350},roomWalls)) return true;
+  if(!walkRegions.length) return false;
+  // the 700mm standing square, sampled: every sample has to be in some room or doorway
+  for(const dx of [-350,0,350]) for(const dy of [-350,0,350])
+    if(!walkRegions.some(r=>KitchenGeometry.pointInside(px+dx,py+dy,r))) return false;
+  return true;
 }
-async function startScene(plan, walls, m, orbitId, walkId, hintId, plainScene){
+// A door's walkable strip: its width, from 100mm inside the room out past the wall's thickness.
+function doorStrips(walls,openings){ const T=window.WALL_MM||230;
+  return (openings||[]).filter(o=>o.type==='door').map(o=>{ const w=walls[+String(o.wall).slice(1)]; if(!w) return null;
+    const L=Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a[1])||1, u=[(w.b[0]-w.a[0])/L,(w.b[1]-w.a[1])/L], n=KitchenGeometry.normal(w,walls);
+    const s0=o.off-o.width/2+60, s1=o.off+o.width/2-60, at=(s,d)=>[w.a[0]+u[0]*s-n[0]*d,w.a[1]+u[1]*s-n[1]*d];
+    const P=[at(s0,-100),at(s1,-100),at(s1,T+100),at(s0,T+100)];
+    return P.map((p,i)=>({a:p,b:P[(i+1)%4]})); }).filter(Boolean); }
+// rules.json: walkthrough-room-beige. The 3D view's physical-unit lights leave a light wall
+// at about a fifth of its colour (it read as a muddy, rusty grey), so walls glow with their own
+// very light beige and the floor with a clean, even greige porcelain with a soft sheen: one
+// continuous surface, no joints. Only this scene: the elevation renders keep their lighting.
+const SHELL={wall:{color:0xF1E8D8,glow:0.6}, floor:{color:0xFFFFFF,glow:0.35,roughness:0.4,map:()=>floorGrain()}};
+// Stone grain on the greige (#D8CFC2): soft light and dark speckles (about 7-40mm, slightly
+// elongated) and faint streaks along one direction. Drawn seamlessly (marks at an edge wrap
+// round it) over 2400mm, so there are no cuts and no visible repeat. Deterministic (hash01).
+let grainTex=null;
+function floorGrain(){ if(grainTex) return grainTex;
+  const N=1024, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  let k=0; const rnd=()=>hash01(++k,7.3), near=v=>v<20?[0,N]:v>N-20?[0,-N]:[0];
+  x.fillStyle='#D8CFC2'; x.fillRect(0,0,N,N);
+  for(let i=0;i<8000;i++){ const px=rnd()*N, py=rnd()*N, s=rnd(), rx=3+s*14, ry=1+s*4;
+    x.fillStyle=rnd()>.5?'rgba(255,250,242,.10)':'rgba(150,138,122,.07)';
+    for(const dx of near(px))for(const dy of near(py)){ x.beginPath(); x.ellipse(px+dx,py+dy,rx,ry,0,0,7); x.fill(); } }
+  for(let i=0;i<56;i++){ x.fillStyle='rgba(150,138,122,.06)'; x.fillRect(0,rnd()*N,N,1+rnd()*3); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=8; t.repeat.set(1/2.4,1/2.4);   // floor UVs are metres (ShapeGeometry): the canvas covers 2400mm
+  return grainTex=t; }
+function roomShellBeige(root){
+  root.traverse(o=>{ const s=o.isMesh&&SHELL[o.userData.shell]; if(!s) return; const m=o.material;
+    m.color.set(s.color); m.emissive.set(s.color); m.emissiveIntensity=s.glow;
+    if(s.roughness!=null) m.roughness=s.roughness;
+    if(s.map){ m.map=m.emissiveMap=s.map(); m.needsUpdate=true; } });
+}
+async function startScene(plan, walls, m, orbitId, walkId, hintId, plainScene, neighbours=[]){
   if(!plan || !walls || !walls.length) return;
   mode=m||'orbit';
   container=document.getElementById(mode==='walk'?(walkId||'walkCanvas'):(orbitId||'view3d'));
@@ -996,6 +1038,20 @@ async function startScene(plan, walls, m, orbitId, walkId, hintId, plainScene){
     if(!renderer||!camera||!w||!h) return; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); });
   resizeObs.observe(container);
   scene.add(buildKitchen(plan,walls));
+  walkRegions=[];
+  if(mode==='walk'&&neighbours.length){
+    // each neighbour is built in its own room state (n.run), then shifted from its own centre to
+    // where it sits relative to this room; the module's per-room globals stay this room's
+    const act=bounds, saved=[roomWalls,bounds,wallMeshes];
+    walkRegions=[walls,...doorStrips(walls,plan.openings)];
+    for(const n of neighbours){ let g=null, b=null;
+      try{ n.run(()=>{ g=buildKitchen(n.plan,n.walls); b=bounds; }); } catch(e){ console.warn('Neighbour room not built:',e.message); }
+      finally{ [roomWalls,bounds,wallMeshes]=saved; }
+      if(!g) continue;
+      g.position.set((b.cx-act.cx)*MM,0,(b.cy-act.cy)*MM); scene.add(g);
+      walkRegions.push(n.walls,...doorStrips(n.walls,n.plan.openings)); }
+  }
+  roomShellBeige(scene);
   if(FINISH) applyFinishToObject(scene);   // 7.1: the scene opens already finished, never beige
   const span=bounds?Math.max((bounds.maxx-bounds.minx),(bounds.maxy-bounds.miny))*MM:4;
   if(mode==='walk'){
