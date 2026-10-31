@@ -467,8 +467,8 @@
       <p style="font-size:12.5px;color:rgba(244,241,235,.6);margin:6px 0 0">A few details so your Wellness Advisor can follow up. Takes 30 seconds.</p>
     </div>
     <div style="padding:26px 30px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Your Name</label><input id="suClient" class="tf" style="margin-top:6px" oninput="setProject('client',this.value)"></div>
-      <div><label style="font-size:12px;font-weight:600;color:#6B675E">Architect / Designer</label><input id="suArch" class="tf" style="margin-top:6px" placeholder="Optional" oninput="setProject('architect',this.value)"></div>
+      <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Client Name</label><input id="suClient" class="tf" style="margin-top:6px" required oninput="setProject('client',this.value)"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#6B675E">Designer</label><input id="suArch" class="tf" style="margin-top:6px" oninput="setProject('architect',this.value)"></div>
       <div><label style="font-size:12px;font-weight:600;color:#6B675E">City</label><select id="suCity" class="tf" style="margin-top:6px" onchange="setProject('city',this.value)"><option value="">Select city…</option></select></div>
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Budget range</label>
         <div id="suBudget" style="display:flex;gap:8px;margin-top:7px"></div>
@@ -792,7 +792,7 @@ const S={
   // setup — never per room. Scratch projects add as many rooms as they like, all drawn
   // from scratch; upload projects read their rooms out of one drawing (which may hold
   // several kitchens). Lives in project.details, so it persists with the project.
-  project:{client:'Abhinav Arora',architect:'',budget:'Premium',city:'Gurgaon',timeline:'1–3 months',type:'Villa',method:null,discount:0},
+  project:{client:'',architect:'',budget:'Premium',city:'Gurgaon',timeline:'1–3 months',type:'Villa',method:null,discount:0},
   method:null, shape:null, view:'2d', activeStep:null,
   steps:{hob:null,sink:null,fridge:null,island:null,corner:null,acc:[]},
   // HOB guided-config state (§ new hob flow). `size` 600|900, `drawerCount` 2|3, and `drawers`
@@ -1148,6 +1148,8 @@ function renderBudgets(){
   }).join('');
 }
 function submitSetup(){
+  // The name is required: the field starts empty and the studio stays closed until it is typed.
+  const name=$('suClient').value.trim(); if(!name){ showToast('Type the client name to continue.'); $('suClient').focus(); return; } S.project.client=name;
   // The city must be one we deliver to (data/city-rates.json) - it prices site visits and freight.
   if(S.cityCfg){ if(!$('suCity').value){ showToast('Select your city from the list.'); return; } S.project.city=$('suCity').value; }
   S.setupDone=true; $('modalSetup').style.display='none'; dsUpdateProject(); renderChrome(); renderDashboard();
@@ -9126,6 +9128,7 @@ async function openProjectFromDesk(id){
 async function newProjectFromDesk(){
   try{
     S.project=JSON.parse(JSON.stringify(PROJECT_DEFAULTS));
+    S.project.architect=DS.me?.name||'';   // the signed-in designer (profiles.name for the invited email); editable in setup
     const seed=newRoom('Main Kitchen','rk-show'); seed.design.roomName=seed.name;
     const proj=await dsCall('createProject',{name:'New Kitchen Project',details:S.project,
       room:{name:seed.name,category:seed.typeId,state:{}}});
