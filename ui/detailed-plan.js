@@ -23,6 +23,8 @@
   const movable=s=>!!s&&['cabinet','anchor','corner','tallBank'].includes(s.kind);
   const rect=(x,y,w,h,attrs='')=>`<rect x="${x}" y="${y}" width="${Math.max(0,w)}" height="${Math.max(0,h)}" ${attrs}/>`;
   const line=(x1,y1,x2,y2,attrs='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${attrs}/>`;
+  // a piece measured between its rounded ends, so a dimension chain adds up to the wall exactly (rules.json: dimensions-add-up)
+  const span=(x,w)=>Math.round(x+w)-Math.round(x);
   function wrapLabel(lines,width,fontSize,maxLines){
     const capacity=Math.max(3,Math.floor(width/(fontSize*.54))),out=[];
     for(const source of lines){
@@ -114,7 +116,7 @@
             const txt=empty==='dead'?'DEAD SPACE':empty==='free'?'EXTEND AREA':'OPEN';
             if(width>txt.length*2.3+3)notes.push(`<text pointer-events="none" transform="rotate(${angle>90||angle<-90?180:0} ${xp+width/2} ${yp+dep/2})" x="${xp+width/2}" y="${yp+dep/2+1.3}" text-anchor="middle" font-size="3.7" fill="${empty==='dead'?amber:empty==='free'?green:'#8a8579'}">${txt}</text>`);
           }
-          (tier==='wall'&&mode==='overlay'?upperDims:dimensions).push({a:xp,b:xp+width,dep:empty==='occupied'||!state.editing?0:dep+offset,width:seg.width,bare:empty!=='occupied'});
+          (tier==='wall'&&mode==='overlay'?upperDims:dimensions).push({a:xp,b:xp+width,dep:empty==='occupied'||!state.editing?0:dep+offset,width:span(x,seg.width),bare:empty!=='occupied'});
           return;
         }
         const hatch=['panel','filler','inset'].includes(seg.kind);
@@ -147,14 +149,14 @@
           else g+=rect(cx-8,cy-4,16,8,'rx="2" fill="none" stroke="#555" stroke-width=".55"');
         }
         g+='</g>';
-        (upperOverlay?upperDims:dimensions).push({a:xp,b:xp+width,dep:dep+offset,width:seg.width});
+        (upperOverlay?upperDims:dimensions).push({a:xp,b:xp+width,dep:dep+offset,width:span(x,seg.width)});
       };
       for(const {seg,index,x} of base){
         const tier=seg.tier==='tall'||seg.kind==='tallBank'||['fridge','oven','pantry','crockery'].includes(seg.label)?'tall':'base';
         if(mode==='wall'&&tier!=='tall')continue;
         if(!['cabinet','anchor','corner','tallBank','filler','panel','inset','gap'].includes(seg.kind)){
           // doors, windows and undrawn stretches still close the dimension chain to the wall
-          if(seg.width>0)dimensions.push({a:x*t.sc,b:(x+seg.width)*t.sc,dep:0,width:seg.width,bare:seg.kind==='open'});
+          if(seg.width>0)dimensions.push({a:x*t.sc,b:(x+seg.width)*t.sc,dep:0,width:span(x,seg.width),bare:seg.kind==='open'});
           continue;
         }
         draw(seg,index,x,tier,'base',emptyKind(seg));

@@ -22,7 +22,7 @@ test('the screenshot closes beside the sink without a filler: concealed corner s
   const input=fixture(),before=JSON.stringify(input);
   // locked appliances cannot close the sink run exactly, and a filler there is not allowed: reported, not filled
   const locked=layout({...input,lockAnchors:true},cat);
-  assert.match(locked.problems.join(),/no-filler-between-cabinets|cannot close/);assert.deepEqual(betweenCabinets(locked),[]);
+  assert.match(locked.problems.join(),/no-filler-between-cabinets|cannot close|do not fit beside the hob/);assert.deepEqual(betweenCabinets(locked),[]);
   const fit=await fitKitchen(input,cat,{proposals:false}),result=fit.result,plan=toPlan(result,fit.input,[]);
   assert.equal(JSON.stringify(input),before);assert.deepEqual(result.problems,[]);
   assert.deepEqual(betweenCabinets(result),[]);

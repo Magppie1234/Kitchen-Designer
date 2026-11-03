@@ -1488,9 +1488,98 @@
       "status": "stated",
       "hard": false,
       "seen_in": [],
-      "statement": "While a hob, sink or other anchor is dragged along a wall, it holds at the wall's centre when its centre comes within 150mm of it, the way a sink holds at a window's centre; dragging further lets it go. On the Design plan this applies to every anchor (a sink still prefers a window centre within reach); in editing, to hob and sink cabinets and other anchors dragged along their run or island row.",
+      "statement": "While a hob, sink or other anchor is dragged along a wall, it freezes at the wall's centre for a moment (0.7s) when its centre reaches or passes it, then follows the pointer again, so every spot beside the centre can still be reached; a sink does the same at a window's centre. It catches again only after the drag has left the 150mm around the centre. On the Design plan this applies to every anchor (a sink still prefers a window centre within reach); in editing, to hob and sink cabinets and other anchors dragged along their run or island row.",
       "seen_in_note": "Designer, 2026-11-03: freeze the hob/sink for a moment at the centre of the wall to make the alignment look better.",
-      "implementation": "ui/builder.html: snapAnchorToWallCentre() in onFxDrag() (Design plan; only where the centre is a valid drop inside the drawn zones) and the ANCHOR_CENTRE_SNAP check in onModDrag() for anchor segments (editing)."
+      "implementation": "ui/builder.html: centreHold() (CENTRE_HOLD_MS, CENTRE_CATCH) in onFxDrag() with snapSinkToWindow()/snapAnchorToWallCentre() (Design plan; only where the centre is a valid drop inside the drawn zones) and in onModDrag() for anchor segments (editing). Designer, 2026-11-03: the hold used to last for as long as the drag stayed within 150mm, so a 1050mm fridge at the centre of a 4968mm wall could not get nearer than 177mm to the door beside it."
+    },
+    {
+      "id": "dimension-enter-one-side",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "Every door and window on the layout shows its width. When a length is typed into a dimension (a wall, or the free length beside a door, window, column, hob, sink or fridge), Enter applies it only when exactly one side can move. When both sides can, Enter does nothing and the designer clicks Apply Left/Right (Above/Below). The free lengths beside the hob, sink and fridge on the Design page can be clicked and typed into, exactly as on the Layout page.",
+      "implementation": "ui/builder.html: renderPos draws openingWidthDim for doors and windows; applyWallDimPrimary only asks for a side; applyGapPrimary applies when gapSides() finds one movable side; startGapEdit/cancelGapEdit/moveAnchorByDelta redraw the canvas in view (renderPos() with no id), so the editor opens on the Design page too."
+    },
+    {
+      "id": "dimensions-add-up",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "Measurements are exact everywhere: the pieces of a dimension chain always add up to the total shown for that wall. Each piece is measured between its two ends rounded to the unit shown, never by rounding its own length.",
+      "implementation": "ui/builder.html fmtSpan (layout and design free lengths, door/window widths; ft-in rounds the ends to whole inches); ui/detailed-plan.js span() (plan chains); drawPlanElev base/wall/loft chains; ui/island-ui.js island free lengths. Before, a door 901mm wide (edges at .5mm) or a wall read off a plan could make a chain 1mm off its total."
+    },
+    {
+      "id": "anchor-at-opening-edge",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "Every anchor (hob, main sink, veggie sink, refrigerator) may be placed right beside a door or a window, down to 0mm from its edge, but never in front of a door (nor a hob or refrigerator in front of a window; the sinks may still sit under one). Nearer than the usual 50mm is allowed with a warning, never refused. A cabinet band that stops in the 50mm the Zones tool keeps beside the opening reaches on to the anchor.",
+      "overrides": {
+        "window-rules-by-anchor": "A hob or refrigerator may stand right beside a window, even touching its edge, but never in front of it.",
+        "door-side-clearance": "For an anchor the 50mm beside a door is a warning, not a rejection; only the wall left between the anchor and the door stays bare."
+      },
+      "implementation": "ui/builder.html: fxSpanValid keeps an anchor off the opening itself only; warnNearOpening shows the warning when a drag, a click-move or a typed length leaves it under 50mm; zoneReachOpenings lets the zone snap reach the opening edge. core/checkInput.mjs reachAnchors extends a band ending in that strip to the anchor (also used by core/engine.mjs solve), and no longer rejects an appliance within 50mm of a door; core/engine.mjs reserves only the bare wall left between the appliance and the door and lists a warning. Designer, 2026-11-03: a refrigerator stopped 177mm short of a door. The fridge's door-swing gap (fridge-clear-of-door-swing) is unchanged."
+    },
+    {
+      "id": "corner-dead-space",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "A base blind corner cabinet (1150mm) leaves 50mm of concealed dead space behind it, between its blind end and the corner wall. A LeMans corner (1050mm) leaves at least 150mm. Either way the cabinet ends 1200mm from the corner. The designer can change it while editing.",
+      "overrides": {
+        "no-dead-corners": "The concealed space behind a base blind starts at 50mm (0-100mm allowed); behind a LeMans it starts at 150mm (150-250mm allowed).",
+        "blind-corner-snap": "The blind no longer touches the corner wall by default."
+      },
+      "note": "Range assumed for the LeMans: its 150mm minimum plus the same 100mm allowance a blind has (blind-dead-space-absorbs-filler), so 150-250mm. A corner column standing in that space counts toward it. Tall and wall blinds are unchanged.",
+      "implementation": "core/engine.mjs corners(): the base corner unit is set back by deadSpaceRange(width)[2] (params blind_corner_dead_space, lemans_corner_dead_space_min) and that space is reserved as 'concealed corner space'. When that would leave a sliver under gap_filler_min beside the unit, a blind gives the dead space back down to 0mm (so the run can close); a LeMans that would go under 150mm is not used and the blind is tried instead. arrangeBlindFronts and blindShutterProblems use the same range."
+    },
+    {
+      "id": "countertop-dropdown-to-floor",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "A countertop dropdown runs from the worktop all the way down to the floor. It is not a filler: no skirting goes under it.",
+      "implementation": "ui/renderer3d.js (3D and walkthrough) stands a 'countertop return' on the floor at the full height and skips its skirting; ui/builder.html drawPlanElev draws it from the floor. vendor/costEstimate.js already billed its face from the floor."
+    },
+    {
+      "id": "chimney-follows-hob",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "The chimney always hangs centred over the hob, hob width + chimney_wider_than_hob_by. When the hob cabinet is replaced, resized or moved while editing, the chimney is centred over it again; wall cabinets in its new place make room. The chimney itself cannot be moved, replaced or deleted while its hob is there; when the hob goes, its chimney space becomes open space.",
+      "implementation": "ui/builder.html: afterEdit calls alignChimneys(); ensureChimneySlots moves an off-centre chimney back over its hob; editReplacePick and editDelete refuse a chimney with a hob under it. Before, a replaced hob left the chimney slot where it was, and the 3D hung the chimney there."
+    },
+    {
+      "id": "open-spaces-merge",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "While editing, neighbouring open spaces are one open space. Deleting two wall cabinets and the filler between them leaves one open space of the full width, so a bigger cabinet can go in.",
+      "implementation": "ui/builder.html normalizeList: in the wall and loft rows open spaces merge across bare wall under 150mm (rows placed by x0); deleting a filler now merges too (it did not call normalizeList)."
+    },
+    {
+      "id": "tall-panel-free-end-to-floor",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-03"
+      ],
+      "statement": "A tall visible panel at the end of a tall run with space left beyond it (open space, bare wall, a door) runs all the way down to the floor; no skirting goes under it. A tall panel between a base run and a tall unit keeps the skirting line of the cabinets beside it.",
+      "implementation": "ui/renderer3d.js (3D and walkthrough): a tall panel whose neighbour on either side is empty is not lifted to the skirting line and gets no skirting. The plan and the elevation already draw tall panels from the floor (z 0)."
     }
   ],
   "open_questions": [
@@ -1549,6 +1638,8 @@
     "_anchor_tolerance": "Each appliance may move at most 100mm from its original designer position, including to improve an already fitting design. Report every movement; keep all safety and geometry checks.",
     "blind_shutter_clearance": 40,
     "blind_corner_dead_space_max": 100,
+    "blind_corner_dead_space": 50,
+    "lemans_corner_dead_space_min": 150,
     "gap_filler_min": 30,
     "open_wall_min": 200,
     "wall_filler_width": 40,

@@ -16,11 +16,16 @@ test('door-side-clearance: 50mm of bare wall each side of a door, in every tier'
   const r = layout(j, cat);
   for (const tier of ['base', 'wall', 'tall'])
     assert.ok(!r.placed[tier].some((p) => !p.blocker && p.wall === j.openings[0].wall && p.at < 2000 && p.at + p.width > 1000), `${tier} keeps 1000–2000 clear`);
-  // an appliance ending 20mm short of a door is rejected
+  // anchor-at-opening-edge: an appliance ending 20mm short of a door is allowed, with a warning;
+  // the 20mm between them stays bare wall (a sliding door: no swing for fridge-clear-of-door-swing)
   const near = input([ok[0], ok[1], { type: 'fridge', wall: 'W3', off: 600 }], []);
   const f = near.anchors.find((x) => x.item === 'fridge');
-  near.openings = [{ type: 'door', wall: f.wall, at: f.at + f.width + 20, width: 900 }];
-  assert.ok(check(near).some((e) => /fridge is within 50mm of a door.*door-side-clearance/.test(e)), check(near).join());
+  near.openings = [{ type: 'door', variant: 'sliding', wall: f.wall, at: f.at + f.width + 20, width: 900 }];
+  assert.deepEqual(check(near), []);
+  const rn = layout({ ...near, lockAnchors: true }, cat);
+  assert.ok(rn.warnings.some((w) => /refrigerator stands 20mm from the door.*door-side-clearance/.test(w)), rn.warnings.join('; '));
+  assert.ok(rn.placed.tall.some((p) => p.role === 'door side clearance' && p.wall === f.wall && p.width === 20));
+  assert.ok(!rn.problems.some((e) => /door-side-clearance/.test(e)), rn.problems.join('; '));
 });
 
 test('fridge-clear-of-door-swing: 800mm on the hinge side only, none for a sliding door', () => {

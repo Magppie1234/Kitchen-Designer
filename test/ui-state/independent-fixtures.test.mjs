@@ -14,7 +14,7 @@ const between=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)))
 const plain=x=>JSON.parse(JSON.stringify(x));
 function editor(){
   const S={walls:[{length:6000},{length:6000}],openings:[],anchors:[],suggested:[],sink:{veggie:false},fridge:{width:600},hob:{size:900},options:{},steps:{}};
-  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,FRIDGE_PICKS:[],isOpenWall:()=>false,sinkWidth:()=>900,structSpansOnWall:()=>[]});
+  const c=vm.createContext({S,FRIDGE_PICKS:[],isOpenWall:()=>false,sinkWidth:()=>900,structSpansOnWall:()=>[]});
   for(const n of ['markInProcess','syncSinkStep','renderStepModal','renderEditorLeft','renderPos'])c[n]=()=>{};
   c.showToast=m=>c.message=m;
   vm.runInContext(between('function suggestedOff(', 'function offOnWall('),c);
@@ -113,7 +113,7 @@ test('900mm fridge reserves a 1000mm opening throughout layout and rendering dat
 test('the sink snaps to a window centre when dragged near it; the fridge cannot stand in front of a column',()=>{
   const S={walls:[{a:[0,0],b:[4000,0],length:4000}],openings:[{type:'window',wall:'W0',off:2000,width:1200,sill:900}],anchors:[],
     structures:[{type:'column',x:3500,y:150,w:300,d:300}],rulesCfg:null};
-  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,isOpenWall:()=>false,fxWidthMm:()=>600});
+  const c=vm.createContext({S,isOpenWall:()=>false,fxWidthMm:()=>600});
   vm.runInContext(between('function fxDropValid(','// nearest VALID offset')+between('// Columns and beams within','// Columns and beams seen'),c);
   assert.equal(c.snapSinkToWindow('sink',0,1880,900),2000,'within 150mm: snaps to the window centre');
   assert.equal(c.snapSinkToWindow('sink',0,1800,900),1800,'further away: stays where it is dragged');
@@ -125,9 +125,38 @@ test('the sink snaps to a window centre when dragged near it; the fridge cannot 
 
 test('fridge-look-free-placement: the chosen look never limits where the fridge goes',()=>{
   const S={walls:[{a:[0,0],b:[4000,0],length:4000}],openings:[],anchors:[],structures:[],rulesCfg:null,fridge:{pick:'glass-shelves'}};
-  const c=vm.createContext({S,FX_DOOR_CLEAR:400,FX_WIN_MARGIN:100,isOpenWall:()=>false,fxWidthMm:()=>600});
+  const c=vm.createContext({S,isOpenWall:()=>false,fxWidthMm:()=>600});
   vm.runInContext(between('function fxDropValid(','// nearest VALID offset')+between('// Columns and beams within','// Columns and beams seen'),c);
   for(const pick of ['glass-shelves','otg',null]){ S.fridge.pick=pick;
     assert.equal(c.fxDropValid('fridge',0,350,700),true,`${pick}: flush in the corner`);
     assert.equal(c.fxDropValid('fridge',0,2000,700),true,`${pick}: mid-wall`); }
+});
+
+test('anchor-at-opening-edge: any anchor may stand right at a door or window edge, never in front of it; under 50mm it warns',()=>{
+  const S={walls:[{a:[0,0],b:[5000,0],length:5000}],openings:[{type:'door',wall:'W0',off:1000,width:900},{type:'window',wall:'W0',off:3500,width:1000,sill:900}],anchors:[],structures:[],rulesCfg:null};
+  const c=vm.createContext({S,isOpenWall:()=>false,fxWidthMm:()=>600,doorClearMm:()=>50,showToast:m=>c.message=m});
+  vm.runInContext(between('function fxDropValid(','// A sink dragged within')+between('// Columns and beams within','// Columns and beams seen'),c);
+  // door 550-1450, window 3000-4000
+  for(const type of ['hob','sink','fridge']){
+    assert.equal(c.fxDropValid(type,0,1450+300,600),true,`${type} right beside the door`);
+    assert.equal(c.fxDropValid(type,0,1449+300,600),false,`${type} 1mm into the doorway`);
+  }
+  assert.equal(c.fxDropValid('fridge',0,3000-300,600),true,'right beside the window');
+  assert.equal(c.fxDropValid('hob',0,3001-300,600),false,'never in front of it');
+  c.warnNearOpening({type:'hob',wall:'W0',off:1470+300});assert.match(c.message,/Hob is 20 mm from the door — less than the usual 50 mm/);
+  c.message=null;c.warnNearOpening({type:'hob',wall:'W0',off:1500+300});assert.equal(c.message,null,'50mm away: no warning');
+  vm.runInContext(between('function zoneReachOpenings','function zoneSnapAnchorOff'),c);
+  assert.deepEqual(plain(c.zoneReachOpenings(0,[{s:1500,e:2950},{s:200,e:400}])),[{s:1450,e:3000},{s:200,e:400}],'a band kept 50mm off the door and window reaches their edges');
+});
+
+test('anchor-centre-snap: a drag freezes at a centre for a moment, then every spot beside it is reachable',()=>{
+  const c=vm.createContext({});vm.runInContext(between('const CENTRE_HOLD_MS','// nearest VALID offset'),c);
+  const D={}, C=2484;   // a 4968mm wall's centre
+  assert.equal(c.centreHold(D,C,C-120,0),C-120,'approaching: not caught yet');
+  assert.equal(c.centreHold(D,C,C+30,100),C,'passes over the centre: frozen there');
+  assert.equal(c.centreHold(D,C,C+80,500),C,'still within the moment');
+  assert.equal(c.centreHold(D,C,C+80,900),C+80,'then it follows the pointer, even 80mm from the centre');
+  assert.equal(c.centreHold(D,C,C+10,950),C+10,'and does not catch again inside the area');
+  assert.equal(c.centreHold(D,C+137,C+137,1000),C+137,'outside the 150mm area: free');
+  assert.equal(c.centreHold(D,C,C+20,1100),C,'back in: it catches again');
 });

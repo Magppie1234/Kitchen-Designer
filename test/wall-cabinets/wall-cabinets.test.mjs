@@ -36,3 +36,16 @@ test('editing keeps the chimney over the hob as its own wall slot, cut out of op
   ctx.addSpareWallSlots(run,t,1415,2500);ctx.addSpareWallSlots(run,t,1415,2500);
   assert.deepEqual(t.wall.map(u=>[u.kind,u.x0,u.width]),[['filler',0,1170],['chimney',1170,1000],['filler',2170,1538]]);
 });
+test('chimney-follows-hob: a replaced or moved hob takes its chimney with it; with no hob the chimney space opens',()=>{
+  const html=readFileSync('ui/builder.html','utf8'),start=html.indexOf('function addSpareWallSlots'),end=html.indexOf('function drawPlanElev(',start);
+  const ctx=vm.createContext({S:{rulesCfg:{}},TALL_ANCHORS:[]});vm.runInContext(html.slice(start,end),ctx);
+  const t={wall:[{kind:'wallSolid',code:'W1',width:600,x0:570},{kind:'chimney',width:1000,x0:1170},{kind:'wallSolid',code:'W2',width:600,x0:2170}]};
+  const run={key:'W1',total:3790,segments:[{kind:'cabinet',width:900,x0:620},{kind:'anchor',label:'hob',width:900,x0:1520},{kind:'cabinet',width:600,x0:2420}]};
+  assert.equal(ctx.ensureChimneySlots(run,t,1415,2500,true),1,'the cabinet now under the chimney makes room');
+  assert.deepEqual(t.wall.map(u=>[u.kind,u.x0,u.width]),[['wallSolid',570,600],['filler',1170,300],['chimney',1470,1000],['filler',2470,300]]);
+  assert.equal(ctx.ensureChimneySlots(run,t,1415,2500,true),0,'already centred: nothing changes');
+  run.segments[1]={kind:'cabinet',width:900,x0:1520};ctx.ensureChimneySlots(run,t,1415,2500,true);
+  assert.ok(!t.wall.some(u=>u.kind==='chimney'),'the hob became a plain cabinet: no chimney');
+  const t2={wall:[{kind:'wallSolid',code:'W1',width:1200,x0:1000}]};run.segments[1]={kind:'anchor',label:'hob',width:900,x0:1520};
+  ctx.addSpareWallSlots(run,t2,1415,2500);assert.equal(t2.wall.find(u=>u.code)?.width,1200,'just drawing the wall row never removes a cabinet');
+});

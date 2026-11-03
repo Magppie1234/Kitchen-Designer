@@ -2838,6 +2838,10 @@ function fmtLen(mm){ mm=Math.round(mm||0);
   if(S.unit==='cm') return String(Math.round(mm/10*10)/10);
   if(S.unit==='ft'){ const ti=mm/25.4; let ft=Math.floor(ti/12), inch=Math.round(ti-ft*12); if(inch>=12){ft++;inch-=12;} return ft+"'"+inch+'"'; }
   return String(mm); }
+// The distance from a to b along a wall with each END rounded to the unit shown (not the distance
+// itself), so the pieces of a dimension chain add up to the wall's own length (rules.json: dimensions-add-up).
+function fmtSpan(a,b){ if(S.unit!=='ft') return fmtLen(Math.round(b)-Math.round(a));
+  const inch=Math.round(b/25.4)-Math.round(a/25.4), ft=Math.floor(inch/12); return ft+"'"+(inch-ft*12)+'"'; }
 function unitWord(){ return S.unit==='cm'?'cm':S.unit==='ft'?'':'mm'; }      // ft/in labels are self-evident
 function fmtLenU(mm){ const w=unitWord(); return fmtLen(mm)+(w?(' '+w):''); } // value + unit suffix
 function fmtWH(wmm,hmm){ const w=unitWord(); return `${fmtLen(wmm)} × ${fmtLen(hmm)}${w?(' '+w):''}`; }
@@ -3540,7 +3544,7 @@ function openingWidthDim(w,o,t,WT){
   return `<line x1="${a2[0]}" y1="${a2[1]}" x2="${b2[0]}" y2="${b2[1]}" stroke="#9a8a64" stroke-width="0.7"/>`
     +`<line x1="${a2[0]-inx*3}" y1="${a2[1]-iny*3}" x2="${a2[0]+inx*3}" y2="${a2[1]+iny*3}" stroke="#9a8a64" stroke-width="0.7"/>`
     +`<line x1="${b2[0]-inx*3}" y1="${b2[1]-iny*3}" x2="${b2[0]+inx*3}" y2="${b2[1]+iny*3}" stroke="#9a8a64" stroke-width="0.7"/>`
-    +`<text x="${mx+inx*8}" y="${my+iny*8}" text-anchor="middle" font-size="8.5" fill="#5a4a2a" transform="rotate(${ta} ${mx+inx*8} ${my+iny*8})" font-family="Hanken Grotesk,sans-serif">${fmtLen(o.width)}</text>`;
+    +`<text x="${mx+inx*8}" y="${my+iny*8}" text-anchor="middle" font-size="8.5" fill="#5a4a2a" transform="rotate(${ta} ${mx+inx*8} ${my+iny*8})" font-family="Hanken Grotesk,sans-serif">${fmtSpan(a0,a1)}</text>`;
 }
 /* ====================================================================
    CABINET ZONES — drawing the bands that tell the engine where cabinets go
@@ -3761,8 +3765,16 @@ function zoneSpansFor(wallIdx,type){
   if(zoneGoverns('base')) return zonesOn(wallIdx,'base').map(z=>({s:z.s,e:z.e}));
   return null;   // this tier was never drawn — no snapping, behave as before
 }
+// A band that stops in the strip the zone tool keeps beside a door or window reaches on to the
+// opening's edge for an appliance, which may stand right beside it (rules.json: anchor-at-opening-edge;
+// the engine's reachAnchors does the same).
+function zoneReachOpenings(wallIdx,spans){ if(!spans) return spans; const dc=doorClearMm();
+  const ops=(S.openings||[]).filter(o=>o.wall==='W'+wallIdx).map(o=>[o.off-o.width/2,o.off+o.width/2]);
+  return spans.map(z=>{ let {s,e}=z;
+    for(const [o0,o1] of ops){ if(o0>=e&&o0-e<=dc) e=o0; if(o1<=s&&s-o1<=dc) s=o1; }
+    return {s,e}; }); }
 function zoneSnapAnchorOff(wallIdx,type,off,widthMm){
-  const spans=zoneSpansFor(wallIdx,type); if(!spans) return off;
+  const spans=zoneReachOpenings(wallIdx,zoneSpansFor(wallIdx,type)); if(!spans) return off;
   const half=widthMm/2;
   if(spans.some(z=>z.s<=off-half+1&&z.e>=off+half-1)) return off;   // already legal
   let best=null;
@@ -4099,9 +4111,9 @@ function renderPos(svgId){
     const p0=ptOnWall(w,a0,t), p1=ptOnWall(w,a1,t), [ix,iy]=inwardPx(w,t), q=WT+0.5;   // the gap in the wall only, not into the room
     cuts+=`<polygon points="${p0[0]+ix*0.6},${p0[1]+iy*0.6} ${p1[0]+ix*0.6},${p1[1]+iy*0.6} ${p1[0]-ix*q},${p1[1]-iy*q} ${p0[0]-ix*q},${p0[1]-iy*q}" fill="#FBF9F4"/>`;
     syms+=outwardSym(w,t,drawOpeningSym(w,o,t));
-    // width dimension beside every placed DOOR incl. doorless (spec §4: current width
-    // must be visible on the plan, in the active unit).
-    if(o.type==='door' && o.width>0) dims+=openingWidthDim(w,o,t,WT);
+    // width dimension beside every placed door (incl. doorless) and window (spec §4: current
+    // width must be visible on the plan, in the active unit).
+    if(o.width>0) dims+=openingWidthDim(w,o,t,WT);
     // draggable hit-target over the opening span (Layout only — locked base layer in Design)
     if(!designPhase) ohits+=`<line class="openhit" data-idx="${i}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="${Math.max(WT,16)}" stroke-linecap="butt" style="cursor:grab"/>`;
   });
@@ -4263,7 +4275,7 @@ function renderPos(svgId){
         dims+=`<line x1="${c0[0]}" y1="${c0[1]}" x2="${c1[0]}" y2="${c1[1]}" stroke="var(--accent)" stroke-width="0.8"/>`
           +`<line x1="${c0[0]-ix*3}" y1="${c0[1]-iy*3}" x2="${c0[0]+ix*3}" y2="${c0[1]+iy*3}" stroke="var(--accent)" stroke-width="0.8"/>`
           +`<line x1="${c1[0]-ix*3}" y1="${c1[1]-iy*3}" x2="${c1[0]+ix*3}" y2="${c1[1]+iy*3}" stroke="var(--accent)" stroke-width="0.8"/>`;
-        const label=`<text x="${gmx+ix*7}" y="${gmy+iy*7}" text-anchor="middle" font-size="8.5" font-weight="600" fill="var(--accent)" transform="rotate(${ta} ${gmx+ix*7} ${gmy+iy*7})" font-family="Hanken Grotesk,sans-serif">${fmtLen(g.g1-g.g0)}</text>`;
+        const label=`<text x="${gmx+ix*7}" y="${gmy+iy*7}" text-anchor="middle" font-size="8.5" font-weight="600" fill="var(--accent)" transform="rotate(${ta} ${gmx+ix*7} ${gmy+iy*7})" font-family="Hanken Grotesk,sans-serif">${fmtSpan(g.g0,g.g1)}</text>`;
         if(editing){
           dimlabels+=gapToolbarHTML(i,gmx,gmy,g,gapObjEditable);
         } else {
@@ -4460,9 +4472,7 @@ function renderPos(svgId){
   // only selects it while clicking its dimension label edits the value.
   svg.querySelectorAll('.dimlabel').forEach(el=>{ el.onclick=ev=>{ ev.stopPropagation(); startWallDimEdit(+el.dataset.wall); }; });
   if(S.editingWallDim!=null){ const inp=svg.querySelector('.dimedit'); if(inp){
-    // Enter defaults to whichever button is the solid/primary-styled one for this wall's
-    // orientation (Apply Right for horizontal, Apply Above for vertical) — the other option
-    // always still needs an explicit click.
+    // Either end of a wall can move, so Enter never picks one: the designer clicks the side.
     inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); applyWallDimPrimary(+inp.dataset.wall,inp.value); } else if(e.key==='Escape'){ e.preventDefault(); cancelWallDim(); } };
     inp.onblur=()=>cancelWallDim();   // clicking outside the toolbar CANCELS — no silent partial edits
     setTimeout(()=>{ inp.focus(); inp.select(); },0);
@@ -4640,10 +4650,10 @@ function applyWallDimSide(i,side,val){
   if(isPlanRoom()) return scaleRoomToWall(i,mm,moveA);   // plan room: the whole room resizes with it
   if(moveA) setWallLengthFromB(i,mm); else setWallLength(i,mm);
 }
-// Enter commits via whichever button is the visually "primary" (solid navy) one for this
-// wall's orientation — Apply Right for a horizontal wall, Apply Above for a vertical one.
+// Enter applies only when one side can move (rules.json: dimension-enter-one-side). A wall can
+// always grow from either end, so it asks for the side.
 function applyWallDimPrimary(i,val){ const w=S.walls[i]; if(!w){ cancelWallDim(); return; }
-  applyWallDimSide(i, isWallVertical(w)?'above':'right', val); }
+  showToast(isWallVertical(w)?'Choose Apply Above or Apply Below.':'Choose Apply Left or Apply Right.'); }
 
 /* ====================================================================
    INNER (remaining-length) gap editing — same Apply Left/Right(/Above/Below) toolbar as the
@@ -4681,8 +4691,9 @@ function moveStructByDelta(wallIdx,si,delta,requestedMm){
   pushUndo(); S.fieldErr=null; st.x=Math.round(x); st.y=Math.round(y); if(st.type==='beam') updateBeamFullSpan(st);
   renderPos('layoutSvg'); renderLayoutPanel(); refresh3DIfLive();
 }
-function startGapEdit(wallIdx,g0,g1){ if(!S.walls[wallIdx])return; S.editingGap={wall:wallIdx,g0,g1}; S.selWall=null; S.selOpening=null; S.selStruct=null; renderPos('layoutSvg'); }
-function cancelGapEdit(){ S.editingGap=null; S.fieldErr=null; renderPos('layoutSvg'); }
+// renderPos() with no id redraws whichever canvas is showing: Layout for openings, Design for anchors.
+function startGapEdit(wallIdx,g0,g1){ if(!S.walls[wallIdx])return; S.editingGap={wall:wallIdx,g0,g1}; S.selWall=null; S.selOpening=null; S.selStruct=null; renderPos(); }
+function cancelGapEdit(){ S.editingGap=null; S.fieldErr=null; renderPos(); }
 // Finds the live gap matching S.editingGap's stored bounds by recomputing from current state —
 // S.editingGap itself only ever carries primitive {wall,g0,g1} (a DOM click can't hand back object
 // references), so this is the one place that reconnects an edit-in-progress to the real leftObj/rightObj.
@@ -4705,7 +4716,7 @@ function gapToolbarHTML(wallIdx,lx,ly,gap,gapObjEditable){
   const sideNames=vertical?['above','below']:['left','right'];
   const objs=sideNames.map(s=>gapResolveSide(w,gap,s));
   const oks=objs.map(gapObjEditable);
-  const curVal=lenToInput(gap.g1-gap.g0);
+  const curVal=lenToInput(Math.round(gap.g1)-Math.round(gap.g0));
   const mkBtn=(side,label,ok,primary,styleExtra)=>{
     const bg=ok?(primary?'#1F2A44':'#E3DDD2'):'#EEE9DE', fg=ok?(primary?'#fff':'#3A352C'):'#B5AD9C';
     return `<button type="button" class="gapApplyBtn" data-wall="${wallIdx}" data-g0="${gap.g0}" data-g1="${gap.g1}" data-side="${side}" ${ok?'':'disabled'} style="flex:none;${styleExtra}border:none;background:${bg};color:${fg};font-size:9px;font-weight:700;letter-spacing:.3px;cursor:${ok?'pointer':'not-allowed'};padding:0">${label}</button>`;
@@ -4768,16 +4779,20 @@ function moveAnchorByDelta(wallIdx,ai,delta,requestedMm){
   const a=S.anchors[ai]; const w=S.walls[wallIdx]; if(!a||!w) return;
   const desired=a.off+delta, width=fxWidthMm(a);
   if(!fxDropValid(a.type,wallIdx,desired,width)){
-    S.fieldErr={key:'gap'+wallIdx,msg:`That would push it off the wall or into a door/window clearance zone${a.type==='fridge'?' or in front of a column':''} — the largest valid change is smaller than ${fmtLenU(requestedMm)}.`};
-    renderLayoutPanel(); renderPos('layoutSvg'); return;
+    showToast(`That would push it off the wall or into a door/window clearance zone${a.type==='fridge'?' or in front of a column':''} — the largest valid change is smaller than ${fmtLenU(requestedMm)}.`);
+    renderPos(); return;
   }
-  pushUndo(); S.fieldErr=null; a.off=Math.round(desired); a.suggested=false;
-  renderPos('layoutSvg'); renderLayoutPanel(); refresh3DIfLive();
+  pushUndo(); S.fieldErr=null; a.off=Math.round(desired); a.suggested=false; warnNearOpening(a);
+  renderPos(); renderEditorLeft(); refresh3DIfLive();
 }
-// Enter commits via whichever button is the visually "primary" one — Apply Right (horizontal) /
-// Apply Above (vertical) — same convention as the outer wall editor.
-function applyGapPrimary(wallIdx,val){ const w=S.walls[wallIdx]; if(!w){ cancelGapEdit(); return; }
-  applyGapEdit(wallIdx, isWallVertical(w)?'above':'right', val); }
+// Enter applies only when exactly one side of the gap can move; with two, the designer picks
+// (rules.json: dimension-enter-one-side).
+function gapSides(w,g){ const design=S.screen==='editor', ok=o=>o&&(design?o.kind==='anchor':o.kind==='opening'||o.kind==='struct');
+  return (isWallVertical(w)?['above','below']:['left','right']).filter(s=>ok(gapResolveSide(w,g,s))); }
+function applyGapPrimary(wallIdx,val){ const w=S.walls[wallIdx], g=liveEditingGap(); if(!w||!g){ cancelGapEdit(); return; }
+  const sides=gapSides(w,g);
+  if(sides.length===1) return applyGapEdit(wallIdx,sides[0],val);
+  showToast(isWallVertical(w)?'Choose Apply Above or Apply Below.':'Choose Apply Left or Apply Right.'); }
 function activeSvg(){ return $(S._posTarget||'posSvg'); }
 function offFromEvent(wall,ev){ const w=S.walls[+wall.slice(1)];const t=tf(680,520,55);const pt=svgPoint(activeSvg(),ev);
   const ax=t.X(w.a[0]),ay=t.Y(w.a[1]),bx=t.X(w.b[0]),by=t.Y(w.b[1]);const L=Math.hypot(bx-ax,by-ay)||1;let tp=((pt.x-ax)*(bx-ax)+(pt.y-ay)*(by-ay))/(L*L);return Math.round(Math.max(0,Math.min(1,tp))*w.length); }
@@ -4791,18 +4806,16 @@ function addOpening(wall,ev){ const wi=+wall.slice(1), width=S.arm.width;
 function moveFx(wall,ev){ const a=S.anchors.find(x=>x.type===S.selFx);if(!a)return;
   const i=+wall.slice(1), off=offFromEvent(wall,ev), vOff=nearestValidFxOff(i,off,fxWidthMm(a),a.type);
   if(vOff==null) return;                                  // no valid spot on this wall for this fixture
-  pushUndo(); a.wall=wall; a.off=vOff; a.suggested=false; renderPos(); refresh3DIfLive(); }
+  pushUndo(); a.wall=wall; a.off=vOff; a.suggested=false; warnNearOpening(a); renderPos(); refresh3DIfLive(); }
 
 /* ---- Hob / Sink / Fridge: direct drag on the 2D plan, wall-snapped & validated ----
    Placement validation MIRRORS the server engine's anchor rules so the browser enforces
    the same constraints without a round-trip:
-     • wall-with-door exclusion + door-swing buffer — lib/planFromExtract.js DOOR_CLEAR
-       (400mm each side of an opening) & lib/suggest.js `wallHasDoor`; a fixture may never
-       overlap a doorway's clear swing span.
-     • window buffer — lib/planFromExtract.js DOOR_MARGIN (100mm); hob/fridge keep clear of
-       a window, while the sink is allowed under it (engine centres the sink on the window, §11).
+     • a fixture may stand right at a door's or window's edge, never in front of a door; nearer
+       than 50mm it is placed with a warning (rules.json: anchor-at-opening-edge).
+     • hob/fridge never stand in front of a window; the sink is allowed under it (engine centres
+       the sink on the window, §11).
      • must physically fit the wall & never sit on an Open-Kitchen threshold wall. */
-const FX_DOOR_CLEAR=400, FX_WIN_MARGIN=100;   // mirrors lib/planFromExtract.js DOOR_CLEAR / DOOR_MARGIN
 function fridgeWidth(){ return S.fridge.width||600; }
 function fxWidthMm(a){ return a.type==='hob'?(S.hob.size||(a.elevation==='B'?600:900)):a.type==='sink'?(S.sink.pick?sinkWidth():(a.elevation==='B'?600:900)):a.type==='fridge'?fridgeWidth()+100:600; }
 // Is offset `off` (fixture centre, mm along wall `wallIdx`) a valid spot for a `type` of width `widthMm`?
@@ -4825,13 +4838,18 @@ function fxSpanValid(type,wallIdx,s0,s1){
     if(s1>a.off-otherHalf && s0<a.off+otherHalf)return false;
   }
   for(const o of S.openings){ if(+o.wall.slice(1)!==wallIdx) continue;
-    if(o.type==='door'){ const c=(o.width||900)+2*FX_DOOR_CLEAR; if(s1>o.off-c/2 && s0<o.off+c/2) return false; }        // door swing keep-out
-    else if(o.type==='window' && (!['sink','veggie'].includes(type)||(o.sill??900)<((S.rulesCfg&&S.rulesCfg.heights.baseTop)||850))){ const m=(o.width||1200)/2+FX_WIN_MARGIN; if(s1>o.off-m && s0<o.off+m) return false; } // both sinks may sit under a window
+    if(o.type==='door'){ const c=(o.width||900)/2; if(s1>o.off-c && s0<o.off+c) return false; }        // never in front of a door
+    else if(o.type==='window' && (!['sink','veggie'].includes(type)||(o.sill??900)<((S.rulesCfg&&S.rulesCfg.heights.baseTop)||850))){ const m=(o.width||1200)/2; if(s1>o.off-m && s0<o.off+m) return false; } // both sinks may sit under a window
   }
   // fridge-not-at-column: a column standing on this wall is a keep-out for the refrigerator
   if(type==='fridge'&&structSpansOnWall(wallIdx,50).some(({st,a0,a1})=>st.type==='column'&&s1>a0&&s0<a1)) return false;
   return true;
 }
+// Placed nearer a door or window than the usual 50mm (anchor-at-opening-edge): allowed, with a warning.
+function warnNearOpening(a){ const w=S.walls[+String(a?.wall).slice(1)]; if(!w) return;
+  const half=fxWidthMm(a)/2, s0=a.off-half, s1=a.off+half, dc=doorClearMm();
+  for(const o of S.openings||[]){ if(o.wall!==a.wall) continue; const o0=o.off-o.width/2, o1=o.off+o.width/2, gap=s1<=o0?o0-s1:s0>=o1?s0-o1:null;
+    if(gap!=null&&gap<dc){ showToast(`${a.type==='veggie'?'Veggie sink':a.type[0].toUpperCase()+a.type.slice(1)} is ${Math.round(gap)} mm from the ${o.type} — less than the usual ${dc} mm.`); return; } } }
 // A sink dragged within SINK_WINDOW_SNAP of a window's centre snaps to it, once; dragging it
 // further than that lets it go, so it can still sit anywhere near the window.
 const SINK_WINDOW_SNAP=150;
@@ -4840,9 +4858,21 @@ function snapSinkToWindow(type,wallIdx,off,widthMm){
   const o=(S.openings||[]).filter(o=>o.type==='window'&&o.wall==='W'+wallIdx).sort((p,q)=>Math.abs(p.off-off)-Math.abs(q.off-off))[0];
   return o&&Math.abs(o.off-off)<=SINK_WINDOW_SNAP&&fxDropValid(type,wallIdx,o.off,widthMm)?Math.round(o.off):off;
 }
-// Any anchor (hob, sink, fridge…) dragged within ANCHOR_CENTRE_SNAP of its wall's centre holds there,
-// the way a sink holds at a window's centre; dragging further lets it go (rules.json: anchor-centre-snap).
+// The wall centre an anchor (hob, sink, fridge…) dragged within ANCHOR_CENTRE_SNAP of it may hold at,
+// as a sink at a window's centre (rules.json: anchor-centre-snap); centreHold decides for how long.
 const ANCHOR_CENTRE_SNAP=150;
+// A drag reaching a centre (wall or window) freezes there for a moment, then follows the pointer
+// again, so the centre is easy to hit and every spot beside it is still reachable. It catches when the
+// pointer comes within CENTRE_CATCH of the centre or passes over it, and catches again only after
+// leaving the snap area. `D` is the drag's own state; `target` is the centre, or `want` outside the area.
+const CENTRE_HOLD_MS=700, CENTRE_CATCH=40;
+function centreHold(D,target,want,now=Date.now()){
+  if(target===want){ D.hold=null; return want; }
+  const side=Math.sign(want-target);
+  if(!D.hold||D.hold.at!==target) D.hold={at:target,until:null,side};
+  const h=D.hold; if(h.until==null&&(Math.abs(want-target)<=CENTRE_CATCH||side!==h.side)) h.until=now+CENTRE_HOLD_MS;
+  h.side=side;
+  return h.until!=null&&now<h.until?target:want; }
 function snapAnchorToWallCentre(type,wallIdx,off,widthMm){ const w=S.walls[wallIdx]; if(!w) return off;
   const c=Math.round(w.length/2);
   return Math.abs(c-off)<=ANCHOR_CENTRE_SNAP&&fxDropValid(type,wallIdx,c,widthMm)&&zoneSnapAnchorOff(wallIdx,type,c,widthMm)===c?c:off; }
@@ -4887,7 +4917,7 @@ function onFxDrag(ev){ const D=_fxdrag; if(!D) return; const a=S.anchors.find(x=
   // so the move is visible now rather than a surprise after Generate. The engine re-runs the
   // real rule (lib/zones.js) server-side and stays authoritative — this only previews it.
   if(hit){ const wd=fxWidthMm(a), off=zoneSnapAnchorOff(hit.i,D.type,hit.off,wd), win=snapSinkToWindow(D.type,hit.i,off,wd);
-    const snapped=win!==off?win:snapAnchorToWallCentre(D.type,hit.i,off,wd);
+    const snapped=centreHold(D,win!==off?win:snapAnchorToWallCentre(D.type,hit.i,off,wd),off);
     D.cand={wall:'W'+hit.i,off:snapped}; D.valid=fxDropValid(D.type,hit.i,snapped,fxWidthMm(a)); }
   else { D.valid=false; }                                        // invalid area → ghost holds at last valid `cand`
   renderPos(); }
@@ -4895,7 +4925,7 @@ function endFxDrag(){ window.removeEventListener('mousemove',onFxDrag); window.r
   const D=_fxdrag; _fxdrag=null; if(!D) return; const a=S.anchors.find(x=>x.type===D.type);
   if(D.moved){
     // COMMIT — the one and only mutation, applied once here on mouse-up, never during the drag.
-    if(a && D.valid && D.cand && (D.cand.wall!==D.orig.wall || D.cand.off!==D.orig.off)){ pushUndo(); a.wall=D.cand.wall; a.off=D.cand.off; a.suggested=false; }
+    if(a && D.valid && D.cand && (D.cand.wall!==D.orig.wall || D.cand.off!==D.orig.off)){ pushUndo(); a.wall=D.cand.wall; a.off=D.cand.off; a.suggested=false; warnNearOpening(a); }
     renderPos(); refresh3DIfLive(); renderEditorLeft();
   } else { selFx(D.type); }                                       // click (no drag) → select + surface its editable props
 }
@@ -7873,13 +7903,19 @@ function recalcPositions(){ if(!S.plan) return;
 // Open spaces side by side always become one open space (tall if any part was tall), so a run of
 // deleted units reads as one gap; solid fillers merge only within a tier. openOnly: merge open space only.
 function normalizeList(list, track, openOnly){ let obj=track!=null?list[track]:null;
+  // wall and loft rows place each unit by its own x0, so bare wall can lie between two of them;
+  // a base run is contiguous (its x0s are only refreshed by recalcPositions)
+  const placedByX0=Object.values(S.plan?.tiers||{}).some(t=>t.wall===list||t.loft===list);
   for(let i=list.length-1;i>=0;i--){ if(list[i].kind==='filler'&&list[i].width<1) list.splice(i,1); }
   for(let i=list.length-2;i>=0;i--){ const a=list[i], b=list[i+1];
-    if(a.kind!=='filler'||b?.kind!=='filler'||(b.x0!=null&&a.x0!=null&&a.x0+a.width!==b.x0)) continue;
-    const open=a.open&&b.open;
+    if(a.kind!=='filler'||b?.kind!=='filler') continue;
+    // open spaces close over bare wall too narrow to be its own slot (<150mm, as addSpareWallSlots),
+    // so neighbouring open spaces read as one (rules.json: open-spaces-merge)
+    const open=a.open&&b.open, bare=b.x0!=null&&a.x0!=null?b.x0-(a.x0+a.width):0;
+    if(placedByX0?bare<-1||bare>(open?149:1):Math.abs(bare)>1) continue;
     if(!open&&(openOnly||a.open||b.open||!sameTier(a,b)||isPanelSeg(a)||isPanelSeg(b)||isDropdownSeg(a)||isDropdownSeg(b))) continue;   // a panel stays 20mm, a dropdown 30mm
     if(open&&(a.tier==='tall'||b.tier==='tall')){ a.tier='tall'; a.height=Math.max(a.height||0,b.height||0)||undefined; }
-    a.width+=b.width; if(a.x0!=null) a.x1=a.x0+a.width; list.splice(i+1,1); }
+    a.width+=b.width+(placedByX0?Math.max(0,bare):0); if(a.x0!=null) a.x1=a.x0+a.width; list.splice(i+1,1); }
   return obj?list.indexOf(obj):-1; }
 // Empty space left by a tall cabinet is tall space: it never merges with, or lends width to, base space.
 function sameTier(a,b){ return !!a&&!!b&&(a.tier||'base')===(b.tier||'base'); }
@@ -7907,7 +7943,9 @@ function selectTierUnit(run,tier,idx){
 /* ---------- edit operations ---------- */
 function firstEditBreakaway(){ if(S.reResult){ S.reResult=null; S.reCtx=null; } }
 async function afterEdit(action,from,to){
-  firstEditBreakaway(); recalcPositions(); recordPlanEdit();
+  firstEditBreakaway(); recalcPositions();
+  { const n=alignChimneys(); if(n) showToast(`The chimney moved with the hob — ${n} wall cabinet${n>1?'s':''} in its way ${n>1?'were':'was'} removed.`); }
+  recordPlanEdit();
   { const m=S.plan?reconcileHobSideWidths(S.plan):[]; if(m.length) showToast(m[0]); }
   if(S.plan){ S.plan.verdict='UNRESOLVED'; S.plan.releaseBlocked=true;
     S.plan.log=(S.plan.log||[]).filter(e=>e.rule!=='Edited layout validation');
@@ -7942,7 +7980,9 @@ function editDelete(){ if(!S.editing) return; const list=editableList(S.selModRe
   // Deleting leaves the space open: same width, nothing standing in it, so the drawings show
   // exactly what is behind (wall, column, window). A cabinet can still be added there.
   if(s.kind==='filler'){ if(s.open){ showToast('This space is already open.'); return; }
-    s.open=true; s.label='open space'; delete s.code; afterEdit('delete',from,'open space (no filler)'); return; }
+    s.open=true; s.label='open space'; delete s.code;
+    const ni=normalizeList(list,S.selModRef.idx); S.selModRef.idx=ni>=0?ni:Math.min(S.selModRef.idx,list.length-1);   // joins the open space either side
+    afterEdit('delete',from,'open space (no filler)'); return; }
   const tier=s.kind==='anchor'&&TALL_ANCHORS.includes(s.label)?'tall':s.tier;
   list[S.selModRef.idx]={kind:'filler',open:true,label:'open space',width:s.width,x0:s.x0,x1:s.x1,depth:s.depth,height:s.height,z:s.z,offset:s.offset,tier};
   const ni=normalizeList(list,S.selModRef.idx); S.selModRef.idx=ni>=0?ni:Math.min(S.selModRef.idx,list.length-1);
@@ -8022,6 +8062,7 @@ function clearUpperOver(run,x0,width){ const t=S.plan.tiers?.[run]; if(!t) retur
 function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
   const list=editableList(S.selModRef); let s=selSeg(); if(!list||!s) return;
   if(isReservedSpace(s)){showToast('The adjoining wall’s cabinet stands in this corner — edit that cabinet instead.');return;}
+  if(s.kind==='chimney'&&hobUnder(S.selModRef.run,s)){ showToast('The chimney stays centred over the hob — move or change the hob instead.'); return; }
   const fam=anchorFamily(s), keepAnchor=s.kind==='anchor'&&(!fam||fam.re.test(code));   // a hob stays the hob only with a hob cabinet
   let li=S.selModRef.idx;
   const left=list[li-1]?.kind==='filler'&&sameTier(list[li-1],s)&&list[li-1].x0+list[li-1].width===s.x0?list[li-1]:null;
@@ -8335,7 +8376,7 @@ function onModDrag(ev){ if(!_md) return;
   const d=((pointer.x-_md.px0)*_md.ux+(pointer.y-_md.py0)*_md.uy)/_md.sc;
   _md.target=Math.round(Math.max(0,Math.min(_md.runLen-_md.W,_md.startX0+d))/10)*10;   // 10mm grid, mm storage
   // a hob or sink holds at the centre of its wall while it passes it (rules.json: anchor-centre-snap)
-  if(_md.anchor){ const c=Math.round((_md.runLen-_md.W)/2); if(Math.abs(_md.target-c)<=ANCHOR_CENTRE_SNAP) _md.target=c; }
+  if(_md.anchor){ const c=Math.round((_md.runLen-_md.W)/2); _md.target=centreHold(_md,Math.abs(_md.target-c)<=ANCHOR_CENTRE_SNAP?c:_md.target,_md.target); }
   if(_md.raf) return; _md.raf=true;
   requestAnimationFrame(()=>{ if(!_md) return; _md.raf=false;
     const svg=$('view2d'); if(!svg) return;
@@ -8808,16 +8849,32 @@ function addSpareWallSlots(run,t,WB,wallTop){ t.wall=t.wall||[];
   if(free.length) t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); }
 // The 3D always hangs a chimney over a wall-run hob (rules.json: chimney-width), so the
 // wall row keeps that space as its own chimney slot, with its own dimension: one lost to an older
-// delete is cut back out of the open space around it. A cabinet placed there by hand is left alone.
-function ensureChimneySlots(run,t,WB,wallTop){ const over=S.rulesCfg?.params?.chimney_wider_than_hob_by??100; let off=0;
-  for(const seg of run.segments){ off=seg.x0??off; const a0=off; off+=seg.width;
-    if(!(seg.kind==='anchor'&&seg.label==='hob')) continue;
-    const cw=seg.width+over, x0=a0+seg.width/2-cw/2, x1=x0+cw, hit=t.wall.filter(u=>(u.x0||0)<x1-1&&(u.x0||0)+u.width>x0+1);
-    if(hit.some(u=>!(u.kind==='filler'&&u.open))) continue;
+// delete is cut back out of the open space around it. The slot follows the hob (rules.json:
+// chimney-follows-hob): centred on it, hob + chimney_wider_than_hob_by wide. A chimney left off
+// centre by a hob that was replaced, resized or moved gives its place back as open space and is
+// hung again over the hob; wall cabinets in the way make room. That happens after an edit only
+// (`force`, from alignChimneys); just drawing the wall row never removes a cabinet. Returns how many did.
+function ensureChimneySlots(run,t,WB,wallTop,force=false){ const over=S.rulesCfg?.params?.chimney_wider_than_hob_by??100; let off=0, moved=0;
+  const hobs=[]; for(const seg of run.segments){ off=seg.x0??off; const a0=off; off+=seg.width;
+    if(seg.kind==='anchor'&&seg.label==='hob'){ const cw=seg.width+over, x0=a0+seg.width/2-cw/2; hobs.push([x0,x0+cw]); } }
+  const open=(u,a,b)=>({kind:'filler',open:true,label:'open space',width:b-a,x0:a,x1:b,z:u.z??WB,height:u.height??wallTop-WB,depth:u.depth??(S.rulesCfg?.depths?.wall||336),...(u.spare?{spare:true}:{})});
+  const centred=u=>hobs.some(([a,b])=>Math.abs((u.x0||0)-a)<1&&Math.abs(u.width-(b-a))<1);
+  if(t.wall.every(u=>u.kind!=='chimney'||centred(u))&&hobs.every(([a])=>t.wall.some(u=>u.kind==='chimney'&&Math.abs((u.x0||0)-a)<1))) return 0;   // already in place
+  if(force) t.wall=t.wall.map(u=>u.kind==='chimney'&&!centred(u)?open(u,u.x0||0,(u.x0||0)+u.width):u);
+  for(const [x0,x1] of hobs){ if(t.wall.some(u=>u.kind==='chimney'&&Math.abs((u.x0||0)-x0)<1)) continue;
+    const hit=t.wall.filter(u=>(u.x0||0)<x1-1&&(u.x0||0)+u.width>x0+1);
+    if(!force&&hit.some(u=>!(u.kind==='filler'&&u.open))) continue;
+    moved+=hit.filter(u=>u.code).length;
     const rest=hit.flatMap(u=>{ const a=u.x0||0, b=a+u.width;
-      return [[a,Math.min(b,x0)],[Math.max(a,x1),b]].filter(([p,q])=>q-p>=1).map(([p,q])=>({...u,x0:p,x1:q,width:q-p})); });
-    t.wall=t.wall.filter(u=>!hit.includes(u)).concat(rest,{kind:'chimney',label:'chimney',width:cw,x0,x1,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
-    t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); } }
+      return [[a,Math.min(b,x0)],[Math.max(a,x1),b]].filter(([p,q])=>q-p>=1).map(([p,q])=>u.kind==='filler'&&u.open?{...u,x0:p,x1:q,width:q-p}:open(u,p,q)); });
+    t.wall=t.wall.filter(u=>!hit.includes(u)).concat(rest,{kind:'chimney',label:'chimney',width:x1-x0,x0,x1,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336}); }
+  t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0));
+  return moved; }
+// After every edit: each run that carries a chimney hangs it over its hob again.
+function alignChimneys(){ if(!S.plan) return 0;
+  const HH={baseTop:850,dado:565,wallTop:2500,...(S.rulesCfg?.heights||{}),...(S.plan.geometry||{})}, WB=HH.wallBottom??HH.baseTop+HH.dado;
+  let n=0; for(const run of S.plan.runs||[]){ const t=S.plan.tiers?.[run.key]; if(t?.wall?.some(u=>u.kind==='chimney')) n+=ensureChimneySlots(run,t,WB,HH.wallTop,true); }
+  return n; }
 function hobUnder(runKey,u){ const run=(S.plan?.runs||[]).find(r=>r.key===runKey); let off=0;
   return (run?.segments||[]).some(seg=>{ off=seg.x0??off; const a=off; off+=seg.width;
     return seg.kind==='anchor'&&seg.label==='hob'&&a<(u.x0||0)+u.width&&a+seg.width>(u.x0||0); }); }
@@ -8844,7 +8901,7 @@ function drawPlanElev(key){
     +`<line x1="${left-6}" y1="${floor}" x2="${left+Wp+6}" y2="${floor}" stroke="#3A352C" stroke-width="2"/>`;
   const baseDims=[], wallDims=[], loftDims=[];
   run.segments.forEach((sg,i)=>{ const w=sg.width*k, x=xs(sg.x0||0,sg.width);
-    if(sg.width>0) baseDims.push({a:x,b:x+w,v:Math.round(sg.width)});   // every stretch of the run, empty or not
+    if(sg.width>0) baseDims.push({a:x,b:x+w,v:Math.round((sg.x0||0)+sg.width)-Math.round(sg.x0||0)});   // every stretch of the run, empty or not
     // The adjacent wall's cabinets fill this corner: marked, not drawn (they belong to that wall).
     if(sg.kind==='gap'&&/corner void|perpendicular cabinet/.test(sg.label||'')){
       s+=`<rect x="${x}" y="${Y(HH.baseTop)}" width="${w}" height="${floor-Y(HH.baseTop)}" fill="url(#elevReturn)" stroke="#B9B09E" stroke-width=".8"/>`;
@@ -8861,7 +8918,8 @@ function drawPlanElev(key){
     if(['open','gap','window'].includes(sg.kind)) return;
     const isTallA=sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label);
     if(sg.kind==='door'){ if(!R) s+=`<rect x="${x}" y="${Y(2100)}" width="${w}" height="${floor-Y(2100)}" fill="none" stroke="#8A8579" stroke-dasharray="4 3"/>`+T(x+w/2,Y(1000),'door','#8A8579'); return; }
-    if(sg.kind==='filler'||sg.kind==='inset'){ const bottom=sg.z??100,top=sg.tier==='tall'?Math.max(HH.wallTop,bottom+(sg.height??720)):bottom+(sg.height??720);s+=E(key,'base',i,x,Y(top),w,Y(bottom)-Y(top),sg.open?'transparent':'#D9A441',sg.open?'stroke="#B9B09E" stroke-dasharray="3 3"':''); if(sg.open&&labelFits('open',7,w)) s+=T(x+w/2,(Y(top)+Y(bottom))/2+3,'open','#8A8579',null,7); return; }
+    // a countertop dropdown runs down to the floor, with no skirting under it (rules.json: countertop-dropdown-to-floor)
+    if(sg.kind==='filler'||sg.kind==='inset'){ const z=sg.z??100,bottom=sg.tier!=='tall'&&/^countertop return/.test(sg.label||'')?0:z,top=sg.tier==='tall'?Math.max(HH.wallTop,z+(sg.height??720)):z+(sg.height??720);s+=E(key,'base',i,x,Y(top),w,Y(bottom)-Y(top),sg.open?'transparent':'#D9A441',sg.open?'stroke="#B9B09E" stroke-dasharray="3 3"':''); if(sg.open&&labelFits('open',7,w)) s+=T(x+w/2,(Y(top)+Y(bottom))/2+3,'open','#8A8579',null,7); return; }
     if(sg.kind==='tallBank'||isTallA){ const top=Math.max(HH.wallTop,sg.height??HH.tall);   // a tall unit ends level with the wall cabinets (its top filler is not in the plan)
       s+=E(key,'base',i,x,Y(top),w,floor-Y(top),TIER.tall); if(labelFits(isTallA?sg.label:'tall bank',9,w)) s+=label(x+w/2,Y(top)+14,isTallA?sg.label:'tall bank','#fff'); return; }
     const fill=sg.kind==='anchor'?(sg.label==='hob'?TIER.anchorHob:TIER.anchorSink):sg.kind==='corner'?'#B4936F':'#6E7466';
@@ -8892,7 +8950,7 @@ function drawPlanElev(key){
       // 'none' = outside the drawn wall zone: holds its width so positions stay exact, draws nothing
       if(u.kind==='tallFootprint'||u.kind==='overDoor'||u.kind==='none'||u.kind==='inset') return;
       if(u.kind==='window') return;
-      if(!(u.kind==='filler'&&u.open)) wallDims.push({a:x,b:x+w,v:Math.round(u.width)});
+      if(!(u.kind==='filler'&&u.open)) wallDims.push({a:x,b:x+w,v:Math.round((u.x0||0)+u.width)-Math.round(u.x0||0)});
       if(u.kind==='chimney'){ if(!R) s+=`<rect x="${x}" y="${y}" width="${w}" height="${h*0.55}" fill="#7C8270"/>`+T(x+w/2,y+12,'chimney','#fff',null,7.5); return; }
       if(u.kind==='filler'){ if(u.spare&&!S.editing) return; s+=E(key,'wall',i,x,y,w,h,u.open?'transparent':'#D9A441',u.open?'stroke="#B9B09E" stroke-dasharray="3 3"':''); return; }
       const glass=u.kind==='wallGlass';
@@ -8901,7 +8959,7 @@ function drawPlanElev(key){
       { const lbl=u.label||(u.kind==='wallGlass'?'glass':u.kind==='wallBlind'?'blind corner':'wall unit'); if(labelFits(lbl,7,w)) s+=label(x+w/2,y+h/2+3,lbl,'#fff',7); }
     });
     (t.loft||[]).forEach((u,i)=>{ const w=u.width*k, x=xs(u.x0||0,u.width), bottom=u.z??HH.wallTop, top=bottom+(u.height??HH.loft), y=Y(top), h=Y(bottom)-Y(top);
-      if(!(u.kind==='filler'&&u.open)&&(u.kind==='loft'||u.kind==='filler')) loftDims.push({a:x,b:x+w,v:Math.round(u.width)});
+      if(!(u.kind==='filler'&&u.open)&&(u.kind==='loft'||u.kind==='filler')) loftDims.push({a:x,b:x+w,v:Math.round((u.x0||0)+u.width)-Math.round(u.x0||0)});
       if(u.kind==='filler'){ s+=E(key,'loft',i,x,y,w,h,u.open?'transparent':'#D9A441',u.open?'stroke="#B9B09E" stroke-dasharray="3 3"':'');
         if(u.open&&labelFits('+ loft',7,w)) s+=`<text x="${x+w/2}" y="${y+h/2+3}" text-anchor="middle" font-size="7" fill="#8A8579" pointer-events="none">+ loft</text>`; return; }
       if(u.kind!=='loft') return;

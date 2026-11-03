@@ -42,11 +42,11 @@ test('saved kitchen moves residuals into concealed corners and keeps both tiers 
   assert.deepEqual(r.problems,[]);assert.deepEqual(geometryProblems(input,r.placed,catalog),[]);assert.deepEqual(overlapProblems(r.placed),[]);
   assert.deepEqual(blindCornerProblems(input,r.placed),[]);
   const row=r.placed.base.filter(p=>p.wall==='2').sort((a,b)=>a.at-b.at);
-  assert.ok(row.filter(p=>p.hiddenCorner).every(p=>p.width<=100),'concealed corner space stays within 100mm');
+  assert.ok(row.filter(p=>p.hiddenCorner).every(p=>p.width<=250),'concealed corner space stays within 100mm (250mm behind a LeMans)');
   const sink=row.find(p=>p.role==='sink');
   assert.ok(!row.some(p=>p.role==='gap filler'&&(p.at+p.width===sink.at||p.at===sink.at+sink.width)),'no filler beside the sink');
   for(const tier of ['base','wall'])for(const p of r.placed[tier].filter(p=>p.corner)){
-    assert.ok(p.corner.deadSpace<=100);assert.equal(p.shutter.clearance,40);
+    assert.ok(p.role==='LeMans corner'?p.corner.deadSpace>=150&&p.corner.deadSpace<=250:p.corner.deadSpace<=100);assert.equal(p.shutter.clearance,40);
     assert.equal(p.shutter.cornerDistance,p.shutter.adjacentFront+40);
     assert.equal(catalog.find(c=>c.code===p.code).width,p.width);
   }
@@ -59,7 +59,7 @@ test('saved kitchen moves residuals into concealed corners and keeps both tiers 
   without.runs.forEach(r=>r.segments=r.segments.filter(p=>!p.hiddenCorner));
   const noSpace=enumerateModules(without);
   assert.equal(withSpace.specs.length,noSpace.specs.length);
-  assert.equal(withSpace.counterMm2-noSpace.counterMm2,row.filter(p=>p.hiddenCorner).reduce((n,p)=>n+p.width*((p.depth??560)+40),0),'concealed corner space still carries countertop');
+  assert.equal(withSpace.counterMm2-noSpace.counterMm2,r.placed.base.filter(p=>p.hiddenCorner).reduce((n,p)=>n+p.width*((p.depth??560)+40),0),'concealed corner space still carries countertop');
   assert.ok(!r.notes.some(n=>/143mm filler|57mm filler/.test(n)));
   const explanation=KitchenRuleLog.explain({status:'applied',detail:r.notes.find(n=>/mm concealed corner/.test(n))});
   assert.equal(explanation.title,'Corner shutters aligned');assert.match(explanation.problem,/concealed and empty/);

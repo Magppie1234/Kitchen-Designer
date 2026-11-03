@@ -52,11 +52,11 @@
     } else if (/blind shutter must start/.test(text)) {
       title='The blind cabinet shutter needs more clearance';
       problem=plain(text)+'.';
-      action='Adjust the blind cabinet position or shutter opening while keeping the adjacent wall filler. Concealed space behind the cabinet may be up to 100 mm.';
+      action='Adjust the blind cabinet position or shutter opening while keeping the adjacent wall filler. Concealed space behind the cabinet may be up to 100 mm (250 mm behind a LeMans).';
     } else if (/concealed corner space is/.test(text)) {
-      title='Too much space behind the corner cabinet';
+      title='Space behind the corner cabinet is out of range';
       problem=plain(text)+'.';
-      action='Keep the concealed corner space between 0 and 100 mm and generate again.';
+      action='Keep the concealed corner space within that range (a blind 0-100 mm, a LeMans 150-250 mm) and generate again.';
     } else if (/base blind cabinet/.test(text)) {
       title = 'Keep both blind cabinets on the same wall';
       const wall = text.match(/base blind cabinet is on wall (\S+),/)?.[1];

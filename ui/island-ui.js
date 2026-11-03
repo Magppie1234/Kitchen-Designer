@@ -320,7 +320,7 @@
         if(cuts[k+1]-cuts[k]<60)continue;   // skip slivers
         g+=`<g pointer-events="none" data-island-gap="${cuts[k+1]-cuts[k]}"><line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" ${ac}/>`
           +[x0,x1].map(x=>`<line x1="${x}" y1="${y-3}" x2="${x}" y2="${y+3}" ${ac}/>`).join('')
-          +`<text x="${mx}" y="${ty}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-weight="600" fill="var(--accent)" transform="rotate(${up} ${mx} ${ty})" font-family="Hanken Grotesk,sans-serif">${(globalThis.fmtLen||String)(cuts[k+1]-cuts[k])}</text></g>`;}
+          +`<text x="${mx}" y="${ty}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-weight="600" fill="var(--accent)" transform="rotate(${up} ${mx} ${ty})" font-family="Hanken Grotesk,sans-serif">${(globalThis.fmtLen||String)(Math.round(cuts[k+1])-Math.round(cuts[k]))}</text></g>`;}
     }
     return g+'</g>';
   }

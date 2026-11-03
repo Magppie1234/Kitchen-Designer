@@ -105,3 +105,19 @@ test('a column in a corner: the blind cabinets stand against it and the space be
   const rb=(await fitKitchen(big,loadCatalog().ok,{proposals:false}))?.result;
   assert.ok(!rb||!rb.placed.base.some(p=>p.corner?.id==='2:3'&&p.corner.column));
 });
+
+test('corner-dead-space: a base blind leaves 50mm behind it, a LeMans at least 150mm; both end 1200mm from the corner',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const input=JSON.parse(readFileSync('verification/alignment-3600.json')).input;
+  for(const lemans of [true,false]){
+    const r=layout({...input,planningChoice:lemans?undefined:{lemansCorner:'none'}},loadCatalog().ok);
+    const corners=r.placed.base.filter(p=>p.corner&&!p.blocker);
+    assert.ok(corners.length,'the fixture has a base corner');
+    for(const p of corners){
+      const [lo,hi]=p.role==='LeMans corner'?[150,250]:[50,100], dead=p.corner.deadSpace;
+      assert.ok(dead>=lo&&dead<=hi,`${p.role}: ${dead}mm behind it`);
+      assert.ok(r.placed.base.some(q=>q.hiddenCorner&&q.cornerId===p.corner.id&&q.width===dead),'kept empty as concealed corner space');
+    }
+    if(lemans) assert.ok(corners.some(p=>p.role==='LeMans corner'));
+  }
+});

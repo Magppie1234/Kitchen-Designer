@@ -543,3 +543,41 @@ test('a stub with sides of different lengths is not closed into an angled wall',
   assert.deepEqual(corners(),room);
   assert.match(ctx.toast,/different lengths/);
 });
+
+test('dimension-enter-one-side: Enter applies a typed length only when one side can move; Design lengths open on the Design canvas',()=>{
+  const S={screen:'layout',walls:[{a:[0,0],b:[4000,0],length:4000}],anchors:[],structures:[],
+    openings:[{type:'door',wall:'W0',off:1000,width:800},{type:'window',wall:'W0',off:3000,width:1000}]};
+  const ctx=vm.createContext({S,tf:()=>({X:x=>x,Y:y=>y}),ptOnWall:(w,a)=>[w.a[0]+(w.b[0]-w.a[0])*a/w.length,w.a[1]+(w.b[1]-w.a[1])*a/w.length],
+    inputToMm:v=>Math.round(+v),lenToInput:v=>v,fmtLenU:String,showToast:m=>ctx.message=m,renderPos:id=>ctx.drawn=id,renderLayoutPanel(){},renderEditorLeft(){},
+    refresh3DIfLive(){},pushUndo(){},openingSpanFree:()=>true,structSpansOnWall:()=>[],fxWidthMm:()=>600,fxDropValid:()=>true});
+  vm.runInContext(between('function isWallVertical','function applyWallDimSide')+between('function computeGapsForWall','function activeSvg'),ctx);
+  ctx.startGapEdit(0,0,600);assert.equal(ctx.drawn,undefined,'redraws the canvas in view, not always the Layout one');
+  ctx.applyGapPrimary(0,'700');assert.equal(S.openings[0].off,1100,'only the door bounds the gap from the corner: Enter moves it');
+  ctx.startGapEdit(0,1500,2500);ctx.message=null;ctx.applyGapPrimary(0,'900');
+  assert.equal(S.openings[0].off,1100);assert.equal(S.openings[1].off,3000,'door and window both bound this gap: nothing moves');
+  assert.match(ctx.message,/Choose Apply Left or Apply Right/);
+});
+
+test('dimensions-add-up: chain pieces are measured between rounded ends, so they add up to the wall',()=>{
+  const S={unit:'mm'}, ctx=vm.createContext({S});
+  vm.runInContext(between('function fmtLen(','function fmtLenU'),ctx);
+  const cuts=[0,549.5,1450.5,4000];   // a 901mm door centred at 1000 on a 4000mm wall
+  const sum=()=>cuts.slice(1).reduce((n,b,k)=>n+ +ctx.fmtSpan(cuts[k],b),0);
+  assert.equal(sum(),4000);assert.equal(ctx.fmtSpan(549.5,1450.5),'901');
+  S.unit='ft'; const inches=s=>{ const [,f,i]=s.match(/(\d+)'(\d+)"/); return 12*+f+ +i; };
+  const parts=[[0,1000],[1000,2000]].map(([a,b])=>inches(ctx.fmtSpan(a,b)));
+  assert.equal(parts[0]+parts[1],inches(ctx.fmtLen(2000)),'in ft-in too');
+});
+
+test('open-spaces-merge: open spaces in a wall row join across a deleted filler and a sliver of bare wall',()=>{
+  const wall=[{kind:'filler',open:true,width:600,x0:0},{kind:'filler',open:true,width:50,x0:600},{kind:'filler',open:true,width:600,x0:650},
+    {kind:'wallSolid',width:600,x0:1350},{kind:'filler',open:true,width:500,x0:2050}];
+  const base=[{kind:'filler',open:true,width:600,x0:0},{kind:'filler',open:true,width:500,x0:700}];
+  const ctx=vm.createContext({S:{plan:{tiers:{W0:{wall}}}},isPanelSeg:()=>false,isDropdownSeg:()=>false});
+  vm.runInContext(between('function normalizeList','function highlightSelection'),ctx);
+  ctx.normalizeList(wall);
+  assert.deepEqual(plain(wall.map(u=>[u.kind,u.x0,u.width])),[['filler',0,1250],['wallSolid',1350,600],['filler',2050,500]],'a 100mm strip beside a cabinet stays');
+  wall.splice(1,1,{kind:'filler',open:true,width:600,x0:1350});ctx.normalizeList(wall);
+  assert.deepEqual(plain(wall.map(u=>[u.x0,u.width])),[[0,2550]],'once that cabinet goes too, the whole stretch is one open space');
+  ctx.normalizeList(base);assert.equal(base.length,2,'a base run is contiguous: positions there are not bare wall');
+});

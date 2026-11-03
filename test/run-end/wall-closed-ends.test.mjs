@@ -29,7 +29,7 @@ test('band-edge-at-wall-end-fixed: correction never pulls a drawn band out of it
   const input=room(),c=await correctKitchen(prepareAnchorInput(input),catalog,{original:input,budgetMs:3000});
   for(const tier of ['base','wall'])for(const [wall,end,at] of [['0','to',W],['1','from',0],['1','to',H]])
     assert.ok(c.input.zones[tier].some(z=>z.wall===wall&&z[end]===at),`${tier} band on wall ${wall} left its wall end`);
-  assert.ok(c.result.placed.base.some(p=>p.wall==='0'&&p.corner&&p.at+p.width===W),'top-right corner cabinet');
+  assert.ok(c.result.placed.base.some(p=>p.wall==='0'&&p.corner&&p.at+p.width===W-p.corner.deadSpace),'top-right corner cabinet, its dead space behind it (corner-dead-space)');
 });
 
 test('hob-flank-clear-of-corner: the hob flanks leave the corner return free, so the corner keeps its cabinet',()=>{

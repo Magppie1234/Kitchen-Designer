@@ -5,6 +5,26 @@ import '../ui/geometry.js';
 
 const ANCHOR_TIER = { hob: 'base', sink: 'base', veggie: 'base', fridge: 'tall' };
 
+// anchor-at-opening-edge: the Zones tool keeps a band door_side_clearance off a door (and off a
+// window in the tall row), yet an appliance may stand right beside the opening. A band ending in
+// that strip reaches on to the appliance standing past its end.
+export function reachAnchors(zones, j) {
+  const gap = RULE_PARAMS.door_side_clearance, out = {};
+  for (const [tier, spans] of Object.entries(zones ?? {})) out[tier] = (spans ?? []).map((z) => {
+    let { from, to } = z;
+    for (const a of j.anchors ?? []) {
+      if (a.location === 'island' || ANCHOR_TIER[a.item] !== tier || a.wall !== z.wall) continue;
+      for (const o of j.openings ?? []) {
+        if (o.wall !== z.wall) continue;
+        if (a.at < to && a.at + a.width > to && a.at + a.width <= o.at && o.at >= to && o.at - to <= gap) to = a.at + a.width;
+        if (a.at < from && a.at + a.width > from && a.at >= o.at + o.width && from >= o.at + o.width && from - o.at - o.width <= gap) from = a.at;
+      }
+    }
+    return from === z.from && to === z.to ? z : { ...z, from, to };
+  });
+  return out;
+}
+
 // The room is a closed rectilinear outline walked CLOCKWISE. Each wall carries a length and a
 // compass direction, and `at` is measured along the direction of travel. That makes any
 // rectilinear plan expressible — rectangle, L or U — and it makes consecutive walls genuinely
@@ -47,7 +67,7 @@ export function check(j) {
     if((i.fixtures||[]).some(f=>!f||!['hob','sink','veggie'].includes(f.type)||!Number.isSafeInteger(f.at)||f.at<0||!Number.isSafeInteger(f.width)||f.width<=0||!Number.isInteger(f.row)||f.row<0||f.row>=i.rows))return ['island: invalid fixture type, width, position or row'];
     if(!j.drawnZones)problems.push('island: cabinet zones must be drawn before placement');
   }
-  const zones = j.zones ?? {};
+  const zones = j.zones ?? {}, anchorZones = reachAnchors(zones, j);
 
   const within = (id, from, to, what) => {
     if (!wall[id]) return problems.push(`${what}: unknown wall "${id}"`);
@@ -108,7 +128,7 @@ export function check(j) {
     within(a.wall, a.at, a.at + a.width, `anchor ${a.item}`);
     const tier = ANCHOR_TIER[a.item];
     if (tier && wall[a.wall]) {
-      const inside = (zones[tier] ?? []).some((z) => z.wall === a.wall && a.at >= z.from && a.at + a.width <= z.to);
+      const inside = (anchorZones[tier] ?? []).some((z) => z.wall === a.wall && a.at >= z.from && a.at + a.width <= z.to);
       if (!inside) problems.push(`anchor ${a.item}: must be fully inside a ${tier} zone on wall ${a.wall}`);
     }
   }
@@ -184,13 +204,8 @@ export function check(j) {
     if (o.type === 'window' && (a.item === 'hob' || a.item === 'fridge'))
       problems.push(`${a.item} is in front of a window on ${o.wall} (window-rules-by-anchor)`);
   }
-  // door-side-clearance: no appliance within 50mm of a door's edge on the same wall.
-  const doorGap = RULE_PARAMS.door_side_clearance;
-  for (const a of anchors) for (const o of openings) {
-    if (a.location === 'island' || o.type !== 'door' || o.wall !== a.wall) continue;
-    if (overlaps(a.at, a.at + a.width, o.at - doorGap, o.at + o.width + doorGap) && !overlaps(a.at, a.at + a.width, o.at, o.at + o.width))
-      problems.push(`${a.item} is within ${doorGap}mm of a door on wall ${o.wall} (door-side-clearance)`);
-  }
+  // door-side-clearance: an appliance may stand right beside a door (anchor-at-opening-edge);
+  // nearer than 50mm is a warning from the engine, not invalid input.
   // fridge-clear-of-door-swing: a fridge on a door's hinge side (behind it, or in its swing
   // round the corner) keeps fridge_door_swing_gap between its nearest side and the door's edge.
   // o.flip: 0/1 swing in (hinge at start/end), 2/3 swing out; sliding and doorless doors have no swing.

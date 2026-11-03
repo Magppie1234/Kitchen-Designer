@@ -771,13 +771,25 @@ function buildKitchen(plan, walls){
         // skirting: it stops at the skirting line and the skirting runs on beneath it.
         // Visible panels too: every filler or panel stops at the skirting line, with skirting
         // beneath it, so its bottom edge matches the cabinets beside it.
-        if(tall&&z<SKIRT_H){ h-=SKIRT_H-z; z=SKIRT_H; }
+        // A tall visible panel closing a run end with nothing beyond it (open space, bare wall, a
+        // door) runs down to the floor with no skirting under it (rules.json: tall-panel-free-end-to-floor);
+        // one between a base run and a tall unit keeps the skirting line of the cabinets beside it.
+        const si=r.segments.indexOf(seg), solid=t=>!!t&&t.width>0&&!(t.kind==='filler'&&t.open)&&!['open','door','window'].includes(t.kind)
+          &&!(t.kind==='gap'&&!/corner void|footprint|reservation/.test(t.label||''));
+        const freeEnd=tall&&panel&&!(solid(r.segments[si-1])&&solid(r.segments[si+1]));
+        if(tall&&z<SKIRT_H&&!freeEnd){ h-=SKIRT_H-z; z=SKIRT_H; }
+        // …except the countertop dropdown: stone running from the worktop down to the floor, with
+        // no skirting under it (rules.json: countertop-dropdown-to-floor).
+        const drop=!tall&&/^countertop return/.test(seg.label||'');
+        if(drop){ h+=z; z=0; }
         const along=off+ww/2;
         const at=(k,y)=>world(w.a[0]+u[0]*along+n[0]*(k+inset),w.a[1]+u[1]*along+n[1]*(k+inset),y);
         // a visible panel is an end panel standing sideways; any other filler is the front
-        // filler strip (LH in the first half of the run, RH in the second)
+        // filler strip (LH in the first half of the run, RH in the second). The dropdown is the
+        // countertop itself turned down: its stone and finish, flush with the worktop's front edge.
         const draw=(h)=>{
-          if(panel) item(D<450?'VP-336-15':'VP-560-15',panelSide(seg,r.segments),ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
+          if(drop) item('Countertop 30mm',null,ww,h,D+COUNTER_OVER,at((D+COUNTER_OVER)/2,z+h/2),ang,0xDAD3C2,'countertop',false,{roughness:0.35,metalness:0.1});
+          else if(panel) item(D<450?'VP-336-15':'VP-560-15',panelSide(seg,r.segments),ww,h,D,at(D/2,z+h/2),ang,0xE6DFCE,'cabinet',true);
           else item(tall?(h>2200?'TFP-2397':'TFP-2037'):'BFP-717',along<r.total/2?'LH':'RH',ww,h,FILLER_D,at(D-FILLER_D/2,z+h/2),ang,0xE6DFCE,'cabinet'); };
         // A tall panel or filler tops out level with the tall cabinet beside it: its model stands
         // 100mm taller than the plan box (rules.json: tall-panel-top), as the fridge panel does.

@@ -17,7 +17,7 @@ export const windowClearOfWall = (o, height) => {
 const windowHitsTier = (o, tier, height) => tier === 'tall' || (tier === 'wall' && !windowClearOfWall(o, height));
 // The anchor-tolerance repair pass re-validates each candidate with the SAME guard the
 // designer's own input passes through, so a nudge can never be laxer than a hand placement.
-import { check, outline } from './checkInput.mjs';
+import { check, outline, reachAnchors } from './checkInput.mjs';
 import {validateIsland} from './island.mjs';
 
 const P = {
@@ -30,6 +30,8 @@ const P = {
   cornerFiller: RULE_PARAMS.corner_filler_min,
   shutterClearance: RULE_PARAMS.blind_shutter_clearance,
   deadSpaceMax: RULE_PARAMS.blind_corner_dead_space_max,
+  blindDead: RULE_PARAMS.blind_corner_dead_space,
+  lemansDeadMin: RULE_PARAMS.lemans_corner_dead_space_min,
   chimneyOver: RULE_PARAMS.chimney_wider_than_hob_by,
   chimneyHalf: RULE_PARAMS.chimney_wider_than_hob_by / 2,
   lemans: 1050, blind: 1150, wallBlind: 900,
@@ -538,6 +540,10 @@ function placeDishRacks(input, placed, cat, warnings, notes, done) {
   }
 }
 
+// corner-dead-space: the concealed space behind a corner unit, as [min, max, default]. A blind
+// leaves 50mm by default, a LeMans at least 150mm; either may take up to 100mm more.
+const deadSpaceRange = width => width===P.lemans ? [P.lemansDeadMin,P.lemansDeadMin+P.deadSpaceMax,P.lemansDeadMin] : [0,P.deadSpaceMax,P.blindDead];
+
 // --- corners: where two base zones meet, one takes a corner unit ------------------
 function corners(input, placed, cat, tiers = ['base', 'wall']) {
   const ws = outline(input.walls).walls.map(w => ({ ...w, a: [w.x0,w.y0], b: [w.x1,w.y1] }));
@@ -571,8 +577,9 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
       && !(input.openings||[]).some(o=>o.wall===wall && spansHit({at,width},o)
         && (o.type==='door'||windowHitsTier(o,tier,input.height)||(o.sill??900)<RULE_PARAMS.counter_height))
       && !(input.columns||[]).some(c=>!ignore.includes(c)&&c.wall===wall && spansHit({at,width},c));
-    // the column's own stretch on the cabinet's wall: concealed corner space, as behind any blind
-    const columnSpace=(leg,col,wall,own)=>col&&placeInto(placed,tier,{wall,at:leg==='a'?own.to-col:own.from,width:col,
+    // the column's own stretch on the cabinet's wall, plus the dead space left behind a base
+    // blind or LeMans (corner-dead-space): concealed corner space, kept empty
+    const columnSpace=(leg,col,wall,own)=>col>0&&placeInto(placed,tier,{wall,at:leg==='a'?own.to-col:own.from,width:col,
       role:'concealed corner space',blocker:true,hiddenCorner:true,cornerId:`${a.id}:${b.id}`,code:null});
     // An upper run on the adjacent wall is optional. If only the owner's
     // upper zone reaches the corner, still provide the required matching blind.
@@ -618,15 +625,25 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
     for (const width of widths) { for (const leg of legs) {
       const own=leg==='a'?za:zb, other=leg==='a'?zb:za;
       const wallFiller=tier==='tall'?RULE_PARAMS.wall_filler_width:0, col=colFor(leg), ignore=col?cornerCol.cols:[];
-      const at=leg==='a'?own.to-width-wallFiller-col:own.from+wallFiller+col;
+      let dead=tier==='base'?Math.max(0,deadSpaceRange(width)[2]-col):0;   // a corner column already stands in that space
+      let at=leg==='a'?own.to-width-wallFiller-col-dead:own.from+wallFiller+col+dead;
       const ret=leg==='a'?other.from:other.to-depth-P.cornerFiller;
       const trim = cuts[`${tier}:${own.wall}`]||{};
+      // The free stretch the dead space leaves beside the unit must be closable: none, or at least a
+      // gap filler. A sliver gives the dead space back, down to the unit's minimum (a blind may stand
+      // closer than its usual 50mm, a LeMans never under 150mm, so it gives way to a blind).
+      if(dead){ const row=placed[tier].filter(p=>p.wall===own.wall);
+        const free=leg==='a'?at-Math.max(trim.from??own.from,...row.filter(p=>p.at+p.width<=at+0.5).map(p=>p.at+p.width))
+          :Math.min(trim.to??own.to,...row.filter(p=>p.at>=at+width-0.5).map(p=>p.at))-(at+width);
+        const need=RULE_PARAMS.gap_filler_min-free;
+        if(free>0&&need>0){ if(dead-need<Math.max(0,deadSpaceRange(width)[0]-col)) continue;
+          dead-=need; at+=leg==='a'?need:-need; } }
       if (at < (trim.from??own.from) || at+width > (trim.to??own.to)
         || other.to-other.from < depth+P.cornerFiller
         || !clear(own.wall,at,width,ignore) || !clear(other.wall,ret,depth+P.cornerFiller,ignore)) continue;
       const unit=cat.find(c=>c.zone===(tier==='wall'?'WB':tier==='tall'?'TB':'BB') && c.width===width
         && (tier==='wall'?c.height===P.heights[input.height].wall:tier==='tall'?c.height===P.heights[input.height].tall&&c.handle==='TTS':c.handle===input.handle && c.family===(width===P.lemans?'AC':'SH')));
-      if(unit){choice={leg,own,other,at,unit,col};break;}
+      if(unit){choice={leg,own,other,at,unit,col,dead};break;}
     } if(choice) break; }
     if(!choice){
       // The final synchronization check explains a missing upper corner. Never
@@ -643,9 +660,9 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
       }
       continue;
     }
-    const {leg,own,other,at,unit,col}=choice;
+    const {leg,own,other,at,unit,col,dead}=choice;
     const role=tier==='wall'?'wall blind corner':tier==='tall'?'tall blind corner':unit.width===P.lemans?'LeMans corner':'blind corner';
-    columnSpace(leg,col,own.wall,own);
+    columnSpace(leg,col+dead,own.wall,own);
     if(col)notes.push(`${own.wall}/${tier}: ${role} stands against the ${col}mm corner column; the space beside the column is concealed corner space`);
     placeInto(placed,tier,{wall:own.wall,at,width:unit.width,role,code:unit.code,
       corner:{id:`${a.id}:${b.id}`,end:leg==='a'?'to':'from',adjacentWall:other.wall,adjacentEnd:leg==='a'?'from':'to',...(col?{column:col}:{})}});
@@ -731,7 +748,7 @@ export function arrangeBlindFronts(input, placed, cat, notes=[]) {
       group.push(q);edge=fromEnd?q.at+q.width:q.at;
     }
     const oldDead=(c.end==='from'?p.at:w.length-p.at-p.width)-(c.column||0);   // a corner column is not dead space
-    let move=Math.min(gap?.width??0,Math.max(0,P.deadSpaceMax-oldDead));
+    let move=Math.min(gap?.width??0,Math.max(0,deadSpaceRange(p.width)[1]-oldDead));
     if(gap && gap.width>move && gap.width-move<RULE_PARAMS.gap_filler_min)
       move=Math.max(0,gap.width-RULE_PARAMS.gap_filler_min);
     if(move>0) {
@@ -761,8 +778,8 @@ export function blindShutterProblems(input, placed, cat) {
   const problems=[];
   for(const tier of ['base','wall'])for(const p of placed[tier]??[])if(p.corner&&!p.blocker) {
     const w=input.walls.find(w=>w.id===p.wall),dead=(p.corner.end==='from'?p.at:w.length-p.at-p.width)-(p.corner.column||0);
-    const expected=blindFront(input,placed,cat,p,tier),s=p.shutter;
-    if(dead<0||dead>P.deadSpaceMax)problems.push(`${p.wall}/${tier}: concealed corner space is ${dead}mm; allowed range is 0-${P.deadSpaceMax}mm`);
+    const expected=blindFront(input,placed,cat,p,tier),s=p.shutter,[min,hi]=deadSpaceRange(p.width),lo=Math.max(0,min-(p.corner.column||0));
+    if(dead<lo||dead>hi)problems.push(`${p.wall}/${tier}: concealed corner space is ${dead}mm; allowed range is ${lo}-${hi}mm`);
     if(!s||s.x0!==expected.x0||s.x1!==expected.x1||s.width!==expected.width||s.x0<p.at||s.x1>p.at+p.width||s.width<=0)
       problems.push(`${p.wall}/${tier}: blind shutter must start ${expected.cornerDistance}mm from the corner, ${P.shutterClearance}mm beyond the adjacent cabinet front`);
   }
@@ -913,7 +930,7 @@ export function runEndProblems(input, placed, cornerEnds = new Set()) {
 }
 
 function solve(input, cat) {
-  input={...input,zones:continuousZones(input.zones)};
+  input={...input,zones:reachAnchors(continuousZones(input.zones),input)};   // anchor-at-opening-edge
   const H = P.heights[input.height];
   const { placed, notes, problems, warnings } = expand(input, cat);
   const packingSpans = [], appliedRuns = new Set();
@@ -965,15 +982,26 @@ function solve(input, cat) {
     for (const tier of tiers.filter(t => o.type === 'door' || t === 'base' || windowHitsTier(o, t, input.height)))
       placeInto(placed, tier, { wall: o.wall, at: o.at, width: o.width, role: `${o.type} (no cabinet)`, code: null, blocker: true });
   }
-  // door-side-clearance: bare wall on both sides of a door, in every tier.
-  const doorGap = RULE_PARAMS.door_side_clearance;
+  // door-side-clearance: bare wall on both sides of a door, in every tier. An appliance may stand
+  // in it (anchor-at-opening-edge): only the wall left between them stays bare, and it is reported.
+  const doorGap = RULE_PARAMS.door_side_clearance, appliance = /^(hob|sink|veggie sink|refrigerator|chimney)( \(tall above\))?$/;
   for (const o of (input.openings ?? []).filter(o => o.type === 'door')) {
     const len = input.walls.find(w => w.id === o.wall)?.length ?? Infinity;
     for (const [at, width] of [[o.at - doorGap, doorGap], [o.at + o.width, doorGap]]) {
       const a = Math.max(0, at), b = Math.min(len, at + width);
       if (b > a) for (const tier of ['base', 'wall', 'tall']) {
-        const clash = placeInto(placed, tier, { wall: o.wall, at: a, width: b - a, role: 'door side clearance', code: null, blocker: true });
-        if (clash && !clash.blocker) problems.push(`${o.wall}/${tier}: ${clash.role} is within ${doorGap}mm of the door (door-side-clearance)`);
+        const apps = placed[tier].filter(p => p.wall === o.wall && !p.blocker && appliance.test(p.role) && p.at < b && p.at + p.width > a);
+        let pieces = [[a, b]];
+        for (const p of apps) {
+          pieces = pieces.flatMap(([x, y]) => [[x, Math.min(y, p.at)], [Math.max(x, p.at + p.width), y]].filter(([u, v]) => v > u));
+          const gap = p.at + p.width <= o.at ? o.at - p.at - p.width : p.at - o.at - o.width;
+          const msg = `${o.wall}: ${p.role.replace(' (tall above)', '')} stands ${gap}mm from the door, less than the usual ${doorGap}mm (door-side-clearance)`;
+          if (!warnings.includes(msg)) warnings.push(msg);
+        }
+        for (const [x, y] of pieces) {
+          const clash = placeInto(placed, tier, { wall: o.wall, at: x, width: y - x, role: 'door side clearance', code: null, blocker: true });
+          if (clash && !clash.blocker) problems.push(`${o.wall}/${tier}: ${clash.role} is within ${doorGap}mm of the door (door-side-clearance)`);
+        }
       }
     }
   }
@@ -1117,7 +1145,7 @@ function solve(input, cat) {
             // concealed corner space (blind-dead-space-absorbs-filler), up to what that space still allows.
             const hidden=(x,side)=>{ const q=next(x,side); if(!q?.corner||q.blocker) return 0;
               const w=wallLen[q.wall], dead=(q.corner.end==='from'?q.at:w-q.at-q.width)-(q.corner.column||0);
-              return (q.corner.end==='from')===(side==='from')?Math.max(0,P.deadSpaceMax-dead):0; };   // only toward its own corner
+              return (q.corner.end==='from')===(side==='from')?Math.max(0,deadSpaceRange(q.width)[1]-dead):0; };   // only toward its own corner
             fillerSides={from:meets(from,'from'),to:meets(to,'to'),hide:Math.max(hidden(from,'from'),hidden(to,'to')),
               hideSide:hidden(from,'from')>=hidden(to,'to')?'from':'to'};
             if(!fillerSides.from&&!fillerSides.to&&fillerSides.hide)end=fillerSides.hideSide==='to';
