@@ -90,7 +90,7 @@ test('editing sparse wall rows preserves the window gap',()=>{
   const c=editor([{kind:'wallSolid',width:600,x0:25},{kind:'wallSolid',width:600,x0:2025}]);
   c.recalcPositions();assert.deepEqual(plain(c.S.plan.tiers.W0.wall.map(s=>s.x0)),[25,2025]);
   c.editReplacePick('replacement',450,725,false);
-  assert.deepEqual(plain(c.S.plan.tiers.W0.wall.map(s=>[s.kind,s.width,s.x0])),[['wallSolid',450,25],['filler',150,475],['wallSolid',600,2025]]);
+  assert.deepEqual(plain(c.S.plan.tiers.W0.wall.map(s=>[s.kind,s.width,s.x0,!!s.open])),[['wallSolid',450,25,false],['filler',150,475,true],['wallSolid',600,2025,false]],'the rest is open space, not a filler');
 });
 test('wall replacement consumes adjacent filler first, then pushes the units after it',()=>{
   const c=editor([{kind:'filler',width:50,x0:25},{kind:'wallSolid',width:600,x0:75,height:725,z:1415,depth:336},{kind:'filler',width:50,x0:675},{kind:'wallSolid',width:600,x0:1725}]);
@@ -275,6 +275,45 @@ test("island-modules: island cabinets are edited like a wall run, inside the isl
   S.plan.island=JSON.parse(JSON.stringify(S.plan.island));   // undo restores a copy: its row is rebuilt from it
   assert.equal(ctx.editableList({run:'island:0',tier:'base'})[0].code,'BC-DW-450');
 });
+test('edit-cabinet-placement: a cabinet goes where the empty space was clicked; the rest stays open space',()=>{
+  const cab=(code,width,extra={})=>({kind:'cabinet',code,label:code,width,depth:560,height:720,z:100,...extra});
+  const S={editing:true,options:{ceiling:3100},structures:[],walls:[{a:[0,0],b:[3600,0],length:3600}],selModRef:{run:'W0',tier:'base',idx:0},
+    plan:{runs:[{key:'W0',segments:[{kind:'filler',open:true,label:'open space',width:3000},{kind:'gap',width:600}]}],tiers:{}}};
+  const ctx=vm.createContext({S,TALL_ANCHORS:['fridge'],showToast:m=>ctx.message=m,afterEdit:()=>ctx.recalcPositions()});
+  vm.runInContext(readFileSync('ui/geometry.js','utf8'),ctx);
+  vm.runInContext(between('function editableList','// merge consecutive')+between('function normalizeList','function highlightSelection')
+    +between('function editDelete','/*__RELOCATE_CORE_START__*/'),ctx);
+  ctx.recalcPositions();
+  const row=()=>plain(S.plan.runs[0].segments.map(s=>[s.kind==='filler'?(s.open?'open':'FILLER'):s.code||s.kind,s.x0,s.width])), base=[720,false,{category:'base',d:560}];
+  S.selModRef.at=1500;ctx.editReplacePick('BC-HO-900',900,...base);
+  assert.deepEqual(row(),[['open',0,1050],['BC-HO-900',1050,900],['open',1950,1050],['gap',3000,600]],'centred on the click, open space either side, no filler');
+  assert.equal(S.plan.runs[0].segments[1].kind,'anchor','a hob cabinet is the hob');
+  S.selModRef={run:'W0',tier:'base',idx:0,at:960};ctx.editReplacePick('BC-DW-600',600,...base);
+  assert.deepEqual(row().slice(0,3),[['open',0,450],['BC-DW-600',450,600],['BC-HO-900',1050,900]],'less than 150mm from the hob: flush against it');
+  S.selModRef={run:'W0',tier:'base',idx:1};ctx.editReplacePick('BC-DW-450',450,...base);
+  assert.deepEqual(row().slice(0,4),[['open',0,450],['BC-DW-450',450,450],['open',900,150],['BC-HO-900',1050,900]],'a narrower replacement leaves open space, not a filler');
+  S.selModRef={run:'W0',tier:'base',idx:5};ctx.editReplacePick('BC-SH-300',300,...base);
+  assert.deepEqual(row().slice(-3),[['open',1950,1050],['BC-SH-300',3000,300],['gap',3300,300]],'with no click point it goes against the run, dead space stays dead space');
+});
+test("edit-cabinet-placement: a cabinet slides along a wall another wall's corner cabinet reaches; fillers stay put",()=>{
+  const walls=[{a:[0,0],b:[3600,0]},{a:[3600,0],b:[3600,3000]},{a:[3600,3000],b:[0,3000]},{a:[0,3000],b:[0,0]}].map(w=>({...w,length:Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a[1])}));
+  const cab=(code,width)=>({kind:'cabinet',code,width,depth:560,height:720,z:100}), open=width=>({kind:'filler',open:true,label:'open space',width});
+  const S={editing:true,options:{ceiling:3100},structures:[],walls,keeps:[],selModRef:{run:'W0',tier:'base',idx:3},plan:{tiers:{},runs:[
+    {key:'W0',segments:[{kind:'gap',label:'perpendicular cabinet footprint',width:600},{kind:'filler',label:'corner filler',width:40},open(1022),cab('BC-SH-550',550),open(288),{kind:'corner',code:'LMC',width:1100,corner:{end:'to'},shutter:{x0:2500,x1:3000,width:500}}]},
+    {key:'W3',segments:[{kind:'gap',width:1000},cab('BC-DW-900',900),{kind:'corner',code:'BLIND',width:1100,corner:{end:'to'},shutter:{x0:2000,x1:2400,width:400}}]}]}};
+  const ctx=vm.createContext({S,TALL_ANCHORS:['fridge'],showToast:m=>ctx.message=m,confirm:()=>true,afterEdit:()=>ctx.recalcPositions()});
+  vm.runInContext(readFileSync('ui/geometry.js','utf8'),ctx);
+  vm.runInContext(between('function editableList','// merge consecutive')+between('function normalizeList','function highlightSelection')
+    +between('function editDelete','/*__RELOCATE_CORE_START__*/')+between('/*__RELOCATE_CORE_START__*/','// A blind / LeMans corner'),ctx);
+  ctx.recalcPositions();
+  const row=()=>plain(S.plan.runs[0].segments.map(s=>[s.code||s.label||s.kind,s.x0,s.width])), at=()=>S.plan.runs[0].segments.find(s=>s.code==='BC-SH-550').x0;
+  const move=x=>{ S.selModRef.idx=S.plan.runs[0].segments.findIndex(s=>s.code==='BC-SH-550'); return ctx.relocateSelected(x); };
+  assert.ok(move(1652));assert.equal(at(),1652,'the move is applied, not lost when the corner re-marks the wall');
+  assert.ok(move(900));assert.equal(at(),900);
+  assert.ok(move(2900));assert.equal(at(),1950,'dropped on the LeMans corner, it stops against it');
+  assert.ok(move(0));assert.equal(at(),640,'dropped on the corner filler, it stops against it');
+  assert.deepEqual(row().slice(0,3),[['perpendicular cabinet footprint',0,600],['corner filler',600,40],['BC-SH-550',640,550]],'the corner filler stays');
+});
 test('space an adjoining cabinet stands in, or in front of, is occupied — not an extend area',()=>{
   const walls=[{a:[0,0],b:[4000,0],length:4000},{a:[4000,0],b:[4000,3000],length:3000},{a:[4000,3000],b:[0,3000],length:4000},{a:[0,3000],b:[0,0],length:3000}];
   const ctx=vm.createContext({});vm.runInContext(readFileSync('ui/geometry.js','utf8'),ctx);
@@ -354,7 +393,7 @@ test('a tall unit can be dragged into the open space beside it',()=>{
   const plan=ctx.relocateCore(list,tall,150);
   assert.ok(plan.ok,plan.reason);assert.equal(plan.lo,150);
   ctx.relocateApply(list,tall,plan);assert.deepEqual(plain(list.map(s=>[s.kind,s.width])),[['filler',150],['tallBank',900],['anchor',800],['tallBank',600]]);
-  assert.equal(ctx.relocateCore(list,tall,1700).ok,false,'another tall unit is still a barrier');
+  assert.equal(ctx.relocateCore(list,tall,1700).lo,150,'another tall unit is still a barrier: a drop on it stops against the sink');
 });
 
 test('a wall-flush column shows and sets the space either side of it, like a door',()=>{
@@ -407,7 +446,7 @@ test('a cabinet can be dragged into free empty space; moving leaves open space, 
   assert.ok(plan.ok,plan.reason);
   ctx.relocateApply(list,cab,plan);
   assert.deepEqual(plain(list.map(s=>[s.kind,!!s.open,s.width])),[['filler',true,600],['cabinet',false,450],['filler',true,450],['cabinet',false,600],['filler',true,150]]);
-  assert.equal(ctx.relocateCore([cab,{kind:'gap',label:'concealed corner space',width:900}],cab,700).ok,false,'concealed corner space is not free');
+  assert.equal(ctx.relocateCore([cab,{kind:'gap',label:'concealed corner space',width:900}],cab,700).lo,0,'concealed corner space is not free: the cabinet stays out of it');
 });
 
 // rules.json: room-resumes-where-left

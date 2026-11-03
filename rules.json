@@ -1473,6 +1473,24 @@
       "statement": "An uploaded plan is imported as it is, and the designer places hint pins on it (inside the room, walls, doors, windows, columns). One Gemini call reads the plan with those pins and draws the room, doors, windows and columns from the boundaries it detects. The model gives positions on the image, not lengths: millimetres come from the plan's scale (one wall's real length), walls are squared (not snapped to the drawn lines, which jumped walls across their thickness), and everything lands editable. A second call happens only when the designer clicks Read again.",
       "note": "Replaces the old two-call flow (kitchen-detect + vision-extract) for this path; the designer boxes the kitchen themselves. Draw room walls stays as the manual fallback. An open door's leaf (the thin rectangle at right angles to the wall where the swing arc ends) is never a wall: the prompt says so, and pinReadToDraft() cuts a spike up to 150mm thick that goes in and back out by the same depth (within 50mm) beside a door's end (2026-10-24, read as a 4in wall stub on a real plan).",
       "implementation": "plan-read.mjs PIN_READ/readWithPins()/toPinRead() behind POST /api/plan-pins (server.mjs); ui/builder.html pinPanelHtml()/placePin()/readPlanWithPins() draw the pins on the image as numbered dots, pinReadToDraft() maps the answer to mm and squares it, applyVisionExtract() applies it, applyRoomScale() then sets the scale. Test: test/plan-read."
+    },
+    {
+      "id": "edit-cabinet-placement",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [],
+      "statement": "In editing, a cabinet picked from the library for empty space (open space or an extend area) goes where the designer clicked that space on the 2D plan, centred on the click point on a 10mm grid; it is not pushed to the left or right end. A leftover of less than the narrowest cabinet (150mm) beside it is not left: the cabinet goes flush to that edge. With no click point (for example, in the elevation) it goes against the neighbouring cabinet as before. Whatever the cabinet does not use stays empty: open space, or dead space that stays dead space. Replacing a cabinet with a narrower one likewise leaves open space, in every row. A filler is placed only when the designer adds one. The placed cabinet can then be dragged anywhere along its run: into open space and extend area, pushing cabinets in its way. A filler or panel stays where it is (it is removed or moved only by the designer), like a door, corner or tall unit; a cabinet dropped on one of these stops against it rather than being refused. Moving works the same on a wall whose corner another wall's cabinet reaches into.",
+      "seen_in_note": "Designer, 2026-11-03: a hob added to a wall whose cabinets were all deleted went only to the left or right, and the rest of the wall got a filler; fillers only when asked for.",
+      "implementation": "ui/builder.html: selectModule(i,ev) records S.selModRef.at (mm along the run, from runAxis()); editReplacePick() places into an empty slot at that point (lead, snapped flush within MIN_CABINET) or by runSide() when unknown, and leaves every remainder as open space (or the dead-space gap kind). relocateCore() treats only cabinets, anchors, open space and free gaps as movable/free (fillers and panels are barriers) and falls back to the unit's own bay when the drop lands on a barrier; relocateSelected() and slideCorner() recalculate positions before reading the run, since markOccupied() can rebuild its list. Tests: test/ui-state/ui-state.test.mjs 'edit-cabinet-placement: a cabinet goes where the empty space was clicked; the rest stays open space' and 'edit-cabinet-placement: a cabinet slides along a wall another wall's corner cabinet reaches; fillers stay put'; test/cabinet-catalog/cabinet-catalog.test.mjs 'an anchor moves like a cabinet, pushing neighbours aside; corners still stop a drop'."
+    },
+    {
+      "id": "anchor-centre-snap",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [],
+      "statement": "While a hob, sink or other anchor is dragged along a wall, it holds at the wall's centre when its centre comes within 150mm of it, the way a sink holds at a window's centre; dragging further lets it go. On the Design plan this applies to every anchor (a sink still prefers a window centre within reach); in editing, to hob and sink cabinets and other anchors dragged along their run or island row.",
+      "seen_in_note": "Designer, 2026-11-03: freeze the hob/sink for a moment at the centre of the wall to make the alignment look better.",
+      "implementation": "ui/builder.html: snapAnchorToWallCentre() in onFxDrag() (Design plan; only where the centre is a valid drop inside the drawn zones) and the ANCHOR_CENTRE_SNAP check in onModDrag() for anchor segments (editing)."
     }
   ],
   "open_questions": [

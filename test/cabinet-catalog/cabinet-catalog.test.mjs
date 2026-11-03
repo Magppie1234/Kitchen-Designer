@@ -199,12 +199,16 @@ test('an anchor moves like a cabinet, pushing neighbours aside; corners still st
   const ctx = vm.createContext({});
   vm.runInContext(between('/*__RELOCATE_CORE_START__*/', '/*__RELOCATE_CORE_END__*/') + ';this.relocateCore=relocateCore;this.relocateApply=relocateApply;', ctx);
   const hob = { kind: 'anchor', label: 'hob', width: 900 }, cab = { kind: 'cabinet', width: 600 };
-  const list = [{ kind: 'corner', width: 1000 }, hob, cab, { kind: 'filler', width: 400 }];
+  const list = [{ kind: 'corner', width: 1000 }, hob, cab, { kind: 'filler', open: true, width: 400 }];
   const plan = ctx.relocateCore(list, hob, 2000);   // drop past the cabinet
   assert.ok(plan.ok);
   ctx.relocateApply(list, hob, plan);
   assert.deepEqual(list.map((s) => [s.kind, s.width]), [['corner', 1000], ['filler', 400], ['cabinet', 600], ['anchor', 900]]);
-  assert.equal(ctx.relocateCore(list, hob, 100).ok, false, 'the corner is still a barrier');
+  // rules.json: edit-cabinet-placement — a drop on the corner stops the hob against it
+  const onCorner = ctx.relocateCore(list, hob, 100);
+  assert.ok(onCorner.ok); assert.equal(onCorner.lo, 1000, 'the corner is still a barrier: the hob stops at its edge');
+  const kept = [{ kind: 'corner', width: 1000 }, { kind: 'filler', label: 'corner filler', width: 40 }, { kind: 'filler', open: true, width: 600 }, cab];
+  assert.equal(ctx.relocateCore(kept, cab, 0).lo, 1040, 'a filler stays where it is: the cabinet stops against it');
 });
 
 test('open spaces side by side merge into one, and a filler of any width can go into one', () => {
