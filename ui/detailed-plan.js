@@ -44,6 +44,9 @@
     const attr=`stroke="${color}" stroke-width=".55" vector-effect="non-scaling-stroke"`;
     return `<g class="plan-dimension" pointer-events="none">${line(a,from,a,y+2,attr)}${line(b,from,b,y+2,attr)}${line(a,y,b,y,attr)}${line(a-1,y+1.5,a+1,y-1.5,attr)}${line(b-1,y+1.5,b+1,y-1.5,attr)}<text transform="rotate(${flip?180:0} ${(a+b)/2} ${y-3.5})" x="${(a+b)/2}" y="${y-2}" text-anchor="middle" font-size="${small?3.7:5.2}" fill="${color}" paint-order="stroke" stroke="#fff" stroke-width="1">${esc(label)}</text></g>`;
   }
+  const TALL_BY_CODE=[[/-TPT-/,'Tandem pantry'],[/^TC-REF-/,'Fridge tower'],[/^MDT-MW-/,'Mid-tall microwave unit'],[/^MDT-OV-/,'Mid-tall oven unit'],
+    [/^TC-MO-/,'Microwave + oven unit'],[/^TC-MW-/,'Microwave unit'],[/^TC-OV-/,'Oven unit'],[/^TC-CF-/,'Coffee machine unit'],[/^TC-AP-/,'Appliance unit'],
+    [/^TC-DW-/,'Tall drawer unit'],[/^TC-PO-/,'Tall pull-out unit'],[/^TB-/,'Tall blind cabinet'],[/^TC-SH-[^-]+-GL-/,'Tall glass cabinet'],[/^TC-SH-/,'Tall shelf cabinet']];
   function description(seg,tier){
     const p=(seg.code||'').split('-');
     const prefix=tier==='tall'?'Tall':tier==='wall'?'Wall':'Base';
@@ -57,7 +60,9 @@
       :seg.label==='fridge'?'Fridge tower':seg.label==='oven'?'Oven / microwave'
       :seg.label==='pantry'?'Tandem pantry':seg.label==='crockery'?'Crockery cabinet'
       :`${prefix} cabinet`;
-    if(seg.kind==='tallBank')name=({fridge:'Fridge tower',pantry:'Tandem pantry',appliance:'Oven / microwave',shelves:'Tall shelf cabinet',glass:'Tall glass cabinet'})[seg.units?.[0]?.type]||seg.label||name;
+    // a tall unit is named by its own code first; the unit type is only a fallback for one without a code
+    if(seg.kind==='tallBank')name=TALL_BY_CODE.find(([re])=>re.test(seg.code||seg.units?.[0]?.code||''))?.[1]
+      ||({fridge:'Fridge tower',pantry:'Tandem pantry',appliance:'Oven / microwave',shelves:'Tall shelf cabinet',glass:'Tall glass cabinet'})[seg.units?.[0]?.type]||seg.label||name;
     const fridge=seg.units?.find(u=>u.type==='fridge'&&u.applianceWidth);
     if(fridge)return [`${fridge.applianceWidth} mm fridge`,'50 mm clearance each side',`${seg.width} mm opening`];
     const specs=p.slice(4,7).map(s=>{
@@ -176,6 +181,12 @@
         if(seg.kind==='filler'&&seg.open){ if(mode==='wall'&&state.editing)draw(seg,index,x,'wall','wall','open'); continue; }
         draw(seg,index,x,'wall','wall');
       }
+      // The upper chain covers the whole wall: open space and bare wall either side of the wall cabinets
+      // are dimensioned too, so the space left beside a cabinet reads off the plan (rules.json: upper-dimensions-close).
+      if(mode!=='base'){const list=mode==='overlay'?upperDims:dimensions;
+        if(list.length){let at=0;const hole=(a,b)=>{if(b-a>.5)list.push({a,b,dep:0,width:Math.round(b/t.sc)-Math.round(a/t.sc),bare:true});};
+          for(const d of [...list].sort((p,q)=>p.a-q.a)){hole(at,d.a);at=Math.max(at,d.b);}
+          hole(at,L*t.sc);}}
       // All cabinet widths are retained in the dimension chain, including narrow fillers.
       // Crowded values use a second row and leader so they remain readable.
       // Outside editing, neighbouring bare-wall stretches read as one dimension, not a row of empty slots.
@@ -198,9 +209,12 @@
       };
       chain(dimensions,red);
       if(upperDims.length){row+=2;chain(upperDims,blue);}
-      for(const {seg,x} of base.filter(({seg})=>['hob','sink'].includes(seg.label))){
+      // the zone each anchor heads, written in front of it (rules.json: zone-labels)
+      const zoneOf=seg=>seg.label==='hob'?'COOKING ZONE':seg.label==='sink'?'WASHING ZONE'
+        :seg.label==='fridge'||seg.units?.some(u=>u.type==='fridge')||/^TC-REF-/.test(seg.code||'')?'COOLING ZONE':null;
+      for(const {seg,x} of base.filter(({seg})=>zoneOf(seg))){
         const cx=(x+seg.width/2)*t.sc,cy=sign*(front+10);
-        annotations.push(`<g transform="${transform}"><text transform="rotate(${flip?180:0} ${cx} ${cy})" x="${cx}" y="${cy}" text-anchor="middle" font-size="4.5" fill="${red}">${seg.label==='hob'?'COOKING ZONE':'WASHING ZONE'}</text></g>`);
+        annotations.push(`<g transform="${transform}"><text transform="rotate(${flip?180:0} ${cx} ${cy})" x="${cx}" y="${cy}" text-anchor="middle" font-size="4.5" fill="${red}">${zoneOf(seg)}</text></g>`);
       }
       const overall=dimension(0,L*t.sc,out*(row+5),out*wallWidth,Math.round(L),false,flip);
       annotations.push(`<g transform="${transform}">${overall}</g>`);

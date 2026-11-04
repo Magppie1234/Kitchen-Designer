@@ -225,8 +225,9 @@ function rectOverlap(A,B,eps=2){
   return true;
 }
 // Chimney models are needed synchronously (their depth sets the clearance zone that decides
-// what else may be placed), so startScene loads them before building.
-let chimneyModels=[];
+// what else may be placed), so startScene loads them before building. So are the hob models: the
+// chimney hangs a set gap above the hob's own top (chimney-above-hob).
+let chimneyModels=[], hobModels=[];
 const std=(color,o={})=>new THREE.MeshStandardMaterial(Object.assign({color,roughness:0.72,metalness:0.04},o));
 function colorFor(kind,label){ if(label==='hob')return 0x2b2b24; if(label==='sink'||label==='veggie sink')return 0x9fb8c8; if(label==='fridge')return 0xB0894C; if(['oven','pantry','crockery'].includes(label))return 0x6b5a3e; if(kind==='corner')return 0x21433A; return 0xEFE9DA; }
 /* ---- runtime finishes on the actual 3D materials (Stage 7) ----
@@ -628,12 +629,20 @@ function buildKitchen(plan, walls){
   const beams=((window.S&&window.S.structures)||[]).filter(st=>st.type==='beam');
   const beamOver=(fp)=>beams.some(st=>rectOverlap(fp,{c:[st.x,st.y],u:[1,0],hu:st.w/2,hv:(st.d||230)/2}));
   const chimneyHobs=new Set();
+  // The chimney model's underside hangs params.chimney_above_hob (800mm) clear above the top of the hob
+  // (its pan supports, as the hob model of that width stands on the worktop), whatever the wall
+  // cabinets' height (rules.json: chimney-above-hob).
+  const hoodAt=(hobW)=>{ const x=fitByWidth(hobModels,hobW), hobH=x?x.h*Math.min(1,hobW/x.w):0;
+    return stack.baseTop+hobH+(P.chimney_above_hob??800); };
+  // The chimney space is hob + chimney_wider_than_hob_by (1000 / 700); the appliance in it is only
+  // params.chimney_model_width (750) wide, centred, and always clear of a visible panel at each side
+  // of the space (rules.json: chimney-model-width).
   function chimney(id,width,bottom,at,ang,depthSpan,fallback){
-    const x=fitByWidth(chimneyModels,width), cd=x?x.d:510;
+    const mw=Math.min(width-2*(P.panel_width??20),P.chimney_model_width??750), x=fitByWidth(chimneyModels,mw), cd=x?x.d:510;
     const [d0,d1]=depthSpan(cd), [zx,zy]=at((d0+d1)/2);
     zones.push({id,fp:footprint(zx,zy,ang,width,d1-d0),z0:bottom,z1:1e6});
     g.userData.clearance.zones.push({id,centre:[Math.round(zx),Math.round(zy)],width,depth:Math.round(d1-d0),from:bottom});
-    if(x) appliance('chimney',width,at,ang,{mode:'wall',y:bottom,models:chimneyModels});
+    if(x) appliance('chimney',mw,at,ang,{mode:'wall',y:bottom,models:chimneyModels});
     else fallback();
     return cd;
   }
@@ -678,9 +687,9 @@ function buildKitchen(plan, walls){
         if(over.length||beamOver(hobFp)){
           const cw=slot?slot.width:seg.width+CHIMNEY_OVER, cm=slot?(slot.x0??a0)+slot.width/2:hc, ci=slot?.offset??0;
           const bottom=slot?.z??stack.wallBottom, at=(k)=>[w.a[0]+u[0]*cm+n[0]*(k+ci),w.a[1]+u[1]*cm+n[1]*(k+ci)];
-          const cd=chimney(`${r.key} hob at ${Math.round(a0)}mm`,cw,bottom,(k)=>[w.a[0]+u[0]*cm+n[0]*(k+ci),w.a[1]+u[1]*cm+n[1]*(k+ci)],ang,
+          const cd=chimney(`${r.key} hob at ${Math.round(a0)}mm`,cw,hoodAt(seg.width),(k)=>[w.a[0]+u[0]*cm+n[0]*(k+ci),w.a[1]+u[1]*cm+n[1]*(k+ci)],ang,
             (cd)=>[0,cd+CLEAR],()=>{ const hood=box(cw,200,D-130,0x2b2b24,{metalness:0.3,roughness:0.5});
-              hood.position.copy(world(w.a[0]+u[0]*cm+n[0]*((D-130)/2+ci),w.a[1]+u[1]*cm+n[1]*((D-130)/2+ci),bottom+100)); hood.rotation.y=ang; g.add(hood); });
+              hood.position.copy(world(w.a[0]+u[0]*cm+n[0]*((D-130)/2+ci),w.a[1]+u[1]*cm+n[1]*((D-130)/2+ci),hoodAt(seg.width)+100)); hood.rotation.y=ang; g.add(hood); });
           // Chimney panel (rules.json: chimney-panel): CP-<hob + chimney_wider_than_hob_by>-<height
           // for this kitchen height>-15 — 600 hob -> CP-700, 900 hob -> CP-1000; 7ft -> 450,
           // 8ft -> 600. It lines up with the wall cabinets: top level with theirs, face on the
@@ -691,6 +700,15 @@ function buildKitchen(plan, walls){
             const flank=tw.find(t=>t.code&&(Math.abs(t.x0+t.width-sx0)<2||Math.abs(t.x0-(sx0+cw))<2))||tw.find(t=>t.code);
             shutterFront(flank,slot?.depth??WD_WALL).then(front=>{ const [ppx,ppy]=at(front-12);
               item(`CP-${seg.width+CHIMNEY_OVER}-${cpH}-15`,null,cw,cpH,24,world(ppx,ppy,top-cpH/2),ang,0xE7E0D0,'cabinet',false,undefined,true); });
+          }
+          // PG1: a visible panel closes the side of each wall cabinet flanking the chimney. It stands
+          // inside the chimney space and only as deep as the carcass, from the wall: the chimney panel
+          // in front already lines up with the shutters (rules.json: pg1-chimney-flank-panels).
+          if(slot&&window.S?.options?.pg==='PG1'){
+            const PW=P.panel_width??20, sx0=slot.x0??a0, dep=slot.depth??WD_WALL, h=slot.height??(stack.wallTop-stack.wallBottom);
+            const flankAt=edge=>tw.some(t=>t.code&&/^wall/.test(t.kind)&&(Math.abs(t.x0+t.width-edge)<2&&edge===sx0||Math.abs(t.x0-edge)<2&&edge!==sx0));
+            for(const [along,side,edge] of [[sx0+PW/2,'RH',sx0],[sx0+cw-PW/2,'LH',sx0+cw]]) if(flankAt(edge))
+              item('VP-336-15',side,PW,h,dep,world(w.a[0]+u[0]*along+n[0]*(dep/2+ci),w.a[1]+u[1]*along+n[1]*(dep/2+ci),bottom+h/2),ang,0xE6DFCE,'cabinet',true,undefined,true);
           }
           chimneyHobs.add(seg);
         }
@@ -706,7 +724,7 @@ function buildKitchen(plan, walls){
     for(const m of i.working||[]) if(m.label==='hob'){
       const [x,y]=islandPoint(i,r,m), d=m.depth||r.cabinet_depth;
       if(!beamOver(footprint(x,y,ang,m.width,d))) continue;
-      chimney(`island hob at ${Math.round(m.at)}mm`,m.width+CHIMNEY_OVER,stack.wallBottom,()=>[x,y],ang+(m.row===0?Math.PI:0),(cd)=>[-cd/2-CLEAR,cd/2+CLEAR],()=>{});
+      chimney(`island hob at ${Math.round(m.at)}mm`,m.width+CHIMNEY_OVER,hoodAt(m.width),()=>[x,y],ang+(m.row===0?Math.PI:0),(cd)=>[-cd/2-CLEAR,cd/2+CLEAR],()=>{});
       chimneyHobs.add(m);
     }
   }
@@ -1032,7 +1050,7 @@ async function startScene(plan, walls, m, orbitId, walkId, hintId, plainScene, n
   setPlain(!!plainScene);
   const request=++sceneRequest;
   await getManifest();
-  chimneyModels=await appliancesOf('chimney');
+  chimneyModels=await appliancesOf('chimney'); hobModels=await appliancesOf('hob');
   if(request!==sceneRequest)return;
   const Wd=container.clientWidth||600, Hd=container.clientHeight||380;
   scene=new THREE.Scene(); scene.background=null;   // transparent → the model floats over the beige grid
@@ -1117,6 +1135,7 @@ window.renderElevation=function(plan,walls,key,{ceil=2700,px=1800}={}){
   const job=elevQ.then(async()=>{
     await getManifest();
     if(!chimneyModels.length) chimneyModels=await appliancesOf('chimney');
+    if(!hobModels.length) hobModels=await appliancesOf('hob');
     const saved=[roomWalls,bounds,wallMeshes];
     tracked=[];
     let g, b;
@@ -1156,6 +1175,7 @@ window.renderPerspectives=function(plan,walls,{count=4,w=1600,h=900}={}){
   const job=elevQ.then(async()=>{
     await getManifest();
     if(!chimneyModels.length) chimneyModels=await appliancesOf('chimney');
+    if(!hobModels.length) hobModels=await appliancesOf('hob');
     const saved=[roomWalls,bounds,wallMeshes];
     tracked=[];
     let g, b, rw, wm;

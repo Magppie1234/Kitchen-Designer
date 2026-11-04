@@ -50,6 +50,42 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(900%)}}
   @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(180,83,58,.45)}70%{box-shadow:0 0 0 12px rgba(180,83,58,0)}100%{box-shadow:0 0 0 0 rgba(180,83,58,0)}}
+  /* Generating screen: the room drawn as a plan while the design builds */
+  #scr-generating{background:radial-gradient(1200px 620px at 30% -10%,#3A342C 0%,var(--dark) 60%)}
+  .gen-wrap{width:100%;max-width:1100px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(270px,1fr);grid-template-areas:"head head" "plan side";gap:24px 40px;align-items:start}
+  @media(max-width:860px){.gen-wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "plan" "side"}}
+  .gen-head{grid-area:head}
+  .gen-head h2{font-weight:400;font-size:36px;line-height:1.1;margin:10px 0 6px}
+  .gen-head p{font-size:13.5px;color:rgba(244,241,235,.55);margin:0}
+  .gen-plan{grid-area:plan;position:relative;aspect-ratio:7/5;border-radius:16px;border:1px solid rgba(244,241,235,.1);background:#26231E;overflow:hidden;box-shadow:0 34px 70px -34px rgba(0,0,0,.75)}
+  .gen-plan svg{display:block;width:100%;height:100%;font-family:'Hanken Grotesk',system-ui,sans-serif}
+  .gen-wall{fill:none;stroke:#EDE3D3;stroke-width:4;stroke-linecap:square;stroke-dasharray:1;stroke-dashoffset:1;animation:genDraw 1s cubic-bezier(.6,0,.3,1) .1s forwards}
+  .gen-fade{opacity:0;animation:fade .5s ease forwards}
+  .gen-mod,.gen-pin{opacity:0;transform-box:fill-box;transform-origin:center;animation:genPop .4s cubic-bezier(.2,.9,.3,1.3) forwards}
+  .gen-dim{font-size:10px;fill:rgba(244,241,235,.62);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+  .gen-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(244,241,235,.06)}
+  .gen-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#C9A983);transition:width 2.6s cubic-bezier(.2,.7,.3,1)}
+  .gen-side{grid-area:side;min-width:0}
+  .gen-spec{display:grid;grid-template-columns:1fr 1fr;margin:0;border:1px solid rgba(244,241,235,.12);border-radius:12px;overflow:hidden;background:rgba(244,241,235,.025)}
+  .gen-spec>div{padding:10px 13px;border-bottom:1px solid rgba(244,241,235,.08);min-width:0}
+  .gen-spec>div:nth-child(odd){border-right:1px solid rgba(244,241,235,.08)}
+  .gen-spec>div:nth-last-child(-n+2){border-bottom:none}
+  .gen-spec dt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42);margin-bottom:4px}
+  .gen-spec dd{margin:0;font-size:13.5px;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gen-sw{width:15px;height:15px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(244,241,235,.3)}
+  .gen-steps{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:14px}
+  .gen-steps li{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:12px;color:rgba(244,241,235,.35);transition:color .3s}
+  .gen-steps b{font-weight:600;font-size:14px;line-height:22px}
+  .gen-steps small{grid-column:2;font-size:12px;color:rgba(244,241,235,.28);transition:color .3s}
+  .gen-steps .dot{grid-row:span 2;width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(244,241,235,.18);display:grid;place-items:center;font-size:11px;font-weight:700}
+  .gen-steps li.on{color:var(--paper)}
+  .gen-steps li.on small,.gen-steps li.done small{color:rgba(244,241,235,.55)}
+  .gen-steps li.on .dot{border-color:#C9A983;border-top-color:transparent;animation:spin .8s linear infinite}
+  .gen-steps li.done{color:rgba(244,241,235,.75)}
+  .gen-steps li.done .dot{background:var(--sage);border-color:var(--sage);color:#fff}
+  @keyframes genDraw{to{stroke-dashoffset:0}}
+  @keyframes genPop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.gen-wall,.gen-fade,.gen-mod,.gen-pin{animation:none;opacity:1;stroke-dashoffset:0}}
   .scr{animation:fadeUp .5s cubic-bezier(.2,.7,.3,1) both}
   ::-webkit-scrollbar{width:10px;height:10px}
   ::-webkit-scrollbar-thumb{background:#cdc5b6;border-radius:8px;border:3px solid var(--linen)}
@@ -63,6 +99,22 @@
   .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
   input.tf,select.tf{width:100%;padding:11px;border:1px solid var(--line2);border-radius:10px;background:#fff;font-size:14px;outline:none}
   input.tf:focus,select.tf:focus{border-color:var(--accent)}
+  /* door / window type tiles (Layout sidebar, selected opening) */
+  .op-type-group{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8A7A6E;margin:2px 0 5px}
+  .op-type-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px}
+  .op-type{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;border:1.5px solid var(--line2);border-radius:9px;background:rgba(255,255,255,.6);cursor:pointer;font:inherit;font-size:10.5px;font-weight:500;color:#4A463E;transition:border-color .15s,background .15s}
+  .op-type svg{width:34px;height:24px}
+  .op-type span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .op-type:hover{border-color:#C9A58F;background:#fff}
+  .op-type.on{border-color:var(--accent);background:#fff;color:var(--accent);font-weight:700;box-shadow:0 4px 10px -6px rgba(180,83,58,.6)}
+  .op-type:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  /* city search (project details) */
+  .city-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;background:#fff;border:1px solid var(--line2);border-radius:12px;box-shadow:0 18px 40px -18px rgba(0,0,0,.35);padding:5px;max-height:248px;overflow:auto}
+  .city-opt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 10px;border-radius:8px;font-size:13.5px;cursor:pointer}
+  .city-opt small{font-size:11px;color:var(--muted2);white-space:nowrap}
+  .city-opt b{font-weight:700;color:var(--ink)}
+  .city-opt.on,.city-opt:hover{background:#FBF1EC}
+  .city-empty{padding:10px;font-size:12.5px;color:var(--muted);line-height:1.5}
   .eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
   @media(max-width:900px){
     .stage-rail{display:none !important}
@@ -235,14 +287,19 @@
 </section>
 
 <!-- ===================== GENERATING ===================== -->
-<section id="scr-generating" class="screen scr" style="flex:1;flex-direction:column;align-items:center;justify-content:center;background:var(--dark);color:var(--paper);min-height:calc(100vh - 61px);text-align:center;padding:40px">
-  <div style="position:relative;width:200px;height:150px;border-radius:10px;overflow:hidden;border:1px solid rgba(244,241,235,.15);background:#2A2722;margin-bottom:30px">
-    <svg viewBox="0 0 200 150" style="width:100%;height:100%"><polygon points="14,14 186,14 186,86 110,86 110,136 14,136" fill="none" stroke="rgba(180,147,111,.5)" stroke-width="3"></polygon><rect x="24" y="22" width="44" height="14" fill="rgba(180,83,58,.6)"></rect><rect x="140" y="22" width="40" height="14" fill="rgba(110,116,102,.6)"></rect></svg>
-    <div style="position:absolute;left:0;right:0;top:0;height:14px;background:linear-gradient(rgba(180,147,111,.7),transparent);animation:scan 1.6s linear infinite"></div>
+<section id="scr-generating" class="screen scr" style="flex:1;align-items:center;justify-content:center;color:var(--paper);min-height:calc(100vh - 61px);padding:34px 26px">
+  <div class="gen-wrap">
+    <header class="gen-head">
+      <div class="eyebrow" style="color:#C9A983">Generating design</div>
+      <h2 id="genTitle">Drafting your kitchen</h2>
+      <p id="genSub"></p>
+    </header>
+    <div class="gen-plan"><svg id="genPlan" viewBox="0 0 560 400" aria-hidden="true"></svg><div class="gen-bar"><i id="genBar"></i></div></div>
+    <aside class="gen-side">
+      <dl id="genSpec" class="gen-spec"></dl>
+      <ol id="genSteps" class="gen-steps" aria-live="polite"></ol>
+    </aside>
   </div>
-  <div style="width:40px;height:40px;border:3px solid rgba(244,241,235,.2);border-top-color:#B4936F;border-radius:50%;animation:spin .9s linear infinite;margin-bottom:22px"></div>
-  <h2 style="font-weight:400;font-size:26px;margin:0 0 8px">Generating your kitchen</h2>
-  <p style="font-size:14px;color:rgba(244,241,235,.6);max-width:42ch;margin:0">Optimising module placement against every preference, clearance rule and your room shape…</p>
 </section>
 
 <!-- ===================== RESULT ===================== -->
@@ -368,8 +425,7 @@
       <div id="quoteRoomHead" style="font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px"></div>
       <div style="font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">A · Cabinets &amp; Accessories</div>
       <div id="quoteSectionA" style="border:1px solid #EEE7DA;border-radius:12px;overflow:hidden;margin-bottom:14px"></div>
-      <div style="font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Cabinet pricing · series rate × carcass net sqft</div>
-      <div id="quoteCabinets" style="border:1px solid #EEE7DA;border-radius:12px;overflow:auto;margin-bottom:24px"></div>
+      <button class="btn ghost" onclick="go('cabinets')" style="width:100%;padding:12px;font-size:13.5px;margin-bottom:24px">View cabinet-wise breakdown →</button>
       <div style="font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--sage);margin-bottom:12px">B · Services <span style="color:var(--muted2);font-weight:500;text-transform:none;letter-spacing:0">· computed from your design quantities</span></div>
       <div id="quoteSectionB" style="border:1px solid #EEE7DA;border-radius:12px;overflow:hidden;margin-bottom:24px"></div>
       <div style="background:#F8F5EF;border:1px solid #EEE7DA;border-radius:12px;padding:18px 20px">
@@ -384,6 +440,16 @@
         <button class="btn ghost" onclick="downloadQuotePdf()" style="padding:15px 22px;font-size:14px">⤓ Export Estimate</button>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ===================== CABINET BREAKDOWN ===================== -->
+<section id="scr-cabinets" class="screen scr" style="flex:1;padding:30px 26px 70px;background:var(--paper)">
+  <div style="max-width:840px;margin:0 auto;width:100%">
+    <button class="btn ghost" onclick="go('quote')" style="padding:10px 18px;font-size:13px;margin-bottom:18px">← Back to estimate</button>
+    <div class="eyebrow" style="margin-bottom:8px">Cabinet pricing · series rate × carcass net sqft</div>
+    <h1 id="cabBreakTitle" style="font-weight:400;font-size:30px;margin:0 0 20px">Cabinet breakdown</h1>
+    <div id="quoteCabinets" style="background:#fff;border:1px solid #EEE7DA;border-radius:12px;overflow:auto"></div>
   </div>
 </section>
 
@@ -469,7 +535,9 @@
     <div style="padding:26px 30px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Client Name</label><input id="suClient" class="tf" style="margin-top:6px" required oninput="setProject('client',this.value)"></div>
       <div><label style="font-size:12px;font-weight:600;color:#6B675E">Designer</label><input id="suArch" class="tf" style="margin-top:6px" oninput="setProject('architect',this.value)"></div>
-      <div><label style="font-size:12px;font-weight:600;color:#6B675E">City</label><select id="suCity" class="tf" style="margin-top:6px" onchange="setProject('city',this.value)"><option value="">Select city…</option></select></div>
+      <div style="position:relative"><label for="suCity" style="font-size:12px;font-weight:600;color:#6B675E">City</label><input id="suCity" class="tf" style="margin-top:6px" autocomplete="off" spellcheck="false" placeholder="Start typing a city…"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suCityList" oninput="cityType(this.value)" onfocus="cityType(this.value)" onkeydown="cityKey(event)" onblur="setTimeout(cityClose,150)">
+        <div id="suCityList" class="city-list" role="listbox" style="display:none"></div></div>
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Budget range</label>
         <div id="suBudget" style="display:flex;gap:8px;margin-top:7px"></div>
       </div>
@@ -767,7 +835,7 @@ const MATERIALS=[
 // The page we build (Room Layouts/Height/Door/Window/Structure) is the LAYOUT step.
 // "Design" is a new step after it (fixture selection) — the existing editor screen.
 const STAGE_META=[{label:'Setup'},{label:'Layout'},{label:'Design'},{label:'Review'},{label:'Quote'}];
-const STAGE_FOR={dashboard:0,shape:1,layout:1,editor:2,generating:3,result:3,template:3,review:3,render:3,rendering:3,quote:4,handoff:4};
+const STAGE_FOR={dashboard:0,shape:1,layout:1,editor:2,generating:3,result:3,template:3,review:3,render:3,rendering:3,quote:4,cabinets:4,handoff:4};
 // stage index -> screen a click navigates to
 // Stage 3 ("Review") targets the 'result' screen — the SAME screen reached forward from
 // Design — so the stepper-click path and the forward path render one identical Review page
@@ -1017,7 +1085,7 @@ function leaveMethodModal(){ $('modalMethod').style.display='none'; openDesk(); 
 /* ====================================================================
    NAVIGATION
    ==================================================================== */
-const SCREENS=['desk','dashboard','shape','layout','editor','generating','result','template','review','rendering','render','quote','handoff'];
+const SCREENS=['desk','dashboard','shape','layout','editor','generating','result','template','review','rendering','render','quote','cabinets','handoff'];
 // each screen's display when active (must beat the inline display on grid/flex sections)
 const SCREEN_DISP={layout:'grid',editor:'grid',result:'grid',generating:'flex',rendering:'flex',handoff:'flex'};
 // Screen changes are real history entries (pushState), not just a JS variable —
@@ -1049,6 +1117,7 @@ window.addEventListener('popstate', (e)=>{
   if(SCREENS.includes(screen)){ S.screen=screen; render(); window.scrollTo(0,0); }
 });
 function render(){
+  if(S.screen!=='generating'&&S._genTimer){ clearInterval(S._genTimer); S._genTimer=null; }
   if(S.screen!=='result'&&resultPlanFullscreen?.active)resultPlanFullscreen.exit();
   if(S.screen!=='editor')globalThis.IslandDesigner?.close();
   if(S.screen!=='result')document.body.classList.remove('editing');
@@ -1062,7 +1131,7 @@ function render(){
     shell.style.height=locked?'100vh':''; shell.style.minHeight=locked?'0':'100vh'; shell.style.overflow=locked?'hidden':''; }
   renderChrome();
   const m={desk:renderDesk,dashboard:renderDashboard,shape:renderShape,layout:mountLayout,editor:mountEditor,
-    result:mountResult,template:renderTemplate,review:renderReview,render:renderRenderPortal,quote:renderQuote,handoff:renderHandoff};
+    generating:renderGenerating,result:mountResult,template:renderTemplate,review:renderReview,render:renderRenderPortal,quote:renderQuote,cabinets:renderCabinetBreakdown,handoff:renderHandoff};
   if(m[S.screen]) m[S.screen]();
 }
 function renderChrome(){
@@ -1135,6 +1204,46 @@ function renderDashboard(){
 // Minimal HTML escape for user-entered room names, which are interpolated into innerHTML above.
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function setProject(k,v){ S.project[k]=v; }
+// City: type to search the cities we deliver to (data/city-rates.json — they price site visits
+// and transport). Close spellings and older names are suggested too; only a listed city is saved.
+const CITY_ALIASES={bangalore:'Bengaluru',bombay:'Mumbai',calcutta:'Kolkata',madras:'Chennai',gurugram:'Gurgaon',delhi:'New Delhi',
+  prayagraj:'Allahabad (Prayagraj)',vizag:'Visakhapatnam',trivandrum:'Thiruvananthapuram',cochin:'Kochi',baroda:'Vadodara',
+  mangalore:'Mangaluru',hubli:'Hubballi-Dharwad',dharwad:'Hubballi-Dharwad',belgaum:'Belagavi',puducherry:'Pondicherry',calicut:'Kozhikode',
+  trichy:'Tiruchirappalli',banaras:'Varanasi',benares:'Varanasi',gauhati:'Guwahati',shimoga:'Shivamogga',tumkur:'Tumakuru',bellary:'Ballari',daman:'Dadra & Nagar Haveli & Daman & Diu'};
+const cityNames=()=>Object.keys(S.cityCfg?.cities||{});
+// edit distance, so "Hydrabad" or "Ahemdabad" still find their city
+function editDistance(a,b){ let prev=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){ const cur=[i]; for(let j=1;j<=b.length;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); prev=cur; }
+  return prev[b.length]; }
+function citySuggest(text){ const q=text.trim().toLowerCase(), names=cityNames(); if(!q) return names.map(name=>({name}));
+  const out=new Map(), add=(name,rank,alias)=>{ if(names.includes(name)&&!(out.get(name)?.rank<=rank)) out.set(name,{name,rank,alias}); };
+  // a misspelling: the typed text against the start of the name, one letter shorter or longer
+  const close=l=>q.length>=4&&Math.min(...[-1,0,1].map(k=>editDistance(q,l.slice(0,q.length+k))))<=Math.max(1,Math.floor(q.length/4));
+  for(const name of names){ const l=name.toLowerCase();
+    if(l===q) add(name,0); else if(l.startsWith(q)) add(name,1); else if(l.split(/[\s(&-]+/).some(w=>w.startsWith(q))) add(name,2);
+    else if(q.length>=3&&l.includes(q)) add(name,3); else if(close(l)) add(name,4); }
+  for(const [alias,name] of Object.entries(CITY_ALIASES)) if(alias.startsWith(q)) add(name,1.5,alias); else if(close(alias)) add(name,4,alias);
+  return [...out.values()].sort((a,b)=>a.rank-b.rank||a.name.localeCompare(b.name)).slice(0,8); }
+// the listed city a typed value means: the name itself in any case, or one of its older names
+const cityMatch=v=>{ const q=String(v||'').trim().toLowerCase(); return cityNames().find(n=>n.toLowerCase()===q)||(cityNames().includes(CITY_ALIASES[q])?CITY_ALIASES[q]:null); };
+let cityOpts=[], cityAt=-1;
+function cityType(v){ if(!S.cityCfg) return setProject('city',v);   // no city list loaded: free text
+  cityOpts=citySuggest(v); cityAt=v.trim()&&cityOpts.length?0:-1;
+  const q=v.trim(), mark=n=>{ const i=q?n.toLowerCase().indexOf(q.toLowerCase()):-1; return i<0?esc(n):esc(n.slice(0,i))+'<b>'+esc(n.slice(i,i+q.length))+'</b>'+esc(n.slice(i+q.length)); };
+  $('suCityList').innerHTML=cityOpts.map((c,i)=>`<div id="cityOpt${i}" class="city-opt${i===cityAt?' on':''}" role="option" aria-selected="${i===cityAt}" onmousedown="event.preventDefault();cityPick(${i})">
+      <span>${mark(c.name)}</span><small>${c.alias?esc(c.alias[0].toUpperCase()+c.alias.slice(1))+' \u00b7 ':''}${esc(S.cityCfg.cities[c.name]?.zone||'')}</small></div>`).join('')
+    ||`<div class="city-empty">No delivery city matches \u201c${esc(q)}\u201d. Check the spelling, or pick the nearest city.</div>`;
+  $('suCityList').style.display='block'; $('suCity').setAttribute('aria-expanded','true'); }
+function cityPick(i){ const c=cityOpts[i]; if(!c) return; $('suCity').value=c.name; setProject('city',c.name); cityClose(); }
+function cityClose(){ $('suCityList').style.display='none'; $('suCity').setAttribute('aria-expanded','false');
+  const city=cityMatch($('suCity').value); if(city){ $('suCity').value=city; setProject('city',city); } }
+function cityKey(e){ const open=$('suCityList').style.display==='block';
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!open) return cityType(e.target.value);
+    cityAt=(cityAt+(e.key==='ArrowDown'?1:-1)+cityOpts.length)%Math.max(1,cityOpts.length);
+    cityOpts.forEach((_,i)=>{ const el=$('cityOpt'+i); el.classList.toggle('on',i===cityAt); el.setAttribute('aria-selected',i===cityAt); });
+    $('cityOpt'+cityAt)?.scrollIntoView({block:'nearest'}); }
+  else if(e.key==='Enter'&&open&&cityAt>=0){ e.preventDefault(); cityPick(cityAt); }
+  else if(e.key==='Escape'&&open){ e.stopPropagation(); cityClose(); } }
 function openSetup(){
   $('suClient').value=S.project.client; $('suArch').value=S.project.architect; $('suCity').value=S.project.city;
   if($('suType'))$('suType').value=S.project.type;   // reflect the stored Property Type on reopen
@@ -1151,7 +1260,7 @@ function submitSetup(){
   // The name is required: the field starts empty and the studio stays closed until it is typed.
   const name=$('suClient').value.trim(); if(!name){ showToast('Type the client name to continue.'); $('suClient').focus(); return; } S.project.client=name;
   // The city must be one we deliver to (data/city-rates.json) - it prices site visits and freight.
-  if(S.cityCfg){ if(!$('suCity').value){ showToast('Select your city from the list.'); return; } S.project.city=$('suCity').value; }
+  if(S.cityCfg){ const city=cityMatch($('suCity').value); if(!city){ showToast('Pick your city from the suggestions.'); $('suCity').focus(); return; } S.project.city=city; $('suCity').value=city; }
   S.setupDone=true; $('modalSetup').style.display='none'; dsUpdateProject(); renderChrome(); renderDashboard();
   // "How would you like to begin?" is asked ONCE per project, right after setup.
   if(!S.project.method) openMethodModal(); }
@@ -2338,20 +2447,26 @@ function renderLayoutPanel(){
     const head=(t)=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)">${t}</span><span onclick="S.selOpening=null;renderLayoutPanel();renderPos('layoutSvg')" style="cursor:pointer;color:var(--muted2);font-weight:700">×</span></div>`;
     const box=(inner)=>`<div style="margin-bottom:10px;border:1.5px solid var(--accent);border-radius:12px;background:#FBF1EC;padding:11px 12px">${inner}</div>`;
     // inline validation error for the currently-selected element, if any (see setSel* handlers)
+    // Type: any door or window type, as icon tiles (a corner window is a linked pair and keeps its type)
+    const typeRow=(k,label,set,glyph)=>`<div class="op-type-group">${label}</div><div class="op-type-row">${set.map(t=>{
+      const on=o.type===k&&(o.variant||set[0].id)===t.id;
+      return `<button type="button" class="op-type${on?' on':''}" aria-pressed="${on}" onclick="setSelOpeningType('${k}:${t.id}')" title="${t.name}">
+        <svg viewBox="0 0 40 30" aria-hidden="true">${glyph(t.id)}</svg><span>${t.name.replace(/ (door|window)$/i,'')}</span></button>`; }).join('')}</div>`;
+    const typeSel=o.corner?'':`<div style="margin-bottom:10px">${typeRow('door','Door',LAYOUT_DOORS,doorGlyph)}${typeRow('window','Window',LAYOUT_WINDOWS.filter(t=>!t.corner),windowGlyph)}</div>`;
     const errLine=(key)=>(S.fieldErr&&S.fieldErr.key===key)?`<div style="color:#C0392B;font-size:10.5px;font-weight:600;margin-top:6px;line-height:1.35">${S.fieldErr.msg}</div>`:'';
     if(o.type==='window'){
       if(o.french){
         // French = floor-to-ceiling: Width only. Sill (0) & height (=ceiling) auto, not editable.
-        selProps=box(head('French Window · selected')+fld('Width',o.width,'setSelWidth(this.value)')
+        selProps=box(head('French Window · selected')+typeSel+fld('Width',o.width,'setSelWidth(this.value)')
           +`<div style="font-size:9.5px;color:var(--muted2);margin-top:6px">Floor-to-ceiling — sill 0, height auto = ceiling (${fmtLenU(S.options.ceiling)}).</div>`);
       } else {
-        selProps=box(head((o.corner?'Corner ':'')+'Window · selected')
+        selProps=box(head((o.corner?'Corner ':'')+'Window · selected')+typeSel
           +`<div style="display:flex;gap:8px;margin-bottom:8px">${fld('Width',o.width,'setSelWidth(this.value)')}${fld('Sill Height',o.sill||0,'setSelSill(this.value)')}</div>`
           +fld('Window Height',(o.winH||1200),'setSelWinH(this.value)')
           +errLine('sill'+S.selOpening));
       }
     }
-    else selProps=box(head((o.variant||'')+' door · selected')+fld('Width',o.width,'setSelWidth(this.value)'));
+    else selProps=box(head((o.variant||'')+' door · selected')+typeSel+fld('Width',o.width,'setSelWidth(this.value)'));
   }
   // Selected structure (column/beam) — editable dimensions, unit-aware.
   else if(S.selStruct!=null && (S.structures||[])[S.selStruct]){ const st=S.structures[S.selStruct];
@@ -2399,6 +2514,16 @@ function renderLayoutPanel(){
   // "Storage" is the renamed Structure section (same Column/Beam contents, key stays 'structure').
   P.innerHTML=selProps+section('room','Room Layouts',roomBody)+openHint+section('door','Door',doorBody)+section('window','Window',winBody)+section('structure','Structure',structBody)+section('height','Ceiling & Kitchen Height',heightBody);
 }
+// Change a placed door or window to another type — e.g. a plan read as a door that is really a
+// doorless opening, or a window that is a door. Position and width stay as they are; a window
+// takes its type's sill and height.
+function setSelOpeningType(v){ const o=S.openings[S.selOpening], [kind,id]=String(v).split(':');
+  const T=(kind==='door'?LAYOUT_DOORS:LAYOUT_WINDOWS).find(x=>x.id===id); if(!o||o.corner||!T) return;
+  pushUndo(); S.fieldErr=null;
+  o.type=kind; o.variant=id; delete o.french; delete o.winHOverride;
+  if(kind==='window'){ o.sill=T.sill||0; o.winH=T.french?frenchHeight():(T.h||1200); if(T.french)o.french=true; }
+  else { delete o.sill; delete o.winH; }
+  renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
 function setSelWidth(v){ if(S.selOpening!=null) setOpeningWidth(S.selOpening,inputToMm(v)); renderLayoutPanel(); }
 // Sliding & L-Shaped windows require a sill of at least 900mm. Below that the input is
 // REJECTED (not clamped) and an inline error is shown; Panel keeps its editable 0+ sill.
@@ -2705,8 +2830,12 @@ function startPan(ev,svg){ ev.preventDefault(); if(!S._tf)tf(680,520,55); const 
   _pan={svg,sx:p.x,sy:p.y,ox:S._tf.ox,oy:S._tf.oy};
   window.addEventListener('mousemove',onPan); window.addEventListener('mouseup',endPan); renderPos(); }
 function onPan(ev){ if(!_pan)return; const p=svgPoint(_pan.svg,ev);
+  if(Math.hypot(p.x-_pan.sx,p.y-_pan.sy)>3) _pan.moved=true;
   S._tf.ox=_pan.ox+(p.x-_pan.sx); S._tf.oy=_pan.oy+(p.y-_pan.sy); renderPos(); }
-function endPan(){ _pan=null; window.removeEventListener('mousemove',onPan); window.removeEventListener('mouseup',endPan); renderPos(); }
+// a click on empty plan (no drag) lets go of the selected door or window
+function endPan(){ const clicked=_pan&&!_pan.moved; _pan=null; window.removeEventListener('mousemove',onPan); window.removeEventListener('mouseup',endPan);
+  if(clicked&&S.selOpening!=null){ S.selOpening=null; if(S.screen==='layout')renderLayoutPanel(); }
+  renderPos(); }
 function zoomView(ev,svg){ ev.preventDefault(); if(!S._tf)tf(680,520,55);
   const p=svgPoint(svg,ev), f=ev.deltaY<0?1.1:1/1.1, ns=Math.max(0.02,Math.min(4,S._tf.sc*f));
   const planX=(p.x-S._tf.ox)/S._tf.sc, planY=(p.y-S._tf.oy)/S._tf.sc;   // keep the point under the cursor fixed
@@ -4114,8 +4243,15 @@ function renderPos(svgId){
     // width dimension beside every placed door (incl. doorless) and window (spec §4: current
     // width must be visible on the plan, in the active unit).
     if(o.width>0) dims+=openingWidthDim(w,o,t,WT);
-    // draggable hit-target over the opening span (Layout only — locked base layer in Design)
-    if(!designPhase) ohits+=`<line class="openhit" data-idx="${i}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="${Math.max(WT,16)}" stroke-linecap="butt" style="cursor:grab"/>`;
+    // draggable hit-target over the WHOLE door or window (Layout only — locked base layer in Design):
+    // its width plus a margin, through the wall's thickness and across a swinging door's leaf and
+    // arc, so a click on its jambs, leaf, arc or glass selects it. The symbol sits on the wall's
+    // centre line (outwardSym), so a swing reaches its radius from there.
+    if(!designPhase){ const L=Math.hypot(p1[0]-p0[0],p1[1]-p0[1])||1, ux=(p1[0]-p0[0])/L, uy=(p1[1]-p0[1])/L,
+        fl=o.type==='door'&&!['doorless','sliding'].includes(o.variant)?doorFlip(o):null, r=fl?(o.variant==='double'?L/2:L):0,
+        inMost=fl?.inside?r-WT/2:0, outMost=fl&&!fl.inside?WT/2+r:WT, pad=6, padX=Math.max(pad,(16-WT)/2),
+        P=(s,d)=>`${p0[0]+ux*s+ix*d},${p0[1]+uy*s+iy*d}`;
+      ohits+=`<polygon class="openhit" data-idx="${i}" points="${P(-pad,-outMost-padX)} ${P(L+pad,-outMost-padX)} ${P(L+pad,Math.max(0,inMost)+padX)} ${P(-pad,Math.max(0,inMost)+padX)}" fill="transparent" style="cursor:grab"/>`; }
   });
   // while an L-shaped window is being dragged corner-to-corner, highlight every valid 90°
   // corner it could snap to (dim) and the one currently under the pointer (bright) — same
@@ -4332,12 +4468,15 @@ function renderPos(svgId){
       ctrls+=ctrlBtn([m[0]+ix*(dep+14),m[1]+iy*(dep+14)],'var(--accent)','✕','vctrl',0); } }
   // ---- door clearance suggestion bulbs (fix #2) — advisory only, never blocks placement ----
   // Show 💡 when the door's nearest edge-to-corner gap is >0 and <700mm (0 = valid corner → no bulb).
+  // Only on the door that is clicked (selected), in line with its ✕ and ⇄: the ✕ sits 20px into the
+  // room from the door's centre, the ⇄ 26px before it along the wall, the 💡 26px after it.
   let bulbs='';
-  if(onLayout) (S.openings||[]).forEach((o,i)=>{ if(o.type!=='door') return; const w=S.walls[+String(o.wall).slice(1)]; if(!w) return;
+  if(onLayout) (S.openings||[]).forEach((o,i)=>{ if(o.type!=='door'||S.selOpening!==i) return; const w=S.walls[+String(o.wall).slice(1)]; if(!w) return;
     const gap=Math.min(o.off-o.width/2, w.length-(o.off+o.width/2));
-    if(gap>0 && gap<700){ const m=ptOnWall(w,o.off,t), [ix,iy]=inwardPx(w,t), bx=m[0]+ix*15, by=m[1]+iy*15;
+    if(gap>0 && gap<700){ const m=ptOnWall(w,o.off,t), [ix,iy]=inwardPx(w,t), L=w.length*t.sc||1,
+        ux=(t.X(w.b[0])-t.X(w.a[0]))/L, uy=(t.Y(w.b[1])-t.Y(w.a[1]))/L, bx=m[0]+ix*20+ux*26, by=m[1]+iy*20+uy*26;
       const MSG='Maintain a minimum clearance of 700 mm from the adjacent wall for proper space utilization and better cabinet placement.';
-      bulbs+=`<g class="bulbhit" data-idx="${i}" style="cursor:pointer"><title>${MSG}</title><circle cx="${bx}" cy="${by}" r="9" fill="#FCE9A8" stroke="#C9A84A" stroke-width="1"/><text x="${bx}" y="${by+0.5}" text-anchor="middle" dominant-baseline="middle" font-size="10">💡</text></g>`;
+      bulbs+=`<g class="bulbhit" data-idx="${i}" style="cursor:pointer"><title>${MSG}</title><circle cx="${bx}" cy="${by}" r="11" fill="#FCE9A8" stroke="#fff" stroke-width="1.6"/><text x="${bx}" y="${by+0.5}" text-anchor="middle" dominant-baseline="middle" font-size="11">💡</text></g>`;
       if(S.bulbFor===i){ const lines=['Maintain a minimum clearance of 700','mm from the adjacent wall for proper','space utilization and better cabinet','placement.'];
         const px=bx+16, py=by-24, boxW=214, boxH=12+lines.length*13;
         bulbs+=`<g pointer-events="none"><rect x="${px}" y="${py}" width="${boxW}" height="${boxH}" rx="7" fill="#2B2B24" opacity="0.96"/>`
@@ -4955,7 +5094,7 @@ function endOpeningDrag(){ window.removeEventListener('mousemove',onOpeningDrag)
     // COMMIT — the one and only mutation, applied once here on mouse-up.
     if(o && d.cand && (d.cand.wall!==d.orig.wall || d.cand.off!==d.orig.off)){ pushUndo(); o.wall=d.cand.wall; o.off=d.cand.off; }
     renderPos(); refresh3DIfLive();
-  } else { if(o){ S.selOpening=(S.selOpening===d.idx?null:d.idx); S.selWall=null; S.selStruct=null; renderPos(); if(S.screen==='layout')renderLayoutPanel(); } } // click -> select + show props
+  } else { if(o){ S.selOpening=d.idx; S.selWall=null; S.selStruct=null; renderPos(); if(S.screen==='layout')renderLayoutPanel(); } } // click -> select + show props
 }
 // nearest wall (screen space) to a point, valid only if within reach AND long enough
 // to hold an opening of `width`. Returns {i, off} snapped inside the wall, else null.
@@ -6111,8 +6250,76 @@ async function generate(){
   // Stage-10 immutable as-generated snapshot; regenerating around keeps is a 'redesign' (8.8)
   dsRevision((S.keeps||[]).length?'redesign':'generate');
   scheduleAutosave();
-  const wait=Math.max(0,1600-(Date.now()-t0));
+  const wait=Math.max(0,2200-(Date.now()-t0));   // long enough for the generating plan to finish drawing
   setTimeout(()=>{ if(activeRoom()===owner&&owner._buildRequest===requestId){S.view='2d'; go('result');} }, wait);   // straight to Review — no finish picker (fix #1)
+}
+
+// The wait while a design builds, drawn as a plan of this room: the walls draw themselves with
+// their lengths, doors and windows open in them, the drawn cabinet bands fill with modules in
+// the chosen finish (wall cabinets dashed, as overhead units are on a plan), and the hob, sink
+// and fridge drop in where they were placed. Beside it, the room's specification and the build
+// steps with this room's own numbers; they hold on "Generating the design" until the result arrives (checks and pricing come back with it).
+function renderGenerating(){
+  if(S._genTimer) return;   // already running for this build
+  const room=activeRoom(), series=seriesLabel(room?.seriesId), rate=seriesRate(), n=S.walls.length,
+    look=LOOKS.find(l=>l.n===S.options.lookName)||{n:S.options.lookName||'Series default',c1:'#D8D3C8',c2:'#AFA897'},
+    ops=S.openings||[], zones=S.zones||[], plural=(k,w)=>`${k} ${w}${k===1?'':'s'}`, NAME={hob:'Hob',sink:'Sink',fridge:'Fridge'},
+    anchors=(S.anchors||[]).filter(a=>NAME[a.type]&&S.walls[+String(a.wall).slice(1)]),
+    pts=S.walls.flatMap(w=>[w.a,w.b]), xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]),
+    x0=Math.min(...xs), y0=Math.min(...ys), w0=Math.max(...xs)-x0||1, h0=Math.max(...ys)-y0||1;
+  const W=560,H=400,pad=62, sc=Math.min((W-2*pad)/w0,(H-2*pad)/h0), ox=(W-w0*sc)/2, oy=(H-h0*sc)/2,
+    t={sc,X:x=>ox+(x-x0)*sc,Y:y=>oy+(y-y0)*sc}, sg=roomWindingSign();
+  // each wall's own frame: x runs along the wall from its start, +y (times sg) into the room
+  const frame=(w,inner)=>`<g transform="translate(${t.X(w.a[0])},${t.Y(w.a[1])}) rotate(${Math.atan2(w.b[1]-w.a[1],w.b[0]-w.a[0])*180/Math.PI})">${inner}</g>`;
+  const box=(a,b,d0,d1,attrs)=>`<rect x="${a*sc}" y="${sg>0?d0*sc:-d1*sc}" width="${Math.max(0,(b-a)*sc)}" height="${(d1-d0)*sc}" ${attrs}/>`;
+  let svg=`<defs><pattern id="genG1" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M14 0H0V14" fill="none" stroke="rgba(244,241,235,.035)"/></pattern>
+    <pattern id="genG2" width="70" height="70" patternUnits="userSpaceOnUse"><path d="M70 0H0V70" fill="none" stroke="rgba(244,241,235,.07)"/></pattern></defs>
+    <rect width="${W}" height="${H}" fill="url(#genG1)"/><rect width="${W}" height="${H}" fill="url(#genG2)"/>`;
+  if(n){
+    // cabinet bands: ~600 mm modules in the finish colours, in order along the room
+    const runs=zones.filter(z=>z.tier!=='wall'&&S.walls[+String(z.wall).slice(1)]), total=runs.reduce((k,z)=>k+Math.max(1,Math.round((z.e-z.s)/600)),0)||1;
+    let m=0;
+    svg+=runs.map(z=>{ const w=S.walls[+z.wall.slice(1)], k=Math.max(1,Math.round((z.e-z.s)/600)), mw=(z.e-z.s)/k, d=depthOf(z.tier);
+      return frame(w,Array.from({length:k},(_,i)=>box(z.s+i*mw+8,z.s+(i+1)*mw-8,0,d,
+        `class="gen-mod" fill="${z.tier==='tall'?look.c2:look.c1}" stroke="rgba(0,0,0,.35)" stroke-width=".7" rx="1.5" style="animation-delay:${(.9+(m++/total)*.9).toFixed(2)}s"`)).join('')); }).join('');
+    svg+=zones.filter(z=>z.tier==='wall'&&S.walls[+String(z.wall).slice(1)]).map(z=>frame(S.walls[+z.wall.slice(1)],
+      box(z.s,z.e,0,depthOf('wall'),`class="gen-fade" fill="none" stroke="rgba(244,241,235,.7)" stroke-width="1" stroke-dasharray="4 3" style="animation-delay:1.5s"`))).join('');
+    svg+=`<path class="gen-wall" pathLength="1" d="${S.walls.map(w=>`M${t.X(w.a[0])},${t.Y(w.a[1])}L${t.X(w.b[0])},${t.Y(w.b[1])}`).join('')}"/>`;
+    // doors cut the wall and swing into the room; windows sit in it
+    svg+=ops.map(o=>{ const w=S.walls[+String(o.wall).slice(1)]; if(!w||!(o.width>0)) return ''; const a=(o.off-o.width/2)*sc, b=(o.off+o.width/2)*sc, r=b-a;
+      return frame(w,o.type==='window'
+        ?`<g class="gen-fade" style="animation-delay:1s"><line x1="${a}" y1="0" x2="${b}" y2="0" stroke="#26231E" stroke-width="6"/><line x1="${a}" y1="-2.5" x2="${b}" y2="-2.5" stroke="#86AEB3" stroke-width="1.2"/><line x1="${a}" y1="2.5" x2="${b}" y2="2.5" stroke="#86AEB3" stroke-width="1.2"/></g>`
+        :`<g class="gen-fade" style="animation-delay:1s"><line x1="${a}" y1="0" x2="${b}" y2="0" stroke="#26231E" stroke-width="6"/><line x1="${a}" y1="0" x2="${a}" y2="${sg*r}" stroke="#EDE3D3" stroke-width="1.2"/><path d="M${a},${sg*r}A${r},${r} 0 0 ${sg>0?0:1} ${b},0" fill="none" stroke="rgba(237,227,211,.45)" stroke-width="1" stroke-dasharray="3 3"/></g>`); }).join('');
+    // each wall's length on a dimension line outside it
+    svg+=S.walls.map((w,i)=>{ const L=w.length*sc; if(L<28) return ''; const y=-sg*24, ang=Math.atan2(w.b[1]-w.a[1],w.b[0]-w.a[0]), flip=Math.cos(ang)<-1e-6;
+      return frame(w,`<g class="gen-fade" style="animation-delay:${(.6+i*.08).toFixed(2)}s"><line x1="0" y1="${y}" x2="${L}" y2="${y}" stroke="rgba(244,241,235,.3)" stroke-width=".8"/>
+        <line x1="0" y1="${y-4}" x2="0" y2="${y+4}" stroke="rgba(244,241,235,.4)"/><line x1="${L}" y1="${y-4}" x2="${L}" y2="${y+4}" stroke="rgba(244,241,235,.4)"/>
+        <text class="gen-dim" x="${L/2}" y="${y-sg*9}" text-anchor="middle" dominant-baseline="middle"${flip?` transform="rotate(180 ${L/2} ${y-sg*9})"`:''}>${fmtLen(w.length)}</text></g>`); }).join('');
+    svg+=anchors.map((a,i)=>`<g class="gen-pin" style="animation-delay:${(1.4+i*.2).toFixed(2)}s">${drawModule(S.walls[+a.wall.slice(1)],a.off,fxWidthMm(a),a.type,a.elevation,t,false)}</g>`).join('');
+    // 1 m scale bar
+    svg+=`<g class="gen-fade" style="animation-delay:.8s" transform="translate(18,${H-20})"><line x1="0" y1="0" x2="${1000*sc}" y2="0" stroke="rgba(244,241,235,.5)" stroke-width="2"/><text class="gen-dim" x="${1000*sc+8}" y="0" dominant-baseline="middle">1 m</text></g>`;
+  }
+  $('genPlan').innerHTML=svg;
+  const first=(S.project?.client||'').trim().split(/\s+/)[0];
+  $('genTitle').textContent=`Drafting ${first?first+'\u2019s':'your'} ${(roomType(room?.typeId)?.label||'kitchen').toLowerCase()}`;
+  $('genSub').textContent=[room?.name,n&&`${(w0/1000).toFixed(1)} \u00d7 ${(h0/1000).toFixed(1)} m`,n&&plural(n,'wall')].filter(Boolean).join(' \u00b7 ');
+  const cell=(k,v)=>`<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  $('genSpec').innerHTML=cell('Series',esc(series||'\u2014'))+cell('Finish',`<span class="gen-sw" style="background:linear-gradient(135deg,${look.c1} 50%,${look.c2} 50%)"></span>${esc(look.n)}`)
+    +cell('Countertop',esc(S.options.counterName||'Matched to finish'))+cell('Handle',esc(S.handle||'C & J'))
+    +cell('Height',S.options.kitchenHeight?S.options.kitchenHeight+' ft':'\u2014')+cell('Rate',rate!=null?inr(rate)+'/sqft':'\u2014');
+  const base=zones.filter(z=>z.tier==='base'), run=base.reduce((k,z)=>k+z.e-z.s,0), on=new Set(base.map(z=>z.wall)),
+    corners=n>2?S.walls.filter((_,i)=>on.has('W'+i)&&on.has('W'+((i+1)%n))).length:0, count=k=>ops.filter(o=>o.type===k).length;
+  const steps=[
+    ['Reading the room',[plural(n,'wall'),plural(count('door'),'door'),plural(count('window'),'window')].join(' \u00b7 ')],
+    ['Placing appliances',anchors.map(a=>`${NAME[a.type]} ${fmtLen(fxWidthMm(a))}`).join(' \u00b7 ')||'None placed'],
+    ['Generating the design',(run?`${(run/1000).toFixed(1)} m of base run`:'Along the walls')+` in ${look.n}`],
+    ['Checking corners & clearances',corners?`${plural(corners,'corner')} \u00b7 openings \u00b7 appliance gaps`:'Openings and appliance gaps'],
+    ['Pricing',series?`${series} series${rate!=null?' \u00b7 '+inr(rate)+'/sqft':''}`:'Series rate \u00d7 carcass area']];
+  $('genSteps').innerHTML=steps.map(([b,d])=>`<li><span class="dot"></span><b>${esc(b)}</b><small>${esc(d)}</small></li>`).join('');
+  const li=[...$('genSteps').children]; let k=0;
+  const tick=()=>li.forEach((el,i)=>{ el.className=i<k?'done':i===k?'on':''; el.firstChild.textContent=i<k?'\u2713':''; });
+  tick(); S._genTimer=setInterval(()=>{ if(k<2){ k++; tick(); } },420);
+  const bar=$('genBar'); bar.style.transition='none'; bar.style.width='0'; void bar.offsetWidth; bar.style.transition=''; bar.style.width='92%';
 }
 
 /* ====================================================================
@@ -7309,7 +7516,7 @@ function renderQuote(){
   const kitchenExtra=[...(S.plan&&S.plan.placedAccessories||[]).map(a=>esc((accRow(a.name)||a).name)),
     ...cabAccItems().map(c=>esc((accRow(c.name,c.width)||c).name))].join(' · ')||'None selected — select a cabinet while editing the layout to add its accessories';
   const aRows=[
-    {name:'Wellness Cabinets',spec:`${esc(seriesLabel(activeRoom().seriesId))} · shutter profile ${esc(shutterProfile()||'—')} · ${handle} base · ${q.cabQuote.lines.length} cabinets, carcass net area × series rate (itemised below)`,amt:q.cabinets,w:600,tc:'var(--ink)'},
+    {name:'Wellness Cabinets',spec:`${esc(seriesLabel(activeRoom().seriesId))} · shutter profile ${esc(shutterProfile()||'—')} · ${handle} base · ${q.cabQuote.lines.length} cabinets, carcass net area × series rate (cabinet-wise breakdown on the next page)`,amt:q.cabinets,w:600,tc:'var(--ink)'},
     {name:'Hob & Drawer Accessories',spec:hobSpec,amt:q.hobAccAmt,w:500,tc:'#4A463E'},
     {name:'Sink & Wet Zone',spec:sinkSpec,amt:q.sinkAccAmt,w:500,tc:'#4A463E'},
     {name:'Refrigerator & Cooling',spec:`${S.steps.fridge||'Configure the fridge in the Design step'}`,amt:q.fridgeAccAmt,w:500,tc:'#4A463E'},
@@ -7326,7 +7533,6 @@ function renderQuote(){
     {name:'Countertop Installation',basis:`${q.ctopSqft} sqft (same as the countertop line) · ₹${q.R.ctop}/sqft`,amt:q.svcCtop},
     {name:'Backsplash Installation',basis:`${q.wallPanelSqft} sqft (same as the backsplash line) · ₹${q.R.wall}/sqft`,amt:q.svcWall},
   ];
-  $('quoteCabinets').innerHTML=quoteCabinetsHtml(q.cabQuote);
   $('quoteSectionB').innerHTML=bRows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:11px 16px;border-bottom:1px solid #F2EDE2"><div><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:11px;color:var(--muted2)">${r.basis}</div></div><div style="font-size:13px;font-weight:600;white-space:nowrap">${inr(r.amt)}</div></div>`).join('')+
     `<div style="display:flex;justify-content:space-between;padding:13px 16px;background:#F8F5EF"><span style="font-size:13px;font-weight:700">Section B subtotal</span><span style="font-size:13px;font-weight:700">${inr(q.sectB)}</span></div>`;
   $('qGrand').textContent=inr(q.beforeGst);
@@ -7343,6 +7549,10 @@ function quoteSeriesCmpHtml(q){
       const cab=CabinetCatalog.cabinetQuote(S.plan&&S.plan.bom,S.cabCat,s.startingRatePerSqft).total, on=s.id===cur, d=cab-q.cabinets;
       return `<tr style="background:${on?'#FBF8F2':'#fff'};font-weight:${on?700:400}"><td style="${td}">${esc(s.name)}${on?' · current':''}</td><td style="${num}">${inr(s.startingRatePerSqft)}/sqft</td><td style="${num}">${inr(cab)}</td><td style="${num}">${inr(rest+cab)}</td><td style="${num};color:var(--muted2)">${on?'—':(d>0?'+':d<0?'−':'')+inr(Math.abs(d))}</td></tr>`;
     }).join('')}</tbody></table>`;
+}
+function renderCabinetBreakdown(){
+  $('cabBreakTitle').textContent='Cabinet breakdown · '+(activeRoom()?.name||'');
+  $('quoteCabinets').innerHTML=quoteCabinetsHtml(quoteMath().cabQuote);
 }
 function quoteCabinetsHtml(cq){
   const td='padding:8px 12px;border-bottom:1px solid #F2EDE2;font-size:12px', num=td+';text-align:right;white-space:nowrap';
@@ -7388,7 +7598,7 @@ Object.assign(window,{go,setProject,addRoom,editRoom,deleteRoom,duplicateRoom,op
   openFinishes,closeFinishes,pickFinishRoom,setHandleGroup,setCounterFinish,setBacksplashFinish,
   toggleMoreMenu,openSchedule,openCompare,shareNow,createShareLink,roomSwitch,pickRoomFromMenu,
   openDesk,openProjectFromDesk,newProjectFromDesk,submitProjectUi,reopenProjectUi,deleteProjectUi,openDeskObs,
-  setCeilingH,setKitchenH,setKitchenPreset,setSelWidth,setSelSill,setSelWinH,setSelStructW,setSelStructD,setWallLength,setBeamDir,flipColumn,setBeamWidth,setBeamDrop});
+  setSelOpeningType,cityType,cityKey,cityPick,cityClose,setCeilingH,setKitchenH,setKitchenPreset,setSelWidth,setSelSill,setSelWinH,setSelStructW,setSelStructD,setWallLength,setBeamDir,flipColumn,setBeamWidth,setBeamDrop});
 
 /* ====================================================================
    UNDO / REDO — a snapshot stack over the room/design's geometry (walls, openings,
@@ -7994,6 +8204,7 @@ function editAddFiller(w,side){ if(!S.editing) return;
   const list=editableList(S.selModRef), s=selSeg(); w=Math.round(+w||0);
   if(!list||!s||!(s.kind==='gap'||(s.kind==='filler'&&s.open))) return;
   if(w<=0){ showToast('Enter the filler width in mm.'); return; }
+  const asked=side||'left'; side=seenSide(S.selModRef.run,asked);
   const li=S.selModRef.idx, x0=s.x0||0, from=segDesc(s), fit=Math.min(w,s.width);
   const filler={kind:'filler',label:'filler panel',width:w,depth:s.depth,height:s.height,z:s.z,offset:s.offset,tier:s.tier,
     x0:side==='right'?x0+s.width-fit:x0};
@@ -8003,7 +8214,7 @@ function editAddFiller(w,side){ if(!S.editing) return;
   const left=w>s.width&&S.selModRef.tier==='base'?absorbIntoEmpty(list,filler,w-s.width):w-s.width;
   const ni=normalizeList(list,list.indexOf(filler)); S.selModRef.idx=ni>=0?ni:li;
   const over=left>0?` — ${left}mm wider than the free space here, the run grows`:'';
-  afterEdit('add filler',from,`filler ${w}mm (${side||'left'})${over}`);
+  afterEdit('add filler',from,`filler ${w}mm (${asked})${over}`);
   if(over) showToast(`Filler ${w}mm placed${over}.`);
 }
 // Designer's choice: a filler becomes a visible panel, or back. A panel is always exactly
@@ -8021,12 +8232,15 @@ function editFillerToPanel(side,as){ if(!S.editing) return;
   if(isPanelSeg(s)||isDropdownSeg(s)){ const was=isDropdownSeg(s)?'countertop dropdown':'panel'; s.label='filler panel'; afterEdit(`${was} to filler`,from,`filler ${s.width}mm`); return; }
   if(drop&&!canDropdown(S.selModRef,s)){ showToast('A countertop dropdown goes in the base row, under the worktop.'); return; }
   if(s.width<P){ showToast(`A ${name} is exactly ${P}mm — this filler is only ${s.width}mm.`); return; }
+  const asked=side; side=seenSide(S.selModRef.run,side);
   const li=S.selModRef.idx, x0=s.x0||0, panel={...s,label:drop?'countertop return':'panel',width:P,x0:side==='right'?x0+s.width-P:x0};
   delete panel.code; if(panel.x1!=null) panel.x1=panel.x0+P;
   if(s.width===P) list[li]=panel;
-  else { s.width-=P; if(s.x1!=null) s.x1=(side==='right'?x0+s.width:s.x1); if(side==='right') list.splice(li+1,0,panel); else { s.x0=x0+P; list.splice(li,0,panel); } }
-  S.selModRef.idx=list.indexOf(panel);
-  afterEdit(`filler to ${drop?'countertop dropdown':'panel'}`,from,`${name} ${P}mm (${side||'left'})`);
+  else { s.width-=P; if(s.x1!=null) s.x1=(side==='right'?x0+s.width:s.x1); if(side==='right') list.splice(li+1,0,panel); else { s.x0=x0+P; list.splice(li,0,panel); }
+    // only the visible panel stays: the rest of the filler goes, leaving open space (rules.json: panel-replaces-filler)
+    if(!drop){ s.open=true; s.label='open space'; delete s.code; } }
+  const ni=normalizeList(list,list.indexOf(panel),true); S.selModRef.idx=ni>=0?ni:list.indexOf(panel);
+  afterEdit(`filler to ${drop?'countertop dropdown':'panel'}`,from,`${name} ${P}mm (${asked||'left'})`);
 }
 // A base run never grows past its wall while it still has empty space: the extra width a wider
 // cabinet or filler needs comes out of the nearest free / open space (or gap filler) in the same
@@ -8043,6 +8257,14 @@ function absorbIntoEmpty(list,seg,need){
 // Empty space beside the run: a cabinet or filler put in it stands against the run, not at the far side.
 const unitish=q=>!!q&&!['gap','filler','door','window','open'].includes(q.kind);
 function runSide(list,i){ return unitish(list[i+1])&&!unitish(list[i-1])?'right':'left'; }
+// 'left' / 'right' as the designer sees the run, turned into the run's own direction (its start is
+// 'left'): on the plan, screen left / right for a wall drawn across the screen; in elevation, and for a
+// wall drawn up or down the plan, as seen facing that wall from inside the room (rules.json: designer-left-right).
+function seenSide(run,side){ if(side!=='left'&&side!=='right') return side;
+  let flip=null;
+  if(S.view==='2d'&&S.walls?.length){ const a=runAxis(run,tf(680,520,40)); if(a&&Math.abs(a.ux)>Math.abs(a.uy)) flip=a.ux<0; }
+  if(flip==null) flip=islandRun(run)==null&&!!globalThis.elevationFlip?.(S.walls,run);
+  return flip?(side==='left'?'right':'left'):side; }
 // The column or beam a cabinet would run into, or null. `at`/`width` run along wall `run`,
 // `depth`/`offset` out from it, z0..z1 is its height band. A column stands floor to ceiling;
 // a beam hangs from the ceiling by its drop (st.h).
@@ -8111,7 +8333,7 @@ function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
   if(need>0) warn.push(`${need}mm wider than the free space here — the run grows past it`);
   const rep={kind:tall?'tallBank':S.selModRef.tier==='wall'?'wallSolid':S.selModRef.tier==='loft'?'loft':'cabinet',width:w,label:code,code,h,height:h,depth:s.depth,z:midWall?counterTop:wallZ??s.z,offset:s.offset,x0:s.x0,x1:(s.x0||0)+w,...(tall?{tier:'tall'}:{})};
   if(entry) rep.depth=entry.d;
-  if(tall) rep.units=[{type:/-REF-/.test(code)?'fridge':/-(MW|OV)-/.test(code)?'appliance':/-GL-/.test(code)?'glass':/-SH-/.test(code)?'shelves':'pantry',width:w,code,height:h,depth:rep.depth,z:0,offset:s.offset??0}];
+  if(tall) rep.units=[{type:/-REF-/.test(code)?'fridge':/-(MW|OV|MO|CF|AP)-/.test(code)?'appliance':/-GL-/.test(code)?'glass':/-TPT-/.test(code)?'pantry':'shelves',width:w,code,height:h,depth:rep.depth,z:0,offset:s.offset??0}];
   if(cross) rep.crossSeries=true;   // Stage 4.4 — flagged on the design and (later) the module schedule
   if(keepAnchor) Object.assign(rep,{kind:'anchor',label:s.label,func:s.func,tier:s.tier,wall:s.wall});
   // A hob or sink cabinet placed anywhere else in the base row (e.g. after the original was deleted)
@@ -8144,6 +8366,12 @@ function editReplacePick(code,w,h,cross,meta){ if(!S.editing) return;
     const L=Number.isFinite(wallLen)?wallLen:runEnd, near0=x<=L-x-w, reach=(S.rulesCfg?.depths?.base||560)+(S.rulesCfg?.params?.blind_shutter_clearance??40);
     const f0=near0?Math.min(x+w,Math.max(x,reach)):x, f1=near0?x+w:Math.max(x,Math.min(x+w,L-reach));
     Object.assign(rep,{kind:'corner',corner:{end:near0?'from':'to'},shutter:{x0:f0,x1:f1,width:f1-f0}}); }
+  // A wall blind (WB) from the library is a wall blind like a generated one, so it slides like one
+  // (rules.json: wall-blind-slides): its concealed end is the end nearer the wall's corner.
+  if(S.selModRef.tier==='wall'&&!island&&/^WB-/.test(code)){ const x=rep.x0||0, L=Number.isFinite(wallLen)?wallLen:runEnd, near0=x<=L-x-w,
+      d=depthOf('wall')+(S.rulesCfg?.params?.blind_shutter_clearance??40);
+    const f0=near0?Math.min(x+w,Math.max(x,d)):x, f1=near0?x+w:Math.max(x,Math.min(x+w,L-d));
+    Object.assign(rep,{kind:'wallBlind',corner:{end:near0?'from':'to'},shutter:{x0:f0,x1:f1,width:f1-f0,cornerDistance:d}}); }
   // A tall unit owns the wall above it: wall cabinets and lofts over its span give way to open space.
   if(tall&&S.selModRef.tier==='base'){ const cleared=clearUpperOver(S.selModRef.run,rep.x0||0,rep.width);
     if(cleared) warn.push(`${cleared} wall/loft unit${cleared>1?'s':''} above removed to make room`); }
@@ -8203,12 +8431,12 @@ function moveCabinetEdge(run,i,at,side){ if(!S.editing) return;
 //     (nearest-to-the-drop first) — the caller must confirm before applying.
 // Returns {ok:false,reason} or {ok:true, lo, bay:{i0,i1,start,end}, L, R, del, dragWasInBay}.
 function relocateCore(list, seg, targetX0){
-  const W=seg.width;
+  const W=seg.width, MOVABLE=['cabinet','anchor','wallSolid','wallGlass'];   // what a drop pushes aside: base and wall cabinets
   // open space and free empty space (an extend area) are room to move into; space a corner or the
   // next wall's cabinet already uses is not, and a filler or panel stays where it is: it goes or
   // moves only when the designer says so
   const freeGap=(s)=>s.kind==='gap'&&!/footprint|corner void|corner reservation|concealed/.test(s.label||'');
-  const free=(s)=>['cabinet','anchor'].includes(s.kind)||(s.kind==='filler'&&s.open)||freeGap(s);
+  const free=(s)=>MOVABLE.includes(s.kind)||(s.kind==='filler'&&s.open)||freeGap(s);
   const isBarrier=(s)=>s!==seg&&(!free(s)||!!s.kept);   // the dragged unit itself (even a tall one) is never its own barrier
   const runTotal=list.reduce((a,s)=>a+s.width,0);
   const targetC=Math.max(0,Math.min(runTotal,targetX0+W/2));
@@ -8226,7 +8454,7 @@ function relocateCore(list, seg, targetX0){
   list.forEach((s,i)=>{ const s0=x; x+=s.width;
     if(i<bay.i0||i>bay.i1) return;
     if(s===seg){ dragWasInBay=true; return; }
-    if(s.kind==='cabinet'||s.kind==='anchor') content.push({s,c:s0+s.width/2,w:s.width}); });
+    if(MOVABLE.includes(s.kind)) content.push({s,c:s0+s.width/2,w:s.width}); });
   const spanC=lo+W/2;
   const left=content.filter(c=>c.c<spanC), right=content.filter(c=>c.c>=spanC);
   const bayLen=bay.end-bay.start;
@@ -8265,12 +8493,14 @@ function relocateApply(list, seg, plan){
 /*__RELOCATE_CORE_END__*/
 // UI wrapper: plan → confirm any deletions → apply → log → reprice → redraw.
 function relocateSelected(targetX0){
-  const ref=S.selModRef; if(!S.editing||!ref||ref.tier!=='base') return false;
+  const ref=S.selModRef; if(!S.editing||!ref||!['base','wall'].includes(ref.tier)) return false;
   recalcPositions();   // first: on a wall another wall's cabinet reaches, it rebuilds the run's list (markOccupied)
-  const list=editableList(ref); const seg=list&&list[ref.idx];
+  const list=editableList(ref); const seg=list&&list[ref.idx], upper=ref.tier==='wall';
   if(seg?.kind==='corner') return slideCorner(targetX0-(seg.x0||0));
-  if(!seg||!['cabinet','anchor','tallBank'].includes(seg.kind)) return false;
-  const plan=relocateCore(list,seg,targetX0);
+  if(seg?.kind==='wallBlind') return slideWallBlind(targetX0);
+  if(!seg||!(upper?WALL_MOVABLE:['cabinet','anchor','tallBank']).includes(seg.kind)) return false;
+  const work=upper?wallRowList(list,ref.run):list;   // the wall row, end to end, as the planner reads a base run
+  const plan=relocateCore(work,seg,targetX0);
   if(!plan.ok){ showToast(plan.reason); return false; }
   // the new spot must be clear of columns and beams, exactly as when placing from the library
   const tallSeg=seg.kind==='tallBank'||seg.tier==='tall'||TALL_ANCHORS.includes(seg.label), H=seg.height??seg.h??(tallSeg?2400:720), z0=tallSeg?0:(seg.z??100);
@@ -8281,18 +8511,67 @@ function relocateSelected(targetX0){
     if(!confirm(`Not enough room — placing here removes: ${names}.\nDelete ${plan.del.length>1?'them':'it'}?`)) return false;
   }
   const from=`at ${seg.x0}mm`;
-  relocateApply(list,seg,plan);
+  relocateApply(work,seg,plan);
+  if(upper) fromWallRowList(list,work,seg);
   const ni=normalizeList(list,list.indexOf(seg));
   S.selModRef.idx=ni>=0?ni:list.indexOf(seg);
   recalcPositions();
   if(seg.kept){ const k=(S.keeps||[]).find(k2=>k2.wall===ref.run&&k2.width===seg.width); if(k) k.x0=seg.x0; renderKeepBar(); }
   for(const d of plan.del){
-    (S.editLog=S.editLog||[]).push({at:new Date().toISOString(),who:'designer',action:'delete',wall:ref.run,tier:'base',from:segDesc(d.s),to:`removed to make room for ${seg.code||seg.func||'the moved cabinet'} (confirmed)`});
+    (S.editLog=S.editLog||[]).push({at:new Date().toISOString(),who:'designer',action:'delete',wall:ref.run,tier:ref.tier,from:segDesc(d.s),to:`removed to make room for ${seg.code||seg.func||'the moved cabinet'} (confirmed)`});
     if(S.plan&&S.plan.log) S.plan.log.push({status:'applied',rule:'Manual edit',by:'designer',detail:`delete on ${ref.run}: ${segDesc(d.s)} removed (confirmed) to make room.`});
   }
   const pushed=plan.L.length+plan.R.length, cleared=tallSeg?clearUpperOver(ref.run,seg.x0,seg.width):0;   // a tall unit takes its wall
   afterEdit('move',from,`at ${seg.x0}mm${pushed?` — ${pushed} cabinet(s) pushed aside`:''}${plan.del.length?` — ${plan.del.length} removed`:''}${cleared?` — ${cleared} wall/loft unit(s) above removed`:''}`);
   if(pushed||plan.del.length) showToast(`Placed at ${seg.x0}mm${pushed?` · ${pushed} pushed aside`:''}${plan.del.length?` · ${plan.del.length} removed`:''}`);
+  return true;
+}
+// Wall cabinets move like base ones (rules.json: wall-cabinets-move). The wall row places each unit by
+// its own x0, so the planner gets it end to end: bare wall over a door, window or tall unit, or where the
+// next wall's wall cabinets turn the corner, stands in as a barrier; any other bare wall (up to the
+// corner) and open space is room to move into.
+const WALL_MOVABLE=['wallSolid','wallGlass'];
+function wallRowList(list,run){ const L=S.walls?.[+String(run).slice(1)]?.length??0, busy=wallBusySpans(run), out=[]; let x=0;
+  const bare=(a,b)=>{ const cuts=[...new Set([a,b,...busy.flat().filter(v=>v>a&&v<b)])].sort((p,q)=>p-q);
+    for(let i=1;i<cuts.length;i++){ const p=cuts[i-1], q=cuts[i];
+      out.push(busy.some(([s0,s1])=>s0<q-0.5&&s1>p+0.5)?{kind:'bare',width:q-p}:{kind:'filler',open:true,label:'open space',width:q-p}); } };
+  for(const u of [...list].sort((a,b)=>(a.x0||0)-(b.x0||0))){ const a=u.x0||0;
+    if(a-x>=1) bare(x,a); out.push(u); x=Math.max(x,a+u.width); }
+  if(L-x>=1) bare(x,L);
+  return out; }
+// …and back: every piece takes its x0 from its place in the row, open space keeps the wall row's height.
+function fromWallRowList(list,work,seg){ let x=0;
+  const rows=work.map(s=>{ const p=s.kind==='filler'&&s.open&&s.z==null?{...s,spare:true,z:seg.z,height:seg.height,depth:seg.depth}:s;
+    p.x0=Math.round(x); x+=p.width; p.x1=Math.round(x); return p; });
+  list.splice(0,list.length,...rows.filter(s=>s.kind!=='bare')); }
+// A wall blind slides along its own wall like the base blind (rules.json: wall-blind-slides): right up
+// to the corner wall, through its concealed space, or away from the corner into open space. It stops
+// at another wall unit, at wall over a door, window or tall unit, and at a column; nothing is pushed.
+// Its opening shutter stays where the adjoining run's front puts it (blindFront), within the cabinet.
+function slideWallBlind(targetX0){
+  recalcPositions();
+  const ref=S.selModRef, list=editableList(ref), s=list?.[ref?.idx];
+  if(!S.editing||!s||s.kind!=='wallBlind') return false;
+  const wi=+String(ref.run).slice(1), L=S.walls?.[wi]?.length??0;
+  const stops=[...list.filter(u=>u!==s&&!(u.kind==='filler'&&u.open)).map(u=>[u.x0||0,(u.x0||0)+u.width]),...wallBusySpans(ref.run)];
+  for(const {st,a0,a1} of structSpansOnWall(wi,50)) if(st.type==='column') stops.push([a0,a1]);
+  const a=s.x0||0, b=a+s.width; let lo=0, hi=L;
+  for(const [p,q] of stops){ if(q<=a+0.5) lo=Math.max(lo,q); else if(p>=b-0.5) hi=Math.min(hi,p); }
+  const x0=Math.round(Math.max(lo,Math.min(hi-s.width,targetX0)));
+  if(x0===a){ showToast(targetX0<a?(lo>0?'Something stands right there on the left — the cabinet is already against it.':'The cabinet is already at the wall.')
+    :(hi<L?'Something stands right there on the right — the cabinet is already against it.':'The cabinet is already at the wall.')); return false; }
+  // open space the cabinet now covers gives way; what it leaves is open space, merged with any beside it
+  for(const u of list.filter(u=>u.kind==='filler'&&u.open&&(u.x0||0)<x0+s.width&&(u.x0||0)+u.width>x0)){
+    const u0=u.x0||0, u1=u0+u.width, keep=[[u0,Math.min(u1,x0)],[Math.max(u0,x0+s.width),u1]].filter(([p,q])=>q-p>=1);
+    list.splice(list.indexOf(u),1,...keep.map(([p,q])=>({...u,x0:p,x1:q,width:q-p}))); }
+  for(const [p,q] of [[a,Math.min(b,x0)],[Math.max(a,x0+s.width),b]]) if(q-p>=1)
+    list.push({kind:'filler',open:true,spare:true,label:'open space',width:q-p,x0:p,x1:q,z:s.z,height:s.height,depth:s.depth});
+  s.x0=x0; s.x1=x0+s.width;
+  if(s.shutter){ const d=s.shutter.cornerDistance??(depthOf('wall')+(S.rulesCfg?.params?.blind_shutter_clearance??40));
+    const f0=s.corner?.end==='to'?x0:Math.max(x0,d), f1=s.corner?.end==='to'?Math.min(x0+s.width,L-d):x0+s.width;
+    Object.assign(s.shutter,{x0:f0,x1:Math.max(f0,f1),width:Math.max(0,f1-f0)}); }
+  list.sort((p,q)=>(p.x0||0)-(q.x0||0)); normalizeList(list); S.selModRef.idx=list.indexOf(s);
+  afterEdit('move',`at ${a}mm`,`at ${x0}mm`);
   return true;
 }
 // A blind / LeMans corner cabinet slides along its own wall between the empty space on either
@@ -8325,7 +8604,7 @@ function slideCorner(delta){
 }
 // The ± buttons ride the same engine, so small nudges also push neighbours instead of
 // stopping dead at the first cabinet.
-function editMoveBy(delta){ if(selSeg()?.kind==='corner') return slideCorner(delta); const s=selSeg(); if(!s||!['cabinet','anchor','tallBank'].includes(s.kind)) return; relocateSelected((s.x0||0)+delta); }
+function editMoveBy(delta){ if(selSeg()?.kind==='corner') return slideCorner(delta); const s=selSeg(); if(!s||!['cabinet','anchor','tallBank','wallBlind',...WALL_MOVABLE].includes(s.kind)) return; relocateSelected((s.x0||0)+delta); }
 // Explicit entry into editing while the client rule-engine drawing is still showing: from
 // here on the SERVER plan is the single rendered + edited truth (the engine decision).
 function enterEditMode(){
@@ -8348,11 +8627,11 @@ function stopEditing(){
    cabinets in the way are pushed into filler slack, and deletions only happen
    after an explicit confirm. Structural segments and pinned cabinets are barriers. */
 let _md=null;
-function startModDrag(ev,i){ const m=S.modules[i]; if(!S.editing||!m||m.run==null||m.segTier!=='base') return;
-  const list=editableList({run:m.run,tier:'base'}); const s=list&&list[m.seg]; if(!s||!['cabinet','anchor','corner','tallBank'].includes(s.kind)) return;
-  if(!S.selModRef||S.selModRef.run!==m.run||S.selModRef.idx!==m.seg||S.selModRef.tier!=='base') selectModule(i);   // one press selects and drags
+function startModDrag(ev,i){ const m=S.modules[i], tier=m?.segTier; if(!S.editing||!m||m.run==null||!['base','wall'].includes(tier)) return;
+  const list=editableList({run:m.run,tier}); const s=list&&list[m.seg]; if(!s||!(tier==='wall'?[...WALL_MOVABLE,'wallBlind']:['cabinet','anchor','corner','tallBank']).includes(s.kind)) return;
+  if(!S.selModRef||S.selModRef.run!==m.run||S.selModRef.idx!==m.seg||S.selModRef.tier!==tier) selectModule(i);   // one press selects and drags
   const t=tf(680,520,40),pointer=svgPoint($('view2d'),ev);
-  _md={ref:{...S.selModRef},W:s.width,startX0:s.x0||0,...runAxis(m.run,t),sc:t.sc,anchor:s.kind==='anchor',
+  _md={ref:{...S.selModRef},W:s.width,D:s.depth??depthOf(tier),startX0:s.x0||0,...runAxis(m.run,t),sc:t.sc,anchor:s.kind==='anchor',
        px0:pointer.x,py0:pointer.y,target:s.x0||0,raf:false};
   ev.preventDefault();
   window.addEventListener('mousemove',onModDrag); window.addEventListener('mouseup',endModDrag);
@@ -8381,7 +8660,7 @@ function onModDrag(ev){ if(!_md) return;
   requestAnimationFrame(()=>{ if(!_md) return; _md.raf=false;
     const svg=$('view2d'); if(!svg) return;
     let g=svg.querySelector('#dragGhost');
-    const loPx=_md.target*_md.sc, wPx=_md.W*_md.sc, dPx=depthOf('base')*_md.sc;
+    const loPx=_md.target*_md.sc, wPx=_md.W*_md.sc, dPx=_md.D*_md.sc;
     const P=(a,b)=>`${_md.ax+_md.ux*a+_md.nx*b},${_md.ay+_md.uy*a+_md.ny*b}`;
     const pts=`${P(loPx,0)} ${P(loPx+wPx,0)} ${P(loPx+wPx,dPx)} ${P(loPx,dPx)}`;
     if(!g){ g=document.createElementNS('http://www.w3.org/2000/svg','polygon'); g.id='dragGhost';
@@ -8560,7 +8839,7 @@ function renderLibPanelBody(){
   const box=$('libBody'); if(!box||!S.selModRef) return;
   const s=selSeg(); if(!s){ box.innerHTML='<div style="color:var(--muted2);font-size:12.5px">Nothing selected.</div>'; return; }
   if(isReservedSpace(s)){box.innerHTML=reservedSpaceHtml(s);return;}
-  const ref=S.selModRef, isGap=s.kind==='gap', isFiller=s.kind==='filler'||isGap, movable=ref.tier==='base'&&['cabinet','anchor','corner','tallBank'].includes(s.kind);
+  const ref=S.selModRef, isGap=s.kind==='gap', isFiller=s.kind==='filler'||isGap, movable=ref.tier==='base'&&['cabinet','anchor','corner','tallBank'].includes(s.kind)||ref.tier==='wall'&&[...WALL_MOVABLE,'wallBlind'].includes(s.kind);
   const list=editableList(ref), left=list[ref.idx-1], right=list[ref.idx+1];
   const slack=s.width+(left&&left.kind==='filler'&&sameTier(left,s)?left.width:0)+(right&&right.kind==='filler'&&sameTier(right,s)?right.width:0);
   box.innerHTML=`
@@ -8837,16 +9116,27 @@ function elevStructures(wi,xs,Y,k,ceil,R){
 }
 // While editing, every stretch of wall with nothing on it at upper height (no wall zone was
 // drawn there, or nothing fitted) is an open "spare" slot, so a wall cabinet can be added
-// anywhere. Tall units, doors and windows keep their wall. Spare slots draw only in editing.
+// anywhere. Tall units, doors, windows and a turned corner keep their wall. Spare slots draw only in editing.
 function addSpareWallSlots(run,t,WB,wallTop){ t.wall=t.wall||[];
   ensureChimneySlots(run,t,WB,wallTop);
-  const busy=[...t.wall,...run.segments.filter(sg=>sg.tier==='tall'||sg.kind==='tallBank'||sg.kind==='door'||sg.kind==='window'
-    ||(sg.kind==='anchor'&&TALL_ANCHORS.includes(sg.label)))].map(u=>[u.x0||0,(u.x0||0)+u.width]).sort((a,b)=>a[0]-b[0]);
+  // a spare slot an older draw left over a turned corner, door, window or tall unit goes; the free part comes back below
+  const stop=wallBusySpans(run.key,run); t.wall=t.wall.filter(u=>!(u.spare&&u.open&&stop.some(([a,b])=>a<(u.x0||0)+u.width-0.5&&b>(u.x0||0)+0.5)));
+  const busy=[...t.wall.map(u=>[u.x0||0,(u.x0||0)+u.width]),...stop].sort((a,b)=>a[0]-b[0]);   // incl. a corner the next wall's wall cabinets turn
   let x=0; const free=[], L=run.total||0;
   for(const [a,b] of busy){ if(a-x>=150) free.push([x,a]); x=Math.max(x,b); }
   if(L-x>=150) free.push([x,L]);
   for(const [a,b] of free) t.wall.push({kind:'filler',open:true,spare:true,label:'open space',width:b-a,x0:a,x1:b,z:WB,height:wallTop-WB,depth:S.rulesCfg?.depths?.wall||336});
   if(free.length) t.wall.sort((a,b)=>(a.x0||0)-(b.x0||0)); }
+// Where a wall row can take no wall cabinet: over a door, window or tall unit, and in a corner the next
+// wall's wall cabinets turn (one starting within this row's depth of the corner). [x0,x1] along the wall.
+function wallBusySpans(run,r=(S.plan?.runs||[]).find(q=>q.key===run)){ const wi=+String(run).slice(1), W=S.walls||[], n=W.length, L=W[wi]?.length??0;
+  const spans=(r?.segments||[]).filter(g=>g.tier==='tall'||g.kind==='tallBank'||g.kind==='door'||g.kind==='window'
+    ||(g.kind==='anchor'&&TALL_ANCHORS.includes(g.label))).map(g=>[g.x0||0,(g.x0||0)+g.width]);
+  const units=k=>(S.plan?.tiers?.['W'+k]?.wall||[]).filter(u=>!(u.kind==='filler'&&u.open));
+  if(n){ const prev=(wi-1+n)%n, next=(wi+1)%n, Lp=W[prev]?.length??0;
+    for(const u of units(prev)) if((u.x0||0)+u.width>Lp-depthOf('wall')) spans.push([0,u.depth??depthOf('wall')]);   // inside this row's depth of the corner
+    for(const u of units(next)) if((u.x0||0)<depthOf('wall')) spans.push([L-(u.depth??depthOf('wall')),L]); }
+  return spans; }
 // The 3D always hangs a chimney over a wall-run hob (rules.json: chimney-width), so the
 // wall row keeps that space as its own chimney slot, with its own dimension: one lost to an older
 // delete is cut back out of the open space around it. The slot follows the hob (rules.json:
@@ -9291,7 +9581,6 @@ function loadAppConfig(attempt){
       S.quoteCfg=cfg.quote||null; S.accPrices=cfg.accessoryPrices||null; S.cfgSurfaces=cfg.surfaces||null; S.cfgInstall=cfg.install||null; S.remarksCfg=cfg.remarks||null;
       S.cabCat=cfg.cabinets||null; S.profilesCfg=cfg.profiles||null;   // workbook: carcass sqft + shutter profiles
       S.cityCfg=cfg.cityRates||null;
-      $('suCity').innerHTML='<option value="">Select city…</option>'+Object.keys(S.cityCfg&&S.cityCfg.cities||{}).map(c=>`<option>${esc(c)}</option>`).join('');
       $('suCity').value=S.project.city;
       renderChrome();
     } else if(attempt<5) setTimeout(()=>loadAppConfig(attempt+1),1500);
@@ -9569,7 +9858,7 @@ async function restoreRevisionUi(revId){
     r.design=fresh; r.design.roomName=r.name; applyRoom(r);
     DS.lastSavedJson=null;
     // A post-Generate screen can't render a revision that predates generation - step back to Layout.
-    if(!S.plan && ['result','render','rendering','quote','handoff'].includes(S.screen)) S.screen='layout';
+    if(!S.plan && ['result','render','rendering','quote','cabinets','handoff'].includes(S.screen)) S.screen='layout';
     closeRevisionsModal(); render(); renderChrome();
     showToast('Restored revision '+out.restoredFrom+' — saved as revision '+out.revision.number);
   }catch(e){ showToast('Restore failed: '+e.message); }

@@ -95,9 +95,11 @@ test('a column in a corner: the blind cabinets stand against it and the space be
   assert.deepEqual(r.problems,[]);
   for(const tier of ['base','wall']){
     const blind=r.placed[tier].find(p=>p.corner?.id==='2:3'&&!p.blocker);
-    assert.equal(blind.at+blind.width,L2-250,`${tier} blind stands against the column face`);
+    // against the column face, or up to 100mm off it where it takes up a filler (blind-dead-space-absorbs-filler)
+    const off=L2-250-(blind.at+blind.width);
+    assert.ok(off>=0&&off<=100,`${tier} blind stands against the column face (${off}mm off)`);
     assert.equal(blind.corner.column,250);
-    assert.ok(r.placed[tier].some(p=>p.wall==='2'&&p.at===L2-250&&p.width===250&&p.role==='concealed corner space'));
+    assert.ok(r.placed[tier].some(p=>p.wall==='2'&&p.at===blind.at+blind.width&&p.width===250+off&&p.role==='concealed corner space'));
   }
   // a column deeper than the cabinets still blocks the corner as before
   const big=JSON.parse(readFileSync('verification/alignment-3600.json')).input;
@@ -119,5 +121,10 @@ test('corner-dead-space: a base blind leaves 50mm behind it, a LeMans at least 1
       assert.ok(r.placed.base.some(q=>q.hiddenCorner&&q.cornerId===p.corner.id&&q.width===dead),'kept empty as concealed corner space');
     }
     if(lemans) assert.ok(corners.some(p=>p.role==='LeMans corner'));
+    // a wall blind leaves the same space between its blind end and the corner wall
+    const uppers=r.placed.wall.filter(p=>p.role==='wall blind corner');
+    assert.ok(uppers.length,'the fixture has a wall blind');
+    for(const p of uppers){ const space=r.placed.wall.find(q=>q.hiddenCorner&&q.cornerId===p.corner.id&&q.wall===p.wall);
+      assert.ok(space&&space.width>=50&&space.width<=100,`wall blind: ${space?.width}mm behind it`); }
   }
 });

@@ -1176,7 +1176,8 @@
         "designer, 2026-10-13"
       ],
       "statement": "A cabinet band the designer drew into a corner or up to a wall end stays there. Corrections (kitchen-always-drawn-with-corrections) may move an appliance or a band's inner edge, but never pull a band edge away from a wall end; what cannot be fixed that way is reported instead of leaving dead space in the corner.",
-      "implementation": "core/correct.mjs candidates(): a band edge at 0 or the wall length is never shifted. Test: test/run-end/wall-closed-ends.test.mjs."    },
+      "implementation": "core/correct.mjs candidates(): a band edge at 0 or the wall length is never shifted. Test: test/run-end/wall-closed-ends.test.mjs."
+    },
     {
       "id": "no-run-past-wall-end",
       "status": "stated",
@@ -1185,7 +1186,8 @@
         "designer, 2026-10-13"
       ],
       "statement": "A manual edit never pushes a cabinet run past the end of its wall. Replacing a cabinet with a wider one may use the open space in that run; if it still does not fit, the replacement is refused and the designer is told how many mm are missing.",
-      "implementation": "ui/builder.html editReplacePick(): the run is snapshotted, and the edit is rolled back with a message if the run would end beyond the wall length (an overrun saved by an older edit is not made worse). Move and corner slide already stay inside their run."    },
+      "implementation": "ui/builder.html editReplacePick(): the run is snapshotted, and the edit is rolled back with a message if the run would end beyond the wall length (an overrun saved by an older edit is not made worse). Move and corner slide already stay inside their run."
+    },
     {
       "id": "mid-wall-on-countertop",
       "status": "stated",
@@ -1194,7 +1196,8 @@
         "designer, 2026-10-14"
       ],
       "statement": "A mid-height wall cabinet stands on the countertop and rises to the top of the wall cabinets. It is usually near the fridge, but there is no placement condition. When the designer puts one in a wall-cabinet slot, it is placed on the countertop and the height variant (1290 / 1650) whose top meets the existing wall-cabinet top is used. Only mid-height wall cabinets stand on the countertop: any other wall cabinet put in the wall row (including where a mid cabinet was deleted) hangs level with the row's other wall cabinets, or 565 mm (the dado) above the countertop when there are none.",
-      "implementation": "ui/builder.html editReplacePick(): an MD-/MDW- code picked in the wall row gets z = countertop (heights.baseTop) and is swapped for the same code at the height that reaches the slot's (or the row's non-mid) wall-cabinet top; with no such variant it is placed and a warning names the mismatch. Any other wall-row pick gets z = the first other non-mid wall cabinet's z, else baseTop + dado. Test: test/ui-state/ui-state.test.mjs."    },
+      "implementation": "ui/builder.html editReplacePick(): an MD-/MDW- code picked in the wall row gets z = countertop (heights.baseTop) and is swapped for the same code at the height that reaches the slot's (or the row's non-mid) wall-cabinet top; with no such variant it is placed and a warning names the mismatch. Any other wall-row pick gets z = the first other non-mid wall cabinet's z, else baseTop + dado. Test: test/ui-state/ui-state.test.mjs."
+    },
     {
       "id": "library-blind-is-a-corner",
       "status": "stated",
@@ -1203,7 +1206,8 @@
         "designer, 2026-10-14"
       ],
       "statement": "A base blind cabinet picked from the library during editing is treated like a generated blind corner: its concealed end is the end nearer the wall corner and its door starts past the adjoining run's front plus the blind shutter clearance. On the adjoining wall it occupies only the space its body stands in, not a door-front zone across its concealed part.",
-      "implementation": "ui/builder.html editReplacePick(): a BB-/BBL- code in the base row becomes kind 'corner' with corner.end and shutter {x0,x1} (base depth + params.blind_shutter_clearance from the nearer wall end); markOccupied() then uses the shutter span for the front zone. Test: test/ui-state/ui-state.test.mjs."    },
+      "implementation": "ui/builder.html editReplacePick(): a BB-/BBL- code in the base row becomes kind 'corner' with corner.end and shutter {x0,x1} (base depth + params.blind_shutter_clearance from the nearer wall end); markOccupied() then uses the shutter span for the front zone. Test: test/ui-state/ui-state.test.mjs."
+    },
     {
       "id": "drag-empty-space-boundary",
       "status": "stated",
@@ -1213,7 +1217,8 @@
         "designer, 2026-10-21"
       ],
       "statement": "While editing, the edge between two neighbouring empty pieces of a base run (open space, extend area, dead space, a corner reservation or a filler) can be dragged to resize them, or dragged to the end to merge them into one space the designer can use however they want — e.g. to take a corner back for a blind corner on that wall. A cabinet standing on the adjoining wall still marks the space it occupies (and its open space) as occupied. The edge between a cabinet and the empty space beside it can be dragged too: the cabinet slides with it (keeping its width) into that space. A cabinet is dragged with a single press — pressing it selects it and drags it in one go.",
-      "implementation": "ui/detailed-plan.js emptyJoint() + .emptyjoint handles (data-cab on a cabinet/empty edge); ui/builder.html startEmptyJointDrag()/moveEmptyBoundary()/moveCabinetEdge() → relocateSelected(); startModDrag() selects on press; markOccupied() also cuts open space. Test: test/ui-state/ui-state.test.mjs."    },
+      "implementation": "ui/detailed-plan.js emptyJoint() + .emptyjoint handles (data-cab on a cabinet/empty edge); ui/builder.html startEmptyJointDrag()/moveEmptyBoundary()/moveCabinetEdge() → relocateSelected(); startModDrag() selects on press; markOccupied() also cuts open space. Test: test/ui-state/ui-state.test.mjs."
+    },
     {
       "id": "open-space-worktop",
       "status": "stated",
@@ -1222,7 +1227,8 @@
         "designer, 2026-10-22"
       ],
       "statement": "Worktop is drawn over base-row open space (a deleted cabinet or filler) only when a base cabinet stands right beside it on that run; otherwise the open space has no worktop, so a slab never floats with nothing under it.",
-      "implementation": "ui/renderer3d.js run loop, seg.open branch: worktop() only if the previous or next non-zero-width segment is a non-tall cabinet/anchor/corner."    },
+      "implementation": "ui/renderer3d.js run loop, seg.open branch: worktop() only if the previous or next non-zero-width segment is a non-tall cabinet/anchor/corner."
+    },
     {
       "id": "hob-flank-clear-of-corner",
       "status": "stated",
@@ -1533,13 +1539,13 @@
       "seen_in": [
         "Designer, 2026-11-03"
       ],
-      "statement": "A base blind corner cabinet (1150mm) leaves 50mm of concealed dead space behind it, between its blind end and the corner wall. A LeMans corner (1050mm) leaves at least 150mm. Either way the cabinet ends 1200mm from the corner. The designer can change it while editing.",
+      "statement": "A base blind corner cabinet (1150mm) leaves 50mm of concealed dead space behind it, between its blind end and the corner wall. A LeMans corner (1050mm) leaves at least 150mm. Either way the cabinet ends 1200mm from the corner. The designer can change it while editing. A wall blind corner cabinet likewise leaves 50mm between its blind end and the corner wall (Designer, 2026-11-04).",
       "overrides": {
         "no-dead-corners": "The concealed space behind a base blind starts at 50mm (0-100mm allowed); behind a LeMans it starts at 150mm (150-250mm allowed).",
         "blind-corner-snap": "The blind no longer touches the corner wall by default."
       },
-      "note": "Range assumed for the LeMans: its 150mm minimum plus the same 100mm allowance a blind has (blind-dead-space-absorbs-filler), so 150-250mm. A corner column standing in that space counts toward it. Tall and wall blinds are unchanged.",
-      "implementation": "core/engine.mjs corners(): the base corner unit is set back by deadSpaceRange(width)[2] (params blind_corner_dead_space, lemans_corner_dead_space_min) and that space is reserved as 'concealed corner space'. When that would leave a sliver under gap_filler_min beside the unit, a blind gives the dead space back down to 0mm (so the run can close); a LeMans that would go under 150mm is not used and the blind is tried instead. arrangeBlindFronts and blindShutterProblems use the same range."
+      "note": "Range assumed for the LeMans: its 150mm minimum plus the same 100mm allowance a blind has (blind-dead-space-absorbs-filler), so 150-250mm. A corner column standing in that space counts toward it. Tall blinds are unchanged.",
+      "implementation": "core/engine.mjs corners(): the base corner unit is set back by deadSpaceRange(width)[2] (params blind_corner_dead_space, lemans_corner_dead_space_min) and that space is reserved as 'concealed corner space'. When that would leave a sliver under gap_filler_min beside the unit, a blind gives the dead space back down to 0mm (so the run can close); a LeMans that would go under 150mm is not used and the blind is tried instead. arrangeBlindFronts and blindShutterProblems use the same range. The wall blind uses the same set-back in corners() (both the two-zone path and the owner-only path)."
     },
     {
       "id": "countertop-dropdown-to-floor",
@@ -1580,6 +1586,108 @@
       ],
       "statement": "A tall visible panel at the end of a tall run with space left beyond it (open space, bare wall, a door) runs all the way down to the floor; no skirting goes under it. A tall panel between a base run and a tall unit keeps the skirting line of the cabinets beside it.",
       "implementation": "ui/renderer3d.js (3D and walkthrough): a tall panel whose neighbour on either side is empty is not lifted to the skirting line and gets no skirting. The plan and the elevation already draw tall panels from the floor (z 0)."
+    },
+    {
+      "id": "panel-replaces-filler",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "When the designer turns a filler into a visible panel, only the visible panel stays: the rest of that filler is deleted and left as open space, not kept as a filler beside the panel. (A countertop dropdown still keeps the rest as a filler.)",
+      "implementation": "ui/builder.html editFillerToPanel(): for a panel, the remainder becomes open space (open:true, label 'open space') and merges with the open space beside it (normalizeList openOnly)."
+    },
+    {
+      "id": "designer-left-right",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "In editing, \"left\" and \"right\" for placing a filler, a visible panel or a countertop dropdown are as the designer sees them, not the run's own start and end. On the 2D plan, a wall drawn across the screen uses screen left and right (on the top wall and on the bottom wall alike). In the elevation, and for a wall drawn up or down the plan, they are as seen standing in the room facing that wall.",
+      "implementation": "ui/builder.html seenSide(run,side): flips the side when the run runs right-to-left on screen (runAxis ux<0), or, in the elevation / for an up-down wall, when window.elevationFlip says the wall start is on the right; used by editAddFiller() and editFillerToPanel()."
+    },
+    {
+      "id": "chimney-model-width",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "The chimney space stays hob + chimney_wider_than_hob_by (1000mm over a 900 hob, 700mm over a 600 hob), but the chimney appliance in it is only params.chimney_model_width (750mm) wide, centred. It never fills the whole space: it stays clear of a visible panel (panel_width) at each side, so over a 600 hob it is 660mm.",
+      "implementation": "ui/renderer3d.js chimney(): the model is fitted to min(space - 2 x panel_width, chimney_model_width); the clearance zone and the chimney panel keep the full space width. 3D and walkthrough."
+    },
+    {
+      "id": "pg1-chimney-flank-panels",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "In PG1, the wall cabinets on both sides of the chimney each get a visible panel on their side facing the chimney. The panel stands inside the chimney space (1000mm / 700mm), not outside it, and is only as deep as the carcass, from the wall: it does not come forward to the shutters, because the chimney panel in front already lines up with the shutters.",
+      "implementation": "ui/renderer3d.js chimney pass: when S.options.pg is PG1 and a wall cabinet ends / starts at the chimney slot edge, a VP-336-15 panel_width wide, slot height, carcass (slot) depth is placed at that edge inside the slot. 3D and walkthrough only, like the chimney panel; not yet in the BOQ or quote."
+    },
+    {
+      "id": "wall-cabinets-move",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "In editing, wall cabinets move like base cabinets: drag one along its wall on the 2D plan (Wall view) or use the Move buttons, into open space, into free bare wall right up to the corner, and between other wall cabinets, pushing wall cabinets in the way. The chimney, wall blind, fillers and panels stay where they are; wall over a window, door or tall unit, and the corner where the next wall's wall cabinets turn it, are never taken.",
+      "implementation": "ui/builder.html relocateSelected() for tier 'wall': wallRowList() lays the wall row end to end (bare wall is a 'bare' barrier only over a door/window/tall unit or a corner the adjoining wall's wall cabinets reach, wallBusySpans(); otherwise open space), relocateCore()/relocateApply() move it (MOVABLE includes wallSolid/wallGlass), fromWallRowList() writes x0 back; startModDrag() and the Move buttons accept WALL_MOVABLE units."
+    },
+    {
+      "id": "zone-labels",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "The final plan writes the zone each appliance heads in front of it: 'COOKING ZONE' at the hob, 'WASHING ZONE' at the sink, 'COOLING ZONE' at the fridge. Words only, no highlighted area.",
+      "implementation": "ui/detailed-plan.js render(): zoneOf() names the hob, sink and fridge (fridge anchor, a tall unit with a fridge, or a TC-REF code) and writes the label in front of the run."
+    },
+    {
+      "id": "chimney-above-hob",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "The gap between the hob and the chimney is params.chimney_above_hob (800mm): the chimney appliance's underside hangs 800mm clear above the top of the hob (its pan supports, about 76mm above the worktop), so at about 1726mm from the floor, whatever the wall cabinets' height. The chimney space, its chimney panel and the wall cabinets beside it are unchanged.",
+      "implementation": "ui/renderer3d.js hoodAt(hob width) = worktop + the height of the hob model that width gets (hobModels, loaded before the scene with chimneyModels) + chimney_above_hob; the wall-run and island chimney() calls hang the model there, and its clearance zone starts there. 3D and walkthrough."
+    },
+    {
+      "id": "wall-blind-slides",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "In editing, a wall blind cabinet slides along its own wall like the base blind: by drag on the 2D plan (Wall view) or the Move buttons, right up to the corner wall through its concealed space, or away from the corner into open space. It stops against another wall unit, wall over a door, window or tall unit, the adjoining wall's cabinets at the corner, or a column; nothing is pushed. The space it leaves behind is open space (merged with open space beside it), shown and dimensioned like any other. Its opening door stays past the adjoining run's front, within the cabinet. A wall blind (WB) picked from the library is a wall blind too and slides the same way.",
+      "implementation": "ui/builder.html slideWallBlind() (from relocateSelected / editMoveBy / startModDrag for kind 'wallBlind'): clamps between the nearest stops (other wall units, wallBusySpans(), columns from structSpansOnWall), trims open space it covers and leaves open space where it was, keeps the shutter at shutter.cornerDistance from the corner. editReplacePick() turns a WB- code in the wall row into kind 'wallBlind' with corner.end (nearer end) and shutter. Test: test/cabinet-catalog/cabinet-catalog.test.mjs 'a wall blind slides through its concealed space to the corner wall, and away into open space'.",
+      "seen_in_note": "Designer, 2026-11-04: a wall blind moved into the corner left ~50mm below it that was neither shown nor dimensioned."
+    },
+    {
+      "id": "upper-dimensions-close",
+      "status": "stated",
+      "hard": false,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "On the plan, the upper (wall cabinet) dimension chain covers the whole wall, like the base chain: besides each wall cabinet, chimney, filler and panel, the open space and bare wall on either side are dimensioned, so how much space is left beside a cabinet always reads off the plan.",
+      "implementation": "ui/detailed-plan.js render(): after the upper row is drawn, every stretch of the wall its chain does not cover is added to that chain (upperDims in the overlay view, the Wall view's own chain otherwise) as a bare dimension."
+    },
+    {
+      "id": "turned-corner-keeps-wall",
+      "status": "stated",
+      "hard": true,
+      "seen_in": [
+        "Designer, 2026-11-04"
+      ],
+      "statement": "Where the next wall's wall cabinets turn a corner (a wall blind, with or without its 50mm set-back), that corner of this wall's upper row is taken: it is not offered as open space, and no wall cabinet is moved or placed into it.",
+      "implementation": "ui/builder.html wallBusySpans(): a unit of the adjoining wall's wall row starting within this row's depth (336mm) of the shared corner marks [L-depth, L] / [0, depth] busy; addSpareWallSlots() drops spare slots there and offers none, wallRowList() / slideWallBlind() treat it as a stop.",
+      "seen_in_note": "Designer, 2026-11-04: an open 336mm slot showed in the top wall's corner behind the right wall's wall blind."
     }
   ],
   "open_questions": [
@@ -1666,7 +1774,9 @@
       "cabinet_install": 280,
       "cabinet_install_basis": "carcass net sqft",
       "backsplash_area_basis": "opt-in: only the regions the designer adds in the Elevation, on bare wall (never behind a cabinet; the chimney slot is bare for its full height, so the stone does run behind the chimney and its panel); cut area includes 10mm behind each cabinet/countertop edge it touches, billed x 1.25; slab 2440x1220 (ui/backsplash.js)"
-    }
+    },
+    "chimney_model_width": 750,
+    "chimney_above_hob": 800
   },
   "out_of_scope": [
     "Dado (1780 / 2600) — explicitly not needed for now.",

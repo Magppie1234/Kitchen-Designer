@@ -195,6 +195,47 @@ test('any cabinet can replace a hob; only a hob cabinet keeps it the hob anchor'
   assert.deepEqual([S.plan.runs[0].segments[0].kind, S.plan.runs[0].segments[0].code], ['cabinet', 'BC-DW-CJ-ST-XXX-2HB-XXX-900-720-560-15'], 'a drawer cabinet takes the hob slot as a plain cabinet');
 });
 
+// rules.json: wall-cabinets-move
+const wallRow = (S, more = {}) => { const ctx = vm.createContext({ S, TALL_ANCHORS: ['fridge'], depthOf: () => 336, ...more });
+  vm.runInContext(between('/*__RELOCATE_CORE_START__*/', '// A blind / LeMans corner') + between('function wallBusySpans', '// The 3D always hangs a chimney') + ';this.relocateCore=relocateCore;this.relocateApply=relocateApply;this.wallRowList=wallRowList;this.fromWallRowList=fromWallRowList;this.slideWallBlind=slideWallBlind;', ctx);
+  return ctx; };
+test('a wall cabinet slides between others; the chimney and bare wall over a window stop it', () => {
+  const S = { walls: [{ length: 3600 }], plan: { runs: [{ key: 'W0', segments: [{ kind: 'window', x0: 2800, width: 800 }] }], tiers: {} } }, ctx = wallRow(S);
+  const u = (code, x0) => ({ kind: 'wallSolid', code, width: 600, x0, z: 1415, height: 725, depth: 336 });
+  const A = u('A', 0), B = u('B', 600), C = u('C', 2200);
+  const list = [A, B, { kind: 'filler', open: true, label: 'open space', width: 400, x0: 1200 }, { kind: 'chimney', width: 600, x0: 1600 }, C];   // 2800-3600 bare, over the window
+  const move = (seg, to) => { const work = ctx.wallRowList(list, 'W0'), plan = ctx.relocateCore(work, seg, to);
+    if (plan.ok) { ctx.relocateApply(work, seg, plan); ctx.fromWallRowList(list, work, seg); } return plan; };
+  assert.ok(move(A, 700).ok);   // A goes past B, which is pushed back just enough
+  assert.deepEqual(list.filter((s) => s.code).map((s) => [s.code, s.x0]), [['B', 100], ['A', 700], ['C', 2200]]);
+  assert.equal(move(A, 1500).lo, 1000, 'a drop on the chimney stops against it');
+  assert.equal(move(C, 3000).lo, 2200, 'bare wall over the window is not taken');
+  const open = list.find((s) => s.kind === 'filler' && s.open);
+  assert.equal(open.z, 1415, 'open space left behind keeps the wall row height');
+  // bare wall that is not over an opening is room to move into, right up to the corner
+  list.splice(0, list.length, u('D', 500));
+  S.plan.runs[0].segments = [];
+  assert.equal(move(list[0], 0).lo, 0, 'free bare wall up to the corner is taken');
+  S.walls.push({ length: 2000 }); S.plan.tiers.W1 = { wall: [u('E', 1700)] };   // the previous wall's cabinet turns this corner
+  list.splice(0, list.length, u('D', 500));
+  assert.equal(move(list[0], 0).lo, 336, "it stops where the other wall's cabinets turn the corner");
+});
+
+// rules.json: wall-blind-slides
+test('a wall blind slides through its concealed space to the corner wall, and away into open space', () => {
+  const blind = { kind: 'wallBlind', code: 'WB-SH-NHX-ST-1SG-LHS-XXX-900-725-336-15', width: 900, x0: 50, corner: { end: 'from' },
+    shutter: { x0: 376, x1: 950, width: 574, cornerDistance: 376 } };
+  const row = [blind, { kind: 'filler', open: true, label: 'open space', width: 400, x0: 950 }, { kind: 'wallSolid', code: 'X', width: 600, x0: 1350 }];
+  const S = { editing: true, walls: [{ length: 3000 }], plan: { runs: [{ key: 'W0', segments: [] }], tiers: { W0: { wall: row } } }, selModRef: { run: 'W0', tier: 'wall', idx: 0 } };
+  const ctx = wallRow(S, { recalcPositions() {}, editableList: (r) => S.plan.tiers[r.run].wall, afterEdit() {}, showToast() {}, structSpansOnWall: () => [],
+    normalizeList: () => -1 });
+  assert.ok(ctx.slideWallBlind(0)); assert.equal(blind.x0, 0, 'it reaches the corner wall');
+  assert.ok(row.some((u) => u.open && u.x0 === 900 && u.width === 50), 'the 50mm it leaves is open space');
+  assert.deepEqual([blind.shutter.x0, blind.shutter.x1], [376, 900], 'its door stays past the adjoining run, within the cabinet');
+  assert.ok(ctx.slideWallBlind(1000)); assert.equal(blind.x0, 450, 'it stops against the next wall cabinet');
+  assert.ok(!S.plan.tiers.W0.wall.some((u) => u.kind === 'filler' && u.x0 < 1350 && u.x0 + u.width > 450), 'open space it now covers gives way');
+});
+
 test('an anchor moves like a cabinet, pushing neighbours aside; corners still stop a drop', () => {
   const ctx = vm.createContext({});
   vm.runInContext(between('/*__RELOCATE_CORE_START__*/', '/*__RELOCATE_CORE_END__*/') + ';this.relocateCore=relocateCore;this.relocateApply=relocateApply;', ctx);

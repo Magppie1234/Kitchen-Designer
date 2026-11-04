@@ -66,3 +66,8 @@ test('an open wall slot is selectable in the Wall view while editing, so a wall 
   assert.deepEqual(pick({...s,planTier:'wall',editing:true}),[0,1]);
   assert.deepEqual(pick({...s,planTier:'wall'}),[0],'outside editing it is bare wall');
 });
+// rules.json: upper-dimensions-close
+test('the upper dimension chain covers the whole wall: the space either side of the wall cabinets is written', () => {
+  const svg = DetailedPlan.render(state, tf);
+  for (const v of [40, 2550, 360]) assert.match(svg, new RegExp(`fill="#444fbc"[^>]*>${v}<`), `${v}mm of bare wall dimensioned`);
+});

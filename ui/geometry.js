@@ -12,8 +12,9 @@
     const u = [(w.b[0] - w.a[0]) / len, (w.b[1] - w.a[1]) / len], n = normal(w, walls);
     const points = [[at, offset], [at + width, offset], [at + width, offset + depth], [at, offset + depth]]
       .map(([a, d]) => [w.a[0] + u[0] * a + n[0] * d, w.a[1] + u[1] * a + n[1] * d]);
-    return { points, x0: Math.min(...points.map(p => p[0])), x1: Math.max(...points.map(p => p[0])),
-      y0: Math.min(...points.map(p => p[1])), y1: Math.max(...points.map(p => p[1])) };
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of points) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    return { points, x0, x1, y0, y1 };
   }
   const intersects = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0.001
     && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0.001;

@@ -114,9 +114,13 @@ export async function planKitchen(input, catalog) {
   const drawers=context.catalog.filter(c=>c.zone==='BC'&&c.family==='DW').map(c=>c.code);
   // A bounded local set of candidates: every corner arrangement × drawers/shelves.
   const lemansCorners=context.corners.filter(k=>k.startsWith('base:'));
-  for (const [i,cornerLegs] of cornerArrangements(context.corners).entries()) for(const lemansCorner of lemansCorners.length?lemansCorners:[undefined]) for (const style of ['Drawers','Shelves']) evaluate({
-    name:`${style} / corner arrangement ${i+1}`,preferredCodes:style==='Drawers'?drawers:[],
-    cornerLegs,lemansCorner,preferStorage:true},'Catalogue solver');
+  // Yield between candidates so the server keeps answering other designers during a build.
+  for (const [i,cornerLegs] of cornerArrangements(context.corners).entries()) for(const lemansCorner of lemansCorners.length?lemansCorners:[undefined]) for (const style of ['Drawers','Shelves']) {
+    evaluate({
+      name:`${style} / corner arrangement ${i+1}`,preferredCodes:style==='Drawers'?drawers:[],
+      cornerLegs,lemansCorner,preferStorage:true},'Catalogue solver');
+    await new Promise(resolve=>setImmediate(resolve));
+  }
   candidates.sort((a,b)=>betterFit(a.result,b.result)?-1:betterFit(b.result,a.result)?1:0);
   return {...candidates[0].result, planning:{mode:'Catalogue solver',
     anchorsFixed:true,zonesFixed:true,

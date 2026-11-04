@@ -171,6 +171,7 @@ export async function optimizeAnchors(original,catalog,result,{limit=180,startIn
       const key=signature(j);if(seen.has(key))continue;seen.add(key);evaluated++;
       const r=layout({...j,lockAnchors:true,lockZones:true,searchHobSides:true,planningChoice:choice},catalog,{fast:'packing'});
       if(betterFit(r,next.result)||(JSON.stringify(fitQuality(r))===JSON.stringify(fitQuality(next.result))&&movement(original,j)<movement(original,next.input)))next={input:j,result:r};
+      if(evaluated%8===0)await new Promise(resolve=>setImmediate(resolve));   // let other requests through
     }
     if(next===current)break;
     current=next;

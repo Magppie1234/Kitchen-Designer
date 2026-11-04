@@ -39,7 +39,17 @@ const P = {
   flankToWall: { 900: 850, 600: 550, 450: 450 },
 };
 
-const find = (cat, q) => cat.find((c) => Object.entries(q).every(([k, v]) => c[k] === v));
+// A build asks the same few catalogue questions thousands of times, so each catalogue array
+// remembers its answers (the same first match the scan gives; catalogues are not changed once
+// loaded). memoOf hands out one Map per catalogue for each kind of question.
+const memoOf = (store, cat) => { let m = store.get(cat); if (!m) store.set(cat, m = new Map()); return m; };
+const findMemo = new WeakMap(), fillMemo = new WeakMap(), widthMemo = new WeakMap(), codeMemo = new WeakMap(), seqMemo = new WeakMap();
+const codesOf = (cat) => { let m = codeMemo.get(cat); if (!m) codeMemo.set(cat, m = new Map(cat.map((c) => [c.code, c]))); return m; };
+const find = (cat, q) => {
+  const m = memoOf(findMemo, cat), key = Object.entries(q).map(([k, v]) => `${k}=${typeof v}:${v}`).join('|');
+  if (!m.has(key)) m.set(key, cat.find((c) => Object.entries(q).every(([k, v]) => c[k] === v)));
+  return m.get(key);
+};
 
 // --- the no-overlap invariant ----------------------------------------------------
 // Two units in the same tier on the same wall may TOUCH (a.at + a.width === b.at) but must
@@ -109,7 +119,7 @@ export function geometryProblems(input, placed, cat) {
   const shape = outline(input.walls);
   if (!shape) return ['geometry: invalid room outline'];
   const ws = shape.walls.map(w => ({ ...w, a: [w.x0,w.y0], b: [w.x1,w.y1] }));
-  const byCode = new Map(cat.map(c => [c.code,c])), boxes = [], problems = [];
+  const byCode = codesOf(cat), boxes = [], problems = [];
   const H = P.heights[input.height];
   for (const tier of ['base','wall','tall']) for (const p of placed[tier] ?? []) {
     if (p.blocker) continue;
@@ -586,11 +596,11 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
     if (!za || !zb) {
       const own = baseLeg === 'a' ? za : zb;
       if (tier === 'wall' && baseLeg && own) {
-        const col = colFor(baseLeg);
-        const at = baseLeg === 'a' ? own.to-P.wallBlind-col : own.from+col;
+        const col = colFor(baseLeg), dead = Math.max(0, P.blindDead - col);   // corner-dead-space, as a base blind
+        const at = baseLeg === 'a' ? own.to-P.wallBlind-col-dead : own.from+col+dead;
         const unit = cat.find(c=>c.zone==='WB' && c.width===P.wallBlind && c.height===P.heights[input.height].wall);
         if (unit && at>=own.from && at+P.wallBlind<=own.to && clear(own.wall,at,P.wallBlind,col?cornerCol.cols:[])) {
-          columnSpace(baseLeg,col,own.wall,own);
+          columnSpace(baseLeg,col+dead,own.wall,own);
           placeInto(placed,tier,{wall:own.wall,at,width:unit.width,role:'wall blind corner',code:unit.code,
             corner:{id:`${a.id}:${b.id}`,end:baseLeg==='a'?'to':'from',adjacentWall:baseLeg==='a'?b.id:a.id,adjacentEnd:baseLeg==='a'?'from':'to',...(col?{column:col}:{})}});
           ends.add(`${tier}:${own.wall}:${baseLeg==='a'?'to':'from'}`);
@@ -625,7 +635,7 @@ function corners(input, placed, cat, tiers = ['base', 'wall']) {
     for (const width of widths) { for (const leg of legs) {
       const own=leg==='a'?za:zb, other=leg==='a'?zb:za;
       const wallFiller=tier==='tall'?RULE_PARAMS.wall_filler_width:0, col=colFor(leg), ignore=col?cornerCol.cols:[];
-      let dead=tier==='base'?Math.max(0,deadSpaceRange(width)[2]-col):0;   // a corner column already stands in that space
+      let dead=tier!=='tall'?Math.max(0,deadSpaceRange(width)[2]-col):0;   // a corner column already stands in that space
       let at=leg==='a'?own.to-width-wallFiller-col-dead:own.from+wallFiller+col+dead;
       const ret=leg==='a'?other.from:other.to-depth-P.cornerFiller;
       const trim = cuts[`${tier}:${own.wall}`]||{};
@@ -828,12 +838,14 @@ export function tallSideAgainstWall(input, wall, at, depth=560) {
 // a short zone behind the side of a refrigerator is already occupied.
 export function reserveTallReturns(input, placed, cat) {
   const ws=outline(input.walls).walls.map(w=>({...w,a:[w.x0,w.y0],b:[w.x1,w.y1]}));
-  const byCode=new Map(cat.map(c=>[c.code,c])), spans=new Map(), problems=[];
+  const byCode=codesOf(cat), spans=new Map(), problems=[], bands=new Map();
   for(const p of placed.tall.filter(p=>!p.blocker)){
     const source=ws.find(w=>w.id===p.wall),depth=byCode.get(p.code)?.depth??p.depth??560;
     const box=KitchenGeometry.footprint(source,ws,p.at,p.width,depth,0);
     for(const target of ws.filter(w=>w.id!==p.wall))for(const tier of ['base','wall','tall']){
-      const band=KitchenGeometry.footprint(target,ws,0,target.length,tier==='wall'?RULE_PARAMS.low_depth:560,0);
+      const bandKey=`${target.id}:${tier}`;
+      if(!bands.has(bandKey))bands.set(bandKey,KitchenGeometry.footprint(target,ws,0,target.length,tier==='wall'?RULE_PARAMS.low_depth:560,0));
+      const band=bands.get(bandKey);
       if(!KitchenGeometry.intersects(box,band))continue;
       const points=[[box.x0,box.y0],[box.x1,box.y0],[box.x0,box.y1],[box.x1,box.y1]];
       const along=points.map(([x,y])=>(x-target.x0)*target.dx+(y-target.y0)*target.dy);
@@ -1018,10 +1030,18 @@ function solve(input, cat) {
     && (tier !== 'base' || c.handle === input.handle)
     && c.height === (tier === 'base' ? 720 : tier === 'wall' ? H.wall : H.tall);   // 520 drawer / 600 tray never fill a gap
   const uniq = (t, low = false) => [...new Set(cat.filter((c) => canFill(c, t, low)).map((c) => c.width))].sort((a, b) => b - a);
-  const widthsFor = { base: uniq('base'), wall: uniq('wall'), tall: uniq('tall'), baseLow: uniq('base', true), tallLow: uniq('tall', true) };
+  const fillKey = `${input.handle}|${H.wall}|${H.tall}`, widthsMemo = memoOf(widthMemo, cat);
+  if (!widthsMemo.has(fillKey)) widthsMemo.set(fillKey, { base: uniq('base'), wall: uniq('wall'), tall: uniq('tall'), baseLow: uniq('base', true), tallLow: uniq('tall', true) });
+  const widthsFor = Object.fromEntries(Object.entries(widthsMemo.get(fillKey)).map(([k, v]) => [k, [...v]]));
 
   // Prefer a plain cabinet at that width; fall back to whatever the catalog has there.
+  const picks = memoOf(fillMemo, cat), pickKey = `${fillKey}|${(input.planningChoice?.preferredCodes ?? []).join(',')}`;
   const pickFill = (tier, w, lowDepth = false) => {
+    const key = `${pickKey}|${tier}|${w}|${!!lowDepth}`;
+    if (!picks.has(key)) picks.set(key, pickFillScan(tier, w, lowDepth));
+    return picks.get(key);
+  };
+  const pickFillScan = (tier, w, lowDepth) => {
     for (const code of input.planningChoice?.preferredCodes ?? []) {
       const unit = cat.find(c => c.code === code && c.width === w && canFill(c, tier, lowDepth));
       if (unit) return unit;
@@ -1166,7 +1186,9 @@ function solve(input, cat) {
           && c.zone==='BC' && c.handle===input.handle && c.family==='GD' && c.spec.join('+')==='1BL+1HF');
         if(input.capturePackingSpans||input.planningChoice?.runs?.length) packingSpans.push({spanId,tier,wall:z.wall,from,to,length:to-from,
           minimumClosureMm:lo,maximumClosureMm:hi,lowDepth,order:'increasing wall offset',
-          eligibleCodes:cat.filter(canSequence).map(c=>c.code)});
+          eligibleCodes:(()=>{ const m=memoOf(seqMemo,cat), k=`${fillKey}|${tier}|${!!lowDepth}`;
+            if(!m.has(k))m.set(k,cat.filter(canSequence).map(c=>c.code));
+            return [...m.get(k)]; })()});
         const sequence=input.planningChoice?.runs?.find(run=>run.spanId===spanId);
         let sequenceUnits;
         let r;
@@ -1341,7 +1363,7 @@ function solve(input, cat) {
   // The filler is produced by fillTier() only when a gap happens to start at the zone edge,
   // so a derived unit landing flush in the corner used to leave the leg with no filler at all
   // and nothing said about it. That is checked here instead of hoped for.
-  const byCode = new Map(cat.map((c) => [c.code, c]));
+  const byCode = codesOf(cat);
   // A `(tall above)` entry is not a gap — it is the base-tier footprint of a full-height
   // cabinet standing right there. Resolve it to that tall unit so a tower beside the corner
   // filler counts as the cabinet it is, rather than being reported as an empty span.
@@ -1380,7 +1402,7 @@ function solve(input, cat) {
   // Validate the GENERATED result, not only the designer's three anchors. This is the
   // construction-safety gate: no derived flank, corner or preferred unit may escape a wall
   // or the zone intended for its tier, and every manufactured cabinet must resolve to a SKU.
-  const catByCode = new Map(cat.map((c) => [c.code, c]));
+  const catByCode = codesOf(cat);
   // Closure pieces carry `trim` and legitimately have no SKU; appliances are supplied by the
   // client. Everything else placed without a catalogue row is a bug.
   for (const tier of ['base', 'wall', 'tall']) for (const p of placed[tier]) {
