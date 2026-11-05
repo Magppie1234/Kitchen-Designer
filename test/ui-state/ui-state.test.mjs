@@ -430,7 +430,7 @@ test('draw wall: ends snap onto walls, a wall stops at the first wall it meets, 
   assert.equal(ctx.wallDrawStart(-100,500,50),null,'cannot start outside the room');
   let d=draw(2000,30,2010,3600);   // starts on the top wall, dragged past the bottom one
   assert.deepEqual(plain([d.s.p,d.s.snap,d.e.p,d.e.snap]),[[2000,0],true,[2000,3000],true]);
-  assert.deepEqual(plain(S.structures[0]),{type:'partition',x:2000,y:1500,w:115,d:3000,h:3100},'a straight wall from top to bottom');
+  assert.deepEqual(plain(S.structures[0]),{type:'partition',x:2000,y:1500,w:230,d:3000,h:3100},'a straight wall from top to bottom');
   d=draw(30,1200,1975,1190);       // from the left wall towards the first drawn wall: snaps onto it
   assert.deepEqual(plain([d.s.p,d.e.p,d.e.snap]),[[0,1200],[2000,1200],true]);
   d=draw(30,2000,2600,2000);       // cannot pass through the drawn wall

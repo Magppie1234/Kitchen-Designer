@@ -776,12 +776,13 @@
         "P1",
         "P4"
       ],
-      "statement": "Two kitchen heights are offered, 7ft and 8ft. The choice sets both the wall-unit and tall-unit height for the whole kitchen.",
+      "statement": "Two kitchen heights are offered, 7ft and 8ft. The choice sets both the wall-unit and tall-unit height for the whole kitchen: 8ft uses 1085mm wall cabinets, 2400mm tall units and 1650mm mid-tall units; 7ft uses 725mm, 2040mm and 1290mm. With no height chosen the kitchen is 8ft. Only cabinets of the kitchen's height are offered when replacing a cabinet.",
       "evidence": [
         "8ft: 855 counter + 560 backsplash + 1085 wall = 2500 = 2400 tall + 100 filler",
         "7ft: 855 counter + 560 backsplash + 725  wall = 2140 = 2040 tall + 100 filler"
       ],
-      "note": "This is what decides wall 725 vs 1085 — it was never a per-run choice. Both catalog wall heights and both tall heights pair up exactly, one pair per option."
+      "note": "This is what decides wall 725 vs 1085 — it was never a per-run choice. Both catalog wall heights and both tall heights pair up exactly, one pair per option.",
+      "implementation": "server.mjs toEngineInput(): kitchenHeightMm >= 2300 is 8ft, unset is 8ft (the ceiling no longer stands in); the engine picks every wall/tall unit at RULE_PARAMS.heights[height]. ui/builder.html kitchenHeightOf() filters the cabinet library to the matching height of each wall (WC/WB/WLC), tall (TC/TB/TCL/TLC) and mid-tall (MD/MDW) group; the Kitchen Height panel highlights the preset of the height in use and states the cabinet heights. vendor/libraryApi.js sends each entry's zone."
     },
     {
       "id": "handing-is-free",
@@ -943,7 +944,7 @@
       "hard": true,
       "seen_in": [],
       "statement": "On the layout page the designer can draw extra walls inside the room. A drawn wall stays inside the room, runs straight, stops at the first wall it meets, and its ends snap onto room walls or other drawn walls, so two drawn walls can close off an area. A drawn wall is solid floor to ceiling: no cabinet may stand in it.",
-      "note": "Horizontal or vertical, whichever way the drag leans; 115mm thick; at least 200mm long.",
+      "note": "Horizontal or vertical, whichever way the drag leans; 230mm thick by default, like the room walls (115mm until 2026-11-05), and the thickness can be changed on the selected wall; at least 200mm long. Inside walls drawn with Draw room walls get the same thickness. Where two drawn walls turn a corner, each runs on through it by half the other's thickness so the corner is solid (joinPartitions); a side of a drawn chain that runs along a room wall is not added again.",
       "implementation": "ui/builder.html toggleWallDraw()/wallDrawStart()/wallDrawEnd()/commitWallDraw(), stored as a structure of type 'partition'; server.mjs projects it onto any room wall it touches like a column; drawn solid in the 2D plan and as plain wall in 3D. Tested in test/ui-state/ui-state.test.mjs."
     },
     {

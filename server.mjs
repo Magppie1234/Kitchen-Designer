@@ -33,7 +33,8 @@ import {suggestIslands} from './core/island.mjs';
 import { renderSnapshot } from './render.mjs';
 import { findKitchens, readKitchen, readWithPins } from './plan-read.mjs';
 import { modelManifest, modelFile, MODEL_ROOTS } from './core/models.mjs';
-import { requestUser, supabaseEnv, userFromToken } from './vendor/supabase.js';
+import { requestUser, rest, supabaseEnv, userFromToken } from './vendor/supabase.js';
+import { meter } from './ai-cost.mjs';
 
 try { process.loadEnvFile(); } catch {} // optional .env (SUPABASE_*, GEMINI_API_KEY)
 
@@ -123,7 +124,8 @@ export function toEngineInput(anchors = [], options = {}) {
     if (JSON.stringify(w?.b)!==JSON.stringify(ws[(i+1)%ws.length]?.a)) inputProblems.push(`wall ${i}: endpoints are disconnected`);
     if (Number.isFinite(w.length) && Math.abs(w.length-walls[i].length)>1) notes.push(`wall ${i}: length recalculated from endpoints (${w.length} -> ${walls[i].length}mm)`);
   });
-  const mm = Number(options.kitchenHeightMm) || Number(options.ceiling) || 2500;
+  // kitchen-height-options: no height chosen = 8ft (the ceiling never stands in for it)
+  const mm = Number(options.kitchenHeightMm) || 2500;
   const height = mm >= 2300 ? '8ft' : '7ft';
   if (mm !== RULE_PARAMS.heights[height].design_height)
     notes.push(`ceiling ${mm}mm read as the ${height} system (${RULE_PARAMS.heights[height].design_height}mm design height)`);
@@ -417,6 +419,26 @@ const send = (res, code, body, type = 'application/json; charset=utf-8') => {
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
 };
 
+// AI spend per designer, in INR against profiles.ai_monthly_limit (supabase/schema.sql:
+// ai_usage). One shared Gemini key; every AI call — render or plan read — is charged what
+// Gemini actually billed for it (ai-cost.mjs, from the reply's token counts), all from one budget.
+// ponytail: the cost is only known after the call, so the last call of the month can take a
+// designer slightly past the limit; the next one is refused.
+async function charged(feature, call) {
+  const me = requestUser.getStore();
+  const u = await rest(`ai_usage_month?id=eq.${me.id}&select=spent,ai_monthly_limit`, { single: true });
+  if (!u) throw Object.assign(new Error('AI usage is not set up: run supabase/schema.sql.'), { status: 503 });
+  if (u.spent >= u.ai_monthly_limit)
+    throw Object.assign(new Error(`Your AI limit for this month (₹${u.ai_monthly_limit}) is used up. Ask your admin to raise it.`), { status: 402 });
+  const m = { inr: 0 };
+  try { return await meter.run(m, call); }
+  finally {
+    // logged even when the reply was unusable — Google billed it; a failed log never takes a result away
+    if (m.inr > 0) await rest('ai_usage', { method: 'POST', body: { designer_id: me.id, feature, cost: +m.inr.toFixed(4) }, service: true })
+      .catch((e) => console.error(`[ai-usage] not logged for ${me.email}: ${e.message}`));
+  }
+}
+
 const readBody = (req) => new Promise((resolve) => {
   let b = ''; req.on('data', (c) => { b += c; });
   req.on('end', () => { try { resolve(JSON.parse(b || '{}')); } catch { resolve({}); } });
@@ -489,20 +511,31 @@ async function route(req, res, url, path) {
     }
     if(path==='/api/render'){
       if(req.method!=='POST')return send(res,405,{error:'POST {image, aspectRatio, references}'});
-      try{return send(res,200,await renderSnapshot(await readBody(req)));}
+      try{const body=await readBody(req);return send(res,200,await charged('render',()=>renderSnapshot(body)));}
       catch(e){return send(res,e.status||500,{error:e.message});}
     }
     // Uploaded plan -> Gemini (plan-read.mjs): find the kitchen(s), then read one close-up.
     if(path==='/api/kitchen-detect'||path==='/api/vision-extract'){
       if(req.method!=='POST')return send(res,405,{error:path==='/api/kitchen-detect'?'POST {pages:[imageDataUrl]}':'POST {imageDataUrl}'});
-      try{const body=await readBody(req);return send(res,200,await (path==='/api/kitchen-detect'?findKitchens(body):readKitchen(body)));}
+      try{const body=await readBody(req);return send(res,200,await charged(path.slice(5),()=>path==='/api/kitchen-detect'?findKitchens(body):readKitchen(body)));}
       catch(e){return send(res,e.status||500,{error:e.message});}
     }
     // Uploaded plan + the designer's hint pins -> Gemini, one call, answered in image coordinates.
     if(path==='/api/plan-pins'){
       if(req.method!=='POST')return send(res,405,{error:'POST {imageDataUrl, pins:[{n,kind}]}'});
-      try{return send(res,200,await readWithPins(await readBody(req)));}
+      try{const body=await readBody(req);return send(res,200,await charged('plan-pins',()=>readWithPins(body)));}
       catch(e){return send(res,e.status||500,{error:e.message});}
+    }
+    // Admin sets one designer's monthly AI limit (INR). The admin is view-only in the database,
+    // so this one write goes with the secret key after the role check here.
+    if(path==='/api/ai-limit'){
+      const me=requestUser.getStore();
+      if(req.method!=='POST')return send(res,405,{error:'POST {designerId, limit}'});
+      if(me.role!=='admin')return send(res,403,{error:'Only the admin can change AI limits.'});
+      const {designerId,limit}=await readBody(req), n=Number(limit);
+      if(!/^[0-9a-f-]{36}$/i.test(String(designerId))||!Number.isFinite(n)||n<0)return send(res,400,{error:'Give a designer and a limit of 0 or more.'});
+      const rows=await rest(`profiles?id=eq.${designerId}`,{method:'PATCH',body:{ai_monthly_limit:n},service:true});
+      return rows?.length?send(res,200,{ok:true,limit:n}):send(res,404,{error:'designer not found'});
     }
     if (path === '/api/build') {
       if (req.method !== 'POST') return send(res, 405, { error: 'POST {anchors, options}' });

@@ -2,6 +2,7 @@
 // ("web plugin"): the same layered prompt and the same Gemini Interactions call. Server-only;
 // GEMINI_API_KEY never leaves this file.
 import { GoogleGenAI } from '@google/genai';
+import { addUsage } from './ai-cost.mjs';
 
 const MODEL = process.env.KITCHEN_RENDER_MODEL || 'gemini-3.1-flash-image';
 const IMAGE_SIZE = process.env.KITCHEN_RENDER_SIZE || '2K';
@@ -194,6 +195,7 @@ export async function renderSnapshot(body, { signal } = {}) {
     console.error(`[render] Gemini HTTP ${status}: ${detail}`);
     throw fail(status === 429 ? 429 : 502, status === 429 ? 'The AI renderer is rate-limited or out of quota. Try again shortly.' : 'The AI renderer returned an error.');
   }
+  addUsage(MODEL, interaction.usage);   // billed even if no image comes back
   const img = interaction.output_image;
   if (!img?.data) throw fail(502, interaction.output_text?.trim() ? `The AI renderer did not return an image: ${interaction.output_text.trim()}` : 'The AI renderer did not return an image.');
   return { image: `data:${img.mime_type || 'image/png'};base64,${img.data}`, model: MODEL };

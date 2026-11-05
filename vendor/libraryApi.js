@@ -33,7 +33,7 @@ function libraryEntries() {
     : JSON.parse(readFileSync(new URL('../data/models-manifest.json', import.meta.url), 'utf8'));
   const pathOf = new Map(manifest.models.filter((m) => m.code).map((m) => [m.code, m.path]));
   return catalog
-    .map((c) => ({ code: c.code, category: categoryOf(c), w: c.width, h: c.height, d: c.depth, sample: c.code,
+    .map((c) => ({ code: c.code, category: categoryOf(c), zone: c.zone, w: c.width, h: c.height, d: c.depth, sample: c.code,
       carcassSqft: c.carcassSqft, profiles: c.profiles, unitType: c.unitType, subType: c.subType,
       familyName: c.familyName, description: c.description, path: pathOf.get(c.code) ?? null }))
     .sort((a, b) => a.category.localeCompare(b.category) || a.code.localeCompare(b.code) || a.w - b.w);

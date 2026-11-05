@@ -219,3 +219,36 @@ create policy design_images_upload on storage.objects for insert to authenticate
   with check (bucket_id = 'design-images'
               and (storage.foldername(name))[1] = auth.uid()::text
               and not public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- AI spend per designer. One shared GEMINI_API_KEY; the server checks each designer's
+-- monthly limit (INR) before every AI call and logs the call's cost after it succeeds
+-- (server.mjs: charged). Rows are written only with the secret key, so a designer cannot
+-- add, change or remove their own usage. The month runs on India time.
+-- ---------------------------------------------------------------------------
+alter table public.profiles add column if not exists ai_monthly_limit numeric not null default 500;
+
+create table if not exists public.ai_usage (
+  id          bigint generated always as identity primary key,
+  designer_id uuid not null references public.profiles(id) on delete cascade,
+  feature     text not null,              -- render / kitchen-detect / vision-extract / plan-pins
+  cost        numeric not null check (cost >= 0),
+  created_at  timestamptz not null default now()
+);
+create index if not exists ai_usage_designer_idx on public.ai_usage (designer_id, created_at);
+
+alter table public.ai_usage enable row level security;
+drop policy if exists ai_usage_read on public.ai_usage;
+create policy ai_usage_read on public.ai_usage for select to authenticated
+  using (designer_id = auth.uid() or public.is_admin());
+
+-- This month's spend next to each limit: a designer sees their own row, the admin sees all.
+create or replace view public.ai_usage_month with (security_invoker = true) as
+select pr.id, pr.name, pr.email, pr.role, pr.ai_monthly_limit,
+       coalesce(sum(u.cost), 0) as spent,
+       count(u.id)::int as calls,
+       count(u.id) filter (where u.feature = 'render')::int as renders
+from public.profiles pr
+left join public.ai_usage u on u.designer_id = pr.id
+  and u.created_at >= date_trunc('month', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata'
+group by pr.id;

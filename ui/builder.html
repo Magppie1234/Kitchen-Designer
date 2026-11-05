@@ -89,6 +89,8 @@
   .scr{animation:fadeUp .5s cubic-bezier(.2,.7,.3,1) both}
   ::-webkit-scrollbar{width:10px;height:10px}
   ::-webkit-scrollbar-thumb{background:#cdc5b6;border-radius:8px;border:3px solid var(--linen)}
+  div[id^="modal"]>div::-webkit-scrollbar-track{margin:18px 0;background:transparent}
+  div[id^="modal"]>div::-webkit-scrollbar-thumb{border-color:#F8F5EF}
   .screen{display:none}
   .screen.on{display:flex}
   .btn{border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14.5px;font-weight:600;cursor:pointer;padding:13px 22px;box-shadow:0 8px 20px -8px rgba(180,83,58,.7)}
@@ -97,8 +99,8 @@
   .btn.ghost:hover{border-color:var(--ink);background:#fff}
   .btn.dark{background:var(--ink);box-shadow:none}
   .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
-  input.tf,select.tf{width:100%;padding:11px;border:1px solid var(--line2);border-radius:10px;background:#fff;font-size:14px;outline:none}
-  input.tf:focus,select.tf:focus{border-color:var(--accent)}
+  input.tf,select.tf,button.tf{width:100%;padding:11px;border:1px solid var(--line2);border-radius:10px;background:#fff;font-size:14px;outline:none}
+  input.tf:focus,select.tf:focus,button.tf:focus-visible{border-color:var(--accent)}
   /* door / window type tiles (Layout sidebar, selected opening) */
   .op-type-group{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8A7A6E;margin:2px 0 5px}
   .op-type-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px}
@@ -115,6 +117,15 @@
   .city-opt b{font-weight:700;color:var(--ink)}
   .city-opt.on,.city-opt:hover{background:#FBF1EC}
   .city-empty{padding:10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .kcrop-bar{position:absolute;z-index:2;gap:8px;padding:6px;background:rgba(255,255,255,.97);border:1px solid var(--line2);border-radius:12px;box-shadow:0 12px 28px -12px rgba(0,0,0,.45);cursor:default}
+  .edtool.ref-toggle{width:auto;padding:0 11px;font-size:12px;font-weight:600}
+  .edtool[aria-pressed="true"]{background:var(--sage);color:#fff;border-color:var(--sage)}
+  /* short pick lists (Requirement In, Property Type): a field that opens the same list as the city search */
+  .pick-btn{display:flex;justify-content:space-between;align-items:center;text-align:left;cursor:pointer;color:var(--ink);font:inherit;font-size:14px}
+  .pick-btn::after{content:'';flex:none;width:7px;height:7px;margin:0 3px 3px 10px;border-right:1.6px solid #8A8579;border-bottom:1.6px solid #8A8579;transform:rotate(45deg);transition:transform .15s}
+  .pick-btn[aria-expanded="true"]{border-color:var(--accent)}
+  .pick-btn[aria-expanded="true"]::after{transform:rotate(-135deg);margin-bottom:-3px}
+  .city-opt .tick{color:var(--accent);font-weight:700}
   .eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
   @media(max-width:900px){
     .stage-rail{display:none !important}
@@ -227,6 +238,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid #DED7C9;background:var(--paper)">
       <div id="edTabs" style="display:flex;gap:4px;padding:4px;background:var(--linen);border-radius:10px"></div>
       <div style="display:flex;align-items:center;gap:6px">
+        <button id="edRefBtn" class="edtool ref-toggle" onclick="toggleTraceOverlay()" aria-pressed="false" title="Show the uploaded plan behind this plan" style="display:none">Reference image</button>
         <button class="edtool" title="Zoom in">＋</button><button class="edtool" title="Zoom out">－</button><button class="edtool" title="Pan">✥</button><button class="edtool" title="Fit">⤢</button>
       </div>
     </div>
@@ -327,6 +339,7 @@
           <button class="btn ghost" data-plan-fit title="Fit the whole layout (0)" style="padding:5px 12px;font-size:12px">Fit plan</button>
           <button class="btn ghost" data-plan-pan aria-pressed="false" title="Drag anywhere to pan; turn off to select cabinets" style="padding:5px 12px;font-size:12px">Pan</button>
           <button id="planFullscreenBtn" class="btn ghost" aria-expanded="false" aria-controls="resPlanWrap" title="Open the plan full screen" style="padding:5px 12px;font-size:12px">Full screen</button>
+          <button id="resRefBtn" class="btn ghost" onclick="toggleTraceOverlay()" aria-pressed="false" title="Show the uploaded plan behind this plan" style="display:none;padding:5px 12px;font-size:12px">Reference image</button>
           <span style="font-size:11px;color:var(--muted2);margin-left:auto">Scroll or pinch to zoom · drag empty space to pan</span>
         </div>
         <svg id="view2d" viewBox="0 0 680 520" tabindex="0" style="flex:1;min-height:0;width:100%;height:100%;display:block;background:transparent;border:none;font-weight:400;touch-action:none" role="img" aria-label="Kitchen plan. Scroll or pinch to zoom; plus and minus zoom, arrow keys pan, zero fits the plan."></svg>
@@ -541,10 +554,14 @@
       <div style="grid-column:1 / -1"><label style="font-size:12px;font-weight:600;color:#6B675E">Budget range</label>
         <div id="suBudget" style="display:flex;gap:8px;margin-top:7px"></div>
       </div>
-      <div><label style="font-size:12px;font-weight:600;color:#6B675E">Requirement In</label>
-        <select class="tf" style="margin-top:6px" onchange="setProject('timeline',this.value)"><option>1–3 months</option><option>3–6 months</option><option>6–12 months</option><option>Just exploring</option></select></div>
-      <div><label style="font-size:12px;font-weight:600;color:#6B675E">Property Type</label>
-        <select id="suType" class="tf" style="margin-top:6px" onchange="setProject('type',this.value)"><option>Villa</option><option>Floor</option><option>Apartment</option><option>Penthouse</option></select></div>
+      <div style="position:relative"><label for="suTimeline" style="font-size:12px;font-weight:600;color:#6B675E">Requirement In</label>
+        <button type="button" id="suTimeline" class="tf pick-btn" style="margin-top:6px" aria-haspopup="listbox" aria-expanded="false" aria-controls="suTimelineList"
+          onclick="pickToggle('timeline')" onkeydown="pickKey(event,'timeline')" onblur="setTimeout(()=>pickClose('timeline'),150)"><span></span></button>
+        <div id="suTimelineList" class="city-list" role="listbox" style="display:none"></div></div>
+      <div style="position:relative"><label for="suType" style="font-size:12px;font-weight:600;color:#6B675E">Property Type</label>
+        <button type="button" id="suType" class="tf pick-btn" style="margin-top:6px" aria-haspopup="listbox" aria-expanded="false" aria-controls="suTypeList"
+          onclick="pickToggle('type')" onkeydown="pickKey(event,'type')" onblur="setTimeout(()=>pickClose('type'),150)"><span></span></button>
+        <div id="suTypeList" class="city-list" role="listbox" style="display:none"></div></div>
     </div>
     <div style="padding:18px 30px 26px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)">
       <button class="btn" onclick="submitSetup()" style="padding:13px 26px">Enter studio →</button>
@@ -945,7 +962,7 @@ window.S=S; window.API=API;
 const ROOM_STATE_KEYS=[
   'method','shape','view','activeStep','steps','hob','sink','fridge','unlockedStages',
   'handle','look','material','rendered','discount','accSizes','selectedCab',
-  'traceImage','traceRect','traceAspect','traceCal','roomDraw','roomDrawDone','scaleWall','planPins','pinArm','wallLocks','planGroup','upload','kdetect','dims','room','walls','suggested','islandInfo',
+  'traceImage','traceRect','traceAspect','traceCal','traceHidden','traceOverlay','roomDraw','roomDrawDone','scaleWall','planPins','pinArm','wallLocks','planGroup','upload','kdetect','dims','room','walls','suggested','islandInfo',
   'anchors','openings','selFx','placing','arm','modules','snapshots','rpActive','rpForceRepick','rpSel','rpBatch',
   'structures','structArm','_dragged','planResult','roomHeightUnit','fieldErr','_tf',
   'layoutTab','panelOpen','style','roomShape','roomMode','roomName','_posTarget',
@@ -1210,6 +1227,15 @@ const CITY_ALIASES={bangalore:'Bengaluru',bombay:'Mumbai',calcutta:'Kolkata',mad
   prayagraj:'Allahabad (Prayagraj)',vizag:'Visakhapatnam',trivandrum:'Thiruvananthapuram',cochin:'Kochi',baroda:'Vadodara',
   mangalore:'Mangaluru',hubli:'Hubballi-Dharwad',dharwad:'Hubballi-Dharwad',belgaum:'Belagavi',puducherry:'Pondicherry',calicut:'Kozhikode',
   trichy:'Tiruchirappalli',banaras:'Varanasi',benares:'Varanasi',gauhati:'Guwahati',shimoga:'Shivamogga',tumkur:'Tumakuru',bellary:'Ballari',daman:'Dadra & Nagar Haveli & Daman & Diu'};
+// A pop-up list opens below its field, or above it when the scrolling dialog (or the window)
+// has no room below — so the bottom row of the form never needs scrolling to reach its list.
+function placeList(list,field){
+  let sc=field.parentElement; while(sc&&!/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc=sc.parentElement;
+  const v=sc?sc.getBoundingClientRect():{top:0,bottom:innerHeight}, top=Math.max(v.top,0), bottom=Math.min(v.bottom,innerHeight), r=field.getBoundingClientRect();
+  list.style.top=list.style.bottom=list.style.maxHeight='';
+  const below=bottom-r.bottom-8, above=r.top-top-8, up=list.offsetHeight>below&&above>below;
+  if(up){ list.style.top='auto'; list.style.bottom=(field.offsetParent.clientHeight-field.offsetTop+4)+'px'; }
+  list.style.maxHeight=Math.max(120,Math.min(248,up?above:below))+'px'; }
 const cityNames=()=>Object.keys(S.cityCfg?.cities||{});
 // edit distance, so "Hydrabad" or "Ahemdabad" still find their city
 function editDistance(a,b){ let prev=Array.from({length:b.length+1},(_,j)=>j);
@@ -1233,7 +1259,7 @@ function cityType(v){ if(!S.cityCfg) return setProject('city',v);   // no city l
   $('suCityList').innerHTML=cityOpts.map((c,i)=>`<div id="cityOpt${i}" class="city-opt${i===cityAt?' on':''}" role="option" aria-selected="${i===cityAt}" onmousedown="event.preventDefault();cityPick(${i})">
       <span>${mark(c.name)}</span><small>${c.alias?esc(c.alias[0].toUpperCase()+c.alias.slice(1))+' \u00b7 ':''}${esc(S.cityCfg.cities[c.name]?.zone||'')}</small></div>`).join('')
     ||`<div class="city-empty">No delivery city matches \u201c${esc(q)}\u201d. Check the spelling, or pick the nearest city.</div>`;
-  $('suCityList').style.display='block'; $('suCity').setAttribute('aria-expanded','true'); }
+  $('suCityList').style.display='block'; placeList($('suCityList'),$('suCity')); $('suCity').setAttribute('aria-expanded','true'); }
 function cityPick(i){ const c=cityOpts[i]; if(!c) return; $('suCity').value=c.name; setProject('city',c.name); cityClose(); }
 function cityClose(){ $('suCityList').style.display='none'; $('suCity').setAttribute('aria-expanded','false');
   const city=cityMatch($('suCity').value); if(city){ $('suCity').value=city; setProject('city',city); } }
@@ -1246,9 +1272,29 @@ function cityKey(e){ const open=$('suCityList').style.display==='block';
   else if(e.key==='Escape'&&open){ e.stopPropagation(); cityClose(); } }
 function openSetup(){
   $('suClient').value=S.project.client; $('suArch').value=S.project.architect; $('suCity').value=S.project.city;
-  if($('suType'))$('suType').value=S.project.type;   // reflect the stored Property Type on reopen
+  renderPicks();   // the stored Requirement In and Property Type
   renderBudgets(); $('modalSetup').style.display='flex';
 }
+// Requirement In / Property Type: a short list in the same style as the city suggestions;
+// arrow keys move, Enter or Space picks, Esc closes. Saved with the project details.
+const PICKS={timeline:{id:'suTimeline',opts:['1–3 months','3–6 months','6–12 months','Just exploring']},
+  type:{id:'suType',opts:['Villa','Floor','Apartment','Penthouse']}};
+let pickAt=-1;
+function renderPicks(){ for(const [k,p] of Object.entries(PICKS)) $(p.id).firstElementChild.textContent=S.project[k]||p.opts[0]; }
+const pickOpen=k=>$(PICKS[k].id).getAttribute('aria-expanded')==='true';
+function pickDraw(k){ const p=PICKS[k];
+  $(p.id+'List').innerHTML=p.opts.map((o,i)=>`<div class="city-opt${i===pickAt?' on':''}" role="option" aria-selected="${S.project[k]===o}"
+    onmousedown="event.preventDefault();pickSet('${k}',${i})" onmouseenter="pickAt=${i}"><span>${esc(o)}</span>${S.project[k]===o?'<span class="tick">\u2713</span>':''}</div>`).join(''); }
+function pickToggle(k){ if(pickOpen(k)) return pickClose(k);
+  Object.keys(PICKS).forEach(pickClose); pickAt=Math.max(0,PICKS[k].opts.indexOf(S.project[k]));
+  pickDraw(k); $(PICKS[k].id+'List').style.display='block'; placeList($(PICKS[k].id+'List'),$(PICKS[k].id)); $(PICKS[k].id).setAttribute('aria-expanded','true'); }
+function pickClose(k){ $(PICKS[k].id+'List').style.display='none'; $(PICKS[k].id).setAttribute('aria-expanded','false'); }
+function pickSet(k,i){ setProject(k,PICKS[k].opts[i]); renderPicks(); pickClose(k); }
+function pickKey(e,k){ const n=PICKS[k].opts.length;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!pickOpen(k)) return pickToggle(k);
+    pickAt=(pickAt+(e.key==='ArrowDown'?1:-1)+n)%n; pickDraw(k); }
+  else if((e.key==='Enter'||e.key===' ')&&pickOpen(k)){ e.preventDefault(); pickSet(k,pickAt); }
+  else if(e.key==='Escape'&&pickOpen(k)){ e.stopPropagation(); pickClose(k); } }
 function renderBudgets(){
   $('suBudget').innerHTML=BUDGETS.map(b=>{ const on=S.project.budget===b.key;
     return `<button onclick="setProject('budget','${b.key}');renderBudgets()" style="flex:1;padding:10px 8px;border:1.5px solid ${on?'var(--accent)':'var(--line2)'};border-radius:10px;background:${on?'#FBF1EC':'#fff'};cursor:pointer;text-align:left">
@@ -1474,6 +1520,15 @@ function confirmUploadScale(){
 // default room and show the photo as a background to trace over with Free-to-Draw.
 function useUploadedReferenceImage(){ resetUpload(); S.roomShape='rect'; go('layout'); }
 function clearTraceImage(){ S.traceImage=null; S.traceRect=null; S.traceCal=false; S.planPins=[]; S.pinArm=null; renderPos('layoutSvg'); renderLayoutPanel(); }
+// Hide / show the uploaded plan behind the Layout plan; hiding keeps it (and its placement and pins).
+function toggleTraceImage(){ S.traceHidden=!S.traceHidden; if(S.traceHidden) S.pinArm=null; renderPos('layoutSvg'); renderLayoutPanel(); }
+// Design and Review: the reference image behind the plan, on request.
+function toggleTraceOverlay(){ S.traceOverlay=!S.traceOverlay; if(S.screen==='editor') renderPos('posSvg'); else if(S.screen==='result') draw2d(); }
+function syncRefButtons(){ for(const id of ['edRefBtn','resRefBtn']){ const b=$(id); if(!b) continue;
+  b.style.display=S.traceImage?'':'none'; b.setAttribute('aria-pressed',String(!!S.traceOverlay)); } }
+// the reference image as a plan layer, placed where it was traced on the Layout page
+const traceLayer=(t,opacity=.45)=>{ if(!S.traceImage) return ''; const tr=traceRectNow();
+  return `<image href="${S.traceImage}" x="${t.X(tr.x)}" y="${t.Y(tr.y)}" width="${tr.w*t.sc}" height="${tr.h*t.sc}" preserveAspectRatio="none" opacity="${opacity}" pointer-events="none"/>`; };
 
 // ---- minimal client-side PDF vector-path reader (no library — DXF-style, just a different
 // container format). Finds stream objects, inflates FlateDecode ones via the browser's native
@@ -1872,10 +1927,14 @@ function kcropPoint(ev,wrap){
   const t=ev.touches&&ev.touches.length?ev.touches[0]:ev;
   return { x:Math.max(0,Math.min(1,(t.clientX-r.left)/r.width)), y:Math.max(0,Math.min(1,(t.clientY-r.top)/r.height)) };
 }
+// Pointer events with capture: the drag keeps going when the pointer leaves the picture and ends
+// wherever it is let go (it used to stop silently at the edge, leaving no buttons).
 function kcropStart(ev){
+  if(ev.button>0) return;
   ev.preventDefault();
   const wrap=$('kcropWrap'); if(!wrap) return;
-  const bar=$('kcropButtons'); if(bar) bar.innerHTML='';
+  wrap.setPointerCapture?.(ev.pointerId);
+  const bar=$('kcropButtons'); if(bar){ bar.style.display='none'; bar.innerHTML=''; }
   const p=kcropPoint(ev,wrap);
   kmanual={x0:p.x,y0:p.y,x1:p.x,y1:p.y,dragging:true};
   kcropRenderBox();
@@ -1888,8 +1947,9 @@ function kcropMove(ev){
   kmanual.x1=p.x; kmanual.y1=p.y;
   kcropRenderBox();
 }
-function kcropEnd(){
-  if(!kmanual) return;
+function kcropEnd(ev){
+  try{ $('kcropWrap')?.releasePointerCapture(ev.pointerId); }catch{}
+  if(!kmanual||!kmanual.dragging) return;
   kmanual.dragging=false;
   const dx=Math.abs(kmanual.x1-kmanual.x0), dy=Math.abs(kmanual.y1-kmanual.y0);
   if(dx<0.02&&dy<0.02){   // near-zero drag = a tap -> fixed-size box centered on the point (4.3a)
@@ -1900,7 +1960,6 @@ function kcropEnd(){
   }
   kcropShowConfirm();
 }
-function kcropCancel(){ if(kmanual) kmanual.dragging=false; }
 function kcropRenderBox(){
   const wrap=$('kcropWrap'); if(!wrap||!kmanual) return;
   let box=$('kcropBox');
@@ -1909,12 +1968,18 @@ function kcropRenderBox(){
   const w=Math.abs(kmanual.x1-kmanual.x0), h=Math.abs(kmanual.y1-kmanual.y0);
   box.style.left=(x*100)+'%'; box.style.top=(y*100)+'%'; box.style.width=(w*100)+'%'; box.style.height=(h*100)+'%';
 }
+// The buttons sit right at the box: under it, or above it when it reaches the bottom of the picture.
 function kcropShowConfirm(){
-  const bar=$('kcropButtons'); if(!bar) return;
-  bar.innerHTML=`<button class="btn ghost" onclick="kcropRedraw()" style="padding:11px 20px;font-size:13px">↺ Redraw</button>
-    <button class="btn" onclick="kcropConfirm()" style="padding:11px 22px;font-size:13px">Use this crop →</button>`;
+  const bar=$('kcropButtons'), wrap=$('kcropWrap'); if(!bar||!wrap||!kmanual) return;
+  bar.innerHTML=`<button class="btn ghost" onclick="kcropRedraw()" style="padding:9px 14px;font-size:12.5px">↺ Redraw</button>
+    <button class="btn" onclick="kcropConfirm()" style="padding:9px 16px;font-size:12.5px">Use this area →</button>`;
+  bar.style.display='flex';
+  const W=wrap.clientWidth, H=wrap.clientHeight, bw=bar.offsetWidth, bh=bar.offsetHeight,
+    x1=Math.max(kmanual.x0,kmanual.x1)*W, y0=Math.min(kmanual.y0,kmanual.y1)*H, y1=Math.max(kmanual.y0,kmanual.y1)*H;
+  bar.style.left=Math.max(8,Math.min(W-bw-8,x1-bw))+'px';
+  bar.style.top=(y1+bh+16<=H?y1+8:y0-bh-8>=0?y0-bh-8:Math.max(8,y1-bh-8))+'px';
 }
-function kcropRedraw(){ kmanual=null; const box=$('kcropBox'); if(box) box.remove(); const bar=$('kcropButtons'); if(bar) bar.innerHTML=''; }
+function kcropRedraw(){ kmanual=null; const box=$('kcropBox'); if(box) box.remove(); const bar=$('kcropButtons'); if(bar){ bar.style.display='none'; bar.innerHTML=''; } }
 function kcropConfirm(){
   if(!kmanual) return;
   const bbox={ x:Math.min(kmanual.x0,kmanual.x1), y:Math.min(kmanual.y0,kmanual.y1), width:Math.abs(kmanual.x1-kmanual.x0), height:Math.abs(kmanual.y1-kmanual.y0) };
@@ -1932,7 +1997,7 @@ function openPlanPreview(images){
 async function useCroppedPlan(bbox){
   const url=await cropImageDataUrl(currentKitchenPage().imageDataUrl,bbox,0), img=new Image();
   await new Promise(res=>{ img.onload=img.onerror=res; img.src=url; });
-  S.traceImage=url; S.traceAspect=img.naturalHeight/img.naturalWidth; S.traceRect=null; S.traceCal=false; S.planPins=[]; S.pinArm=null;   // placed over the room on first Layout render
+  S.traceImage=url; S.traceHidden=false; S.traceAspect=img.naturalHeight/img.naturalWidth; S.traceRect=null; S.traceCal=false; S.planPins=[]; S.pinArm=null;   // placed over the room on first Layout render
   S.kdetect=null; $('modalKitchen').style.display='none';
   S.walls=[]; S.room=null; S.openings=[]; S.anchors=[]; S.structures=[]; S.zones=[]; S.openWalls=[]; S.roomShape='drawn';
   resetUpload(); refitView(); go('layout');
@@ -2005,13 +2070,12 @@ function renderKitchenManual(){
       <div class="serif" style="font-size:20px;margin-bottom:4px">Select the kitchen area</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Drag a box around the area you want to design. It opens on the Layout page behind the plan, where you draw the walls over it.</div>
     </div>
-    <div style="padding:0 26px">
-      <div id="kcropWrap" style="position:relative;width:100%;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:crosshair;user-select:none;touch-action:none"
-           onmousedown="kcropStart(event)" onmousemove="kcropMove(event)" onmouseup="kcropEnd(event)" onmouseleave="kcropCancel(event)"
-           ontouchstart="kcropStart(event)" ontouchmove="kcropMove(event)" ontouchend="kcropEnd(event)">
-        <img id="kcropImg" src="${page.imageDataUrl}" style="width:100%;display:block;pointer-events:none" draggable="false"/>
+    <div style="padding:0 26px;text-align:center">
+      <div id="kcropWrap" style="position:relative;display:inline-block;max-width:100%;vertical-align:top;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:crosshair;user-select:none;touch-action:none"
+           onpointerdown="kcropStart(event)" onpointermove="kcropMove(event)" onpointerup="kcropEnd(event)" onpointercancel="kcropEnd(event)">
+        <img id="kcropImg" src="${page.imageDataUrl}" style="display:block;max-width:100%;max-height:calc(90vh - 190px);width:auto;height:auto;pointer-events:none" draggable="false"/>
+        <div id="kcropButtons" class="kcrop-bar" style="display:none" onpointerdown="event.stopPropagation()"></div>
       </div>
-      <div id="kcropButtons" style="display:flex;gap:10px;justify-content:center;margin-top:16px;min-height:44px"></div>
     </div>
     <div style="padding:6px 26px 26px;text-align:center;font-size:11px;color:var(--muted2);text-decoration:underline;cursor:pointer" onclick="cancelKitchenDetection()">Cancel and start over</div>`;
 }
@@ -2382,12 +2446,12 @@ function renderLayoutPanel(){
     <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;font-weight:600;color:#3A352C;cursor:pointer">
       <span>Resize walls by dragging<span style="display:block;font-size:9.5px;font-weight:400;color:var(--muted2)">${WALL_DRAG?'Drag a wall to move it, or click its length to type one.':'Off: click a wall’s length to type it.'}</span></span>
       <input type="checkbox" ${WALL_DRAG?'checked':''} onchange="toggleWallDrag()" style="width:16px;height:16px;accent-color:var(--accent)"/></label>
-    ${S.traceImage?`<div style="margin-top:10px;padding:8px 10px;background:#FBF1EC;border:1px solid #E8C9BE;border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span style="font-size:10.5px;color:#6B675E;line-height:1.4">Reference image showing — trace over it, then remove it.</span>
-      <button onclick="clearTraceImage()" style="flex:none;padding:5px 10px;border:1px solid var(--line2);border-radius:7px;background:#fff;font-size:10.5px;font-weight:600;cursor:pointer">Remove</button></div>`:''}
-    ${S.traceImage?pinPanelHtml():''}
+    ${S.traceImage?`<div style="margin-top:10px;border:1px solid #E8C9BE;border-radius:10px;background:#FBF1EC;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px">
+        <span style="font-size:11.5px;font-weight:600;color:#3A352C">Reference image<span style="display:block;font-size:10px;font-weight:400;color:#6B675E;margin-top:1px">${S.traceHidden?'Hidden — show it to trace over it again.':'Showing behind the plan — trace over it.'}</span></span>
+        <button onclick="toggleTraceImage()" style="flex:none;padding:6px 12px;border:1px solid var(--line2);border-radius:7px;background:#fff;font-size:11px;font-weight:600;cursor:pointer">${S.traceHidden?'Show':'Hide'}</button></div></div>`:''}
+    ${S.traceImage&&!S.traceHidden?pinPanelHtml():''}
     <button onclick="toggleRoomDraw()" style="width:100%;margin-top:10px;padding:9px;border:1.5px solid ${S.roomDraw?'var(--accent)':'var(--line2)'};background:${S.roomDraw?'#FBF1EC':'#fff'};border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;color:${S.roomDraw?'var(--accent)':'var(--ink)'}">${S.roomDraw?'✓ Done drawing':'✎ Draw room walls'}</button>
-    ${S.roomDraw?`<div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Click each corner on the <b>inside face</b> of the walls (the room side of the wall line, not its middle or outside). Walls run straight across or down. For an exact wall, point the mouse the way it runs, type its length (${unitAbbr()}) and press Enter.${S.traceImage&&!S.traceCal?' The first time, point at the wall\'s far corner on the plan: that length also sets the plan\'s scale.':''} Click the first corner to close the room, or right-click to stop where you are — the gap back to the start is left open (no wall). After the room, each chain you draw becomes inside walls, but a closed boundary bigger than the room becomes the room. Done also finishes the chain you are drawing. Middle-button drag moves the plan, the wheel zooms. Backspace removes the last corner or digit, Esc finishes.</div>`:''}
     ${S.scaleWall!=null&&S.walls[S.scaleWall]?`<div style="margin-top:10px;padding:10px;border:1.5px solid var(--accent);border-radius:10px;background:#FBF1EC">
       <div style="font-size:11.5px;font-weight:600;margin-bottom:6px">Real length of the highlighted wall</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="scaleWallLen" type="number" min="0" step="${inputStep()}" value="${lenToInput(S.walls[S.scaleWall].length)}" onkeydown="if(event.key==='Enter')applyRoomScale()" style="flex:1;min-width:0;padding:7px;border:1px solid var(--line2);border-radius:7px;font-size:12px"/>
@@ -2429,10 +2493,11 @@ function renderLayoutPanel(){
       <label style="font-size:11px;font-weight:600;color:#6B675E;display:block;margin-bottom:5px">Kitchen Height <span style="color:var(--muted2);font-weight:400">(${unitAbbr()})</span></label>
       ${hInput('kitH',kmm,'setKitchenH')}
       <div style="display:flex;gap:5px;margin-top:6px">
-        ${KH_PRESETS.map(p=>{ const on=Math.abs(kmm-p.mm)<2;
+        ${KH_PRESETS.map(p=>{ const on=(kmm>=2300)===(p.mm>=2300);   // the class the engine uses, even for a typed value
           return `<button onclick="setKitchenPreset(${p.mm})" style="flex:1;padding:7px 4px;border:1.5px solid ${on?'var(--accent)':'var(--line2)'};background:${on?'#FBF1EC':'#fff'};border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;color:${on?'var(--accent)':'var(--ink)'}">${p.label}</button>`;}).join('')}
       </div>
-      <div style="font-size:9.5px;color:var(--muted2);margin-top:4px;line-height:1.4">Custom value accepted. Feeds units, French-window height & later steps.</div>
+      <div style="font-size:9.5px;color:var(--muted2);margin-top:4px;line-height:1.4">${(()=>{ const ft=kitchenFt(), h=(S.rulesCfg?.params?.heights||{})[ft]||{};
+        return `${ft==='8ft'?'8 ft':'7 ft'} kitchen: wall cabinets ${h.wall??(ft==='8ft'?1085:725)} mm, tall units ${h.tall??(ft==='8ft'?2400:2040)} mm.`; })()}</div>
     </div>`;
   // Open Kitchen hint (walls are opened/closed by clicking them ON the canvas now,
   // not from a sidebar list — see selectWall / wall controls in renderPos).
@@ -2544,10 +2609,10 @@ function structMax(st,field){ const {a,b}=bounds(); return Math.round(field==='w
 const structErr=max=>`Cannot be larger than the room (${fmtLenU(max)}).`;
 function setSelStructW(v){ const st=(S.structures||[])[S.selStruct]; if(!st)return; const mm=inputToMm(v);
   if(mm>structMax(st,'w')){ S.fieldErr={key:'struct'+S.selStruct,msg:structErr(structMax(st,'w'))}; renderLayoutPanel(); return; }
-  pushUndo(); S.fieldErr=null; st.w=Math.max(50,mm); const cw=clampStructInside(st.x,st.y,st.w,st.d); st.x=cw.x; st.y=cw.y; renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
+  pushUndo(); S.fieldErr=null; st.w=Math.max(50,mm); const cw=clampStructInside(st.x,st.y,st.w,st.d); st.x=cw.x; st.y=cw.y; if(st.type==='partition') joinPartitions(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
 function setSelStructD(v){ const st=(S.structures||[])[S.selStruct]; if(!st)return; const mm=inputToMm(v);
   if(mm>structMax(st,'d')){ S.fieldErr={key:'struct'+S.selStruct,msg:structErr(structMax(st,'d'))}; renderLayoutPanel(); return; }
-  pushUndo(); S.fieldErr=null; st.d=Math.max(50,mm); const cd=clampStructInside(st.x,st.y,st.w,st.d); st.x=cd.x; st.y=cd.y; renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
+  pushUndo(); S.fieldErr=null; st.d=Math.max(50,mm); const cd=clampStructInside(st.x,st.y,st.w,st.d); st.x=cd.x; st.y=cd.y; if(st.type==='partition') joinPartitions(); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
 // Beam direction toggle (fix #6) — re-spans the beam full-width/height in the chosen direction.
 function setBeamDir(i,dir){ const st=(S.structures||[])[i]; if(!st||st.type!=='beam')return; pushUndo(); st.dir=dir; updateBeamFullSpan(st); renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); }
 // Beam cross-section Width (§6) — the plan thickness; re-runs full-span so the perpendicular
@@ -3126,13 +3191,28 @@ function placeStructure(ev){ if(!S.structArm)return; pushUndo(); const t=tf(680,
    leans), cannot pass through a room wall or another drawn wall, and its ends snap onto any
    wall within reach — so two drawn walls meet cleanly and close off an area. Stored as a
    floor-to-ceiling structure (type 'partition'), so cabinets, the engine and 3D treat it as solid. */
-const PARTITION_T=115;   // mm — drawn wall thickness
+const PARTITION_T=230;   // mm — drawn wall thickness: the same as the room walls (WALL_MM); its Width/Depth stay editable
 function toggleWallDraw(){ S.wallDraw=!S.wallDraw; S._wd=null;
   if(S.wallDraw){ S.structArm=null; S.arm=null; S.selStruct=null; S.zoneTool=false; }
   renderLayoutPanel(); renderPos('layoutSvg'); }
+// A drawn wall's own line (its centre line, end to end as drawn). ext = how far each end runs on
+// past that line through a corner, so the corner is solid (joinPartitions).
+const partLine=st=>{ const h=st.w>=st.d, [e0,e1]=st.ext||[0,0], c=h?st.x:st.y, half=(h?st.w:st.d)/2, lo=c-half+e0, hi=c+half-e1;
+  return h?{h,a:[lo,st.y],b:[hi,st.y]}:{h,a:[st.x,lo],b:[st.x,hi]}; };
+// Where two drawn walls turn a corner (their lines share an end), each runs on through it by half
+// the other's thickness: the corner is filled, with no notch, and the plan's centre lines still meet
+// at the corner point. Recomputed from the lines, so running it again changes nothing.
+function joinPartitions(){ const parts=(S.structures||[]).filter(s=>s.type==='partition'), lines=parts.map(partLine);
+  const thick=st=>Math.min(st.w,st.d), same=(p,q)=>Math.abs(p[0]-q[0])<=1&&Math.abs(p[1]-q[1])<=1;
+  parts.forEach((st,i)=>{ const L=lines[i], ext=[L.a,L.b].map(p=>{
+      const k=parts.findIndex((o,j)=>j!==i&&lines[j].h!==L.h&&(same(lines[j].a,p)||same(lines[j].b,p)));
+      return k<0?0:thick(parts[k])/2; });
+    const ax=L.h?0:1, lo=L.a[ax]-ext[0], hi=L.b[ax]+ext[1];
+    if(L.h){ st.x=(lo+hi)/2; st.w=hi-lo; } else { st.y=(lo+hi)/2; st.d=hi-lo; }
+    if(ext[0]||ext[1]) st.ext=ext; else delete st.ext; }); }
 // Room walls plus the centre line of every drawn wall: what a new wall can start on, end on, or hit.
 function wallDrawLines(){ return [...S.walls.map(w=>({a:w.a,b:w.b})),
-  ...(S.structures||[]).filter(s=>s.type==='partition').map(s=>s.w>=s.d?{a:[s.x-s.w/2,s.y],b:[s.x+s.w/2,s.y]}:{a:[s.x,s.y-s.d/2],b:[s.x,s.y+s.d/2]})]; }
+  ...(S.structures||[]).filter(s=>s.type==='partition').map(partLine)]; }
 // Start point: the nearest point on a wall within `tol`, else the 10mm grid — inside the room only.
 function wallDrawStart(x,y,tol){ let best=null;
   for(const {a,b} of wallDrawLines()){ const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1, k=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/L2));
@@ -3162,6 +3242,7 @@ function commitWallDraw(){ const d=S._wd; S._wd=null; if(!d){ renderPos('layoutS
   pushUndo();
   (S.structures=S.structures||[]).push({type:'partition',x:Math.round((sx+ex)/2),y:Math.round((sy+ey)/2),
     w:h?len:PARTITION_T,d:h?PARTITION_T:len,h:S.options.ceiling||3100});
+  joinPartitions();
   renderLayoutPanel(); renderPos('layoutSvg'); refresh3DIfLive(); scheduleAutosave(); }
 /* ---- Draw room walls: the room boundary clicked corner by corner (usually over an uploaded plan) ----
    Each wall runs horizontal or vertical, whichever way the cursor leans from the last corner, to
@@ -3263,9 +3344,9 @@ function addDrawnWalls(pts){ const segs=pts.slice(1).map((b,i)=>[pts[i],b]).filt
   S.roomDraw=[]; S._rdHover=null;
   if(segs.length){ pushUndo();
     for(const [a,b] of segs){ const h=a[1]===b[1], len=Math.abs(h?b[0]-a[0]:b[1]-a[1]);
-      (S.structures=S.structures||[]).push({type:'partition',x:Math.round((a[0]+b[0])/2),y:Math.round((a[1]+b[1])/2),
-        w:h?len:PARTITION_T,d:h?PARTITION_T:len,h:S.options.ceiling||3100}); }
-    refresh3DIfLive(); scheduleAutosave(); }
+      const st={type:'partition',x:Math.round((a[0]+b[0])/2),y:Math.round((a[1]+b[1])/2),w:h?len:PARTITION_T,d:h?PARTITION_T:len,h:S.options.ceiling||3100};
+      if(!S.walls.some((w,i)=>!isOpenWall(i)&&partitionOnWall(st,w))) (S.structures=S.structures||[]).push(st); }   // a side traced along a room wall is that wall
+    joinPartitions(); refresh3DIfLive(); scheduleAutosave(); }
   renderLayoutPanel(); renderPos('layoutSvg'); }
 function applyRoomScale(){ const w=S.walls[S.scaleWall], mm=inputToMm($("scaleWallLen").value);
   if(!w||!(mm>=200)){ showToast('Enter a wall length of at least 200mm.'); return; }
@@ -3299,7 +3380,6 @@ function pinPanelHtml(){ const pins=S.planPins||[];
     <div style="font-size:11.5px;font-weight:600;margin-bottom:7px">Read the plan with AI</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px">${PIN_TYPES.map(k=>{ const on=S.pinArm===k.id;
       return `<button onclick="armPin('${k.id}')" style="display:flex;align-items:center;gap:5px;padding:5px 8px;border:1.5px solid ${on?k.c:'var(--line2)'};background:${on?'#FBF1EC':'#fff'};border-radius:7px;font-size:10.5px;font-weight:600;cursor:pointer"><span style="width:8px;height:8px;border-radius:50%;background:${k.c}"></span>${k.label}</button>`; }).join('')}</div>
-    <div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.4">Pick a kind, then click where it is on the plan: an <b>Inside room</b> pin in each room you want (name it below; two or more become separate rooms of this project), and one on each wall, door, window and column you want read. Click a pin again to remove it. Esc stops placing.</div>
     ${pins.some(p=>p.kind==='room')?`<div style="margin-top:7px;display:flex;flex-direction:column;gap:4px">${pins.map((p,i)=>p.kind!=='room'?'':`<label style="display:flex;align-items:center;gap:6px;font-size:10.5px"><span style="flex:none;width:18px;height:18px;border-radius:50%;background:#2F7D5B;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><input value="${esc(p.name||'')}" oninput="S.planPins[${i}].name=this.value" placeholder="Room name" style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--line2);border-radius:6px;font-size:11px"/></label>`).join('')}</div>`:''}
     <button class="btn" onclick="readPlanWithPins()" ${S.pinBusy?'disabled':''} style="width:100%;margin-top:8px;padding:8px;font-size:12px">${S.pinBusy?'Reading the plan…':`Read plan${roomPinCount()>1?` (${roomPinCount()} rooms)`:pins.length?` (${pins.length} pin${pins.length>1?'s':''})`:''}`}</button>
     ${pins.length&&!S.pinBusy?`<div style="font-size:10.5px;color:var(--muted2);margin-top:6px;text-align:center;text-decoration:underline;cursor:pointer" onclick="clearPins()">Clear pins</div>`:''}
@@ -3324,7 +3404,7 @@ function recordPins(){ _pinUndo.push(JSON.stringify(S.planPins||[])); _pinRedo.l
 function stepPins(from,to,what){ if(!from.length) return showToast(`Nothing to ${what}.`);
   to.push(JSON.stringify(S.planPins||[])); S.planPins=JSON.parse(from.pop()); renderLayoutPanel(); renderPos('layoutSvg'); }
 function clearPins(){ recordPins(); S.planPins=[]; renderLayoutPanel(); renderPos('layoutSvg'); }
-function pinsSvg(t){ if(!S.traceImage) return '';
+function pinsSvg(t){ if(!S.traceImage||S.traceHidden) return '';
   return (S.planPins||[]).map((p,i)=>{ const k=PIN_TYPES.find(x=>x.id===p.kind)||PIN_TYPES[0], x=t.X(p.x), y=t.Y(p.y);
     return `<circle cx="${x}" cy="${y}" r="9" fill="${k.c}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${i+1}</text>`; }).join(''); }
 const loadImage=src=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('Could not load the plan image.')); im.src=src; });
@@ -3494,7 +3574,7 @@ function pinReadToDraft(read,r){
     return {type:'column',x_mm:Math.round((x0+x1)/2),y_mm:Math.round((y0+y1)/2),width_mm:Math.max(100,Math.round(x1-x0)),depth_mm:Math.max(100,Math.round(y1-y0))}; });
   return {room:{corners_mm:corners},openWalls,openings,structures,zones:[],fixtures:[],warnings:[]}; }
 // A drawn wall in the room walls' own look: the light wall band with its thin centre line.
-function partitionSvg(cx,cy,w,h){ const along=w>=h, x1=along?cx-w/2:cx, x2=along?cx+w/2:cx, y1=along?cy:cy-h/2, y2=along?cy:cy+h/2;
+function partitionSvg(cx,cy,w,h,ext=[0,0]){ const along=w>=h, x1=along?cx-w/2+ext[0]:cx, x2=along?cx+w/2-ext[1]:cx, y1=along?cy:cy-h/2+ext[0], y2=along?cy:cy+h/2-ext[1];
   return `<rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" fill="#D7D0C2"/>`
     +`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3A352C" stroke-width="0.7" stroke-opacity="0.5"/>`; }
 // The wall being dragged, with a dot on each end that has snapped onto a wall.
@@ -3521,13 +3601,24 @@ function stepValue(st){
   if(st.multi) return S.steps.acc.length?S.steps.acc.join(', '):'Optional extras';
   if(st.handleStep) return S.handle?(S.handle+' Handle'):'Choose a handle';
   if(st.veggieStep) return S.sink.veggie?'Veggie Sink added':'Optional add-on';
+  if(!fixturePlaced(st.key)) return 'Not placed yet';
   return S.steps[st.key]||'Not placed yet';
 }
+// A hob, sink or fridge counts as placed while it is on a wall or the island.
+const fixturePlaced=k=>!['hob','sink','fridge'].includes(k)||S.anchors.some(a=>a.type===k)||!!globalThis.IslandDesigner?.assigned(k);
+// Delete / Backspace on a selected hob, sink or fridge takes it off the plan (anchors are optional,
+// rules.json: anchors-optional); its settings stay, so placing it again brings them back. Ctrl+Z undoes.
+function removeFixture(type){ if(type==='veggie') return removeVeggie();
+  const a=S.anchors.find(x=>x.type===type); if(!a) return;
+  pushUndo(); S.anchors=S.anchors.filter(x=>x!==a&&!(type==='sink'&&x.type==='veggie'));
+  if(type==='sink') S.sink.veggie=false;
+  S.selFx=null; markInProcess(); renderEditorLeft(); renderPos(); refresh3DIfLive();
+  showToast(`${({hob:'Hob',sink:'Sink',fridge:'Refrigerator'})[type]||'Fixture'} removed from the plan — Ctrl+Z to undo.`); }
 function stepDone(st){
   if(st.multi) return S.steps.acc.length>0;
   if(st.handleStep) return !!S.handle;
   if(st.veggieStep) return !!S.sink.veggie;
-  return !!S.steps[st.key];
+  return fixturePlaced(st.key)&&!!S.steps[st.key];
 }
 // The Design page now has ONE consolidated sidebar (renderEditorLeft). This alias keeps
 // every existing caller (openStep/closeStep/chooseOpt/chooseHandle/toggleAcc/aiAutomate…)
@@ -4324,7 +4415,7 @@ function renderPos(svgId){
   // structure (columns/beams) + draggable hit-target
   // Beam = light dashed outline (overhead); Column = solid hatched block. No text labels.
   (S.structures||[]).forEach((st,i)=>{ const px=t.X(st.x),py=t.Y(st.y),wp=st.w*t.sc,dp=(st.d||st.w)*t.sc;
-    if(st.type==='partition') mods+=partitionSvg(px,py,wp,dp);   // a drawn wall looks exactly like a room wall
+    if(st.type==='partition') mods+=partitionSvg(px,py,wp,dp,(st.ext||[0,0]).map(v=>v*t.sc));   // a drawn wall looks exactly like a room wall
     else if(st.type==='beam') mods+=`<rect x="${px-wp/2}" y="${py-dp/2}" width="${wp}" height="${dp}" fill="#EFEBE2" fill-opacity="0.7" stroke="#8a8276" stroke-width="1.2" stroke-dasharray="5 3"/>`;
     else mods+=`<rect x="${px-wp/2}" y="${py-dp/2}" width="${wp}" height="${dp}" fill="#B4AB9A" stroke="#2B2B24" stroke-width="1.1"/><line x1="${px-wp/2}" y1="${py-dp/2}" x2="${px+wp/2}" y2="${py+dp/2}" stroke="#2B2B24" stroke-width="0.6"/><line x1="${px+wp/2}" y1="${py-dp/2}" x2="${px-wp/2}" y2="${py+dp/2}" stroke="#2B2B24" stroke-width="0.6"/>`;
     if(!designPhase) shits+=`<rect class="structhit" data-idx="${i}" x="${px-wp/2}" y="${py-dp/2}" width="${wp}" height="${dp}" fill="transparent" style="cursor:grab"/>`; });
@@ -4554,8 +4645,8 @@ function renderPos(svgId){
   const panBg=`<rect id="panBg" x="0" y="0" width="680" height="520" fill="transparent" style="cursor:${panCur}"/>`;
   // Uploaded plan crop (Shape → Upload a Drawing). It lives in room millimetres (S.traceRect),
   // so it pans and zooms with the walls and is rescaled with them by the wall-length step.
-  const tr=onLayout&&S.traceImage?traceRectNow():null;
-  const traceImg=tr?`<image href="${S.traceImage}" x="${t.X(tr.x)}" y="${t.Y(tr.y)}" width="${tr.w*t.sc}" height="${tr.h*t.sc}" preserveAspectRatio="none" opacity="0.45" pointer-events="none"/>`:'';
+  const traceImg=(onLayout?!S.traceHidden:designPhase&&S.traceOverlay)?traceLayer(t):'';
+  if(designPhase) syncRefButtons();
   // Bands sit visually UNDER the fixtures and dimensions (they are a backdrop, not an object),
   // but their hit targets sit ABOVE the wall hits so a click on a drawn band selects the band.
   // While the tool is armed the fixture hits are withheld entirely: drawing is a mode, and a
@@ -5220,6 +5311,7 @@ function endStructDrag(){ const d=_sdrag; _sdrag=null; window.removeEventListene
     // COMMIT — the one and only mutation, applied once here on mouse-up.
     if(st && d.cand && (d.cand.x!==d.orig.x || d.cand.y!==d.orig.y || d.cand.w!==d.orig.w || d.cand.d!==d.orig.d)){
       pushUndo(); st.x=d.cand.x; st.y=d.cand.y; st.w=d.cand.w; st.d=d.cand.d;
+      if(st.type==='partition') joinPartitions();   // corners it leaves open up, ones it reaches fill
     }
     renderPos(); refresh3DIfLive();
   } else { S.selStruct=(S.selStruct===d.idx?null:d.idx); S.selWall=null; S.selOpening=null; renderPos(); if(S.screen==='layout')renderLayoutPanel(); }
@@ -5366,7 +5458,7 @@ function openStep(i){ S.activeStep=i;
   // dev-server outage), try again the moment the user actually opens a picker that needs it.
   if(!S.hobAccDesc) loadHobAccDesc();
   if(!S.configAccDesc) loadConfigAccDesc();
-  renderStepModal(); $('modalStep').style.display='flex'; renderEditorRight(); }
+  renderStepModal(); $('modalStep').style.display='flex'; $('modalStepCard').scrollTop=0; renderEditorRight(); }
 function closeStep(ev){ if(ev&&ev.target!==$('modalStep'))return; S.activeStep=null; $('modalStep').style.display='none'; renderEditorRight(); }
 // Excel-sourced description/image for a Sink/Corner/Accessory item (assets/config-accessories.json).
 function cfg(key){ return (S.configAccDesc||{})[key]||null; }
@@ -6664,7 +6756,9 @@ function drawDetailedPlan(){
   if(S.editing&&S.planTier==='wall'){ const HH={baseTop:850,dado:565,wallTop:2500,...(S.rulesCfg?.heights||{}),...(S.plan.geometry||{})};
     S.plan.tiers=S.plan.tiers||{};
     for(const run of S.plan.runs||[]) addSpareWallSlots(run,S.plan.tiers[run.key]=S.plan.tiers[run.key]||{wall:[],loft:[]},HH.wallBottom??HH.baseTop+HH.dado,HH.wallTop); }
-  svg.innerHTML=DetailedPlan.render(S,tf(680,490,80),drawOpeningSym,pushMod);
+  const tp=tf(680,490,80);   // after the centring above (tf reads the view as it is now)
+  svg.innerHTML=DetailedPlan.render({...S,planUnderlay:S.traceOverlay?traceLayer(tp):''},tp,drawOpeningSym,pushMod);
+  syncRefButtons();
   $('resPlanWrap').style.background='#fff';
   svg.querySelectorAll('.mod').forEach(el=>{el.style.cursor='pointer';el.onclick=ev=>selectModule(+el.dataset.mod,ev);el.onmousedown=ev=>startModDrag(ev,+el.dataset.mod);});
   svg.querySelectorAll('.emptyjoint').forEach(el=>{el.onpointerdown=ev=>startEmptyJointDrag(el,ev);});
@@ -7598,7 +7692,7 @@ Object.assign(window,{go,setProject,addRoom,editRoom,deleteRoom,duplicateRoom,op
   openFinishes,closeFinishes,pickFinishRoom,setHandleGroup,setCounterFinish,setBacksplashFinish,
   toggleMoreMenu,openSchedule,openCompare,shareNow,createShareLink,roomSwitch,pickRoomFromMenu,
   openDesk,openProjectFromDesk,newProjectFromDesk,submitProjectUi,reopenProjectUi,deleteProjectUi,openDeskObs,
-  setSelOpeningType,cityType,cityKey,cityPick,cityClose,setCeilingH,setKitchenH,setKitchenPreset,setSelWidth,setSelSill,setSelWinH,setSelStructW,setSelStructD,setWallLength,setBeamDir,flipColumn,setBeamWidth,setBeamDrop});
+  setSelOpeningType,toggleTraceImage,toggleTraceOverlay,pickToggle,pickKey,pickSet,pickClose,cityType,cityKey,cityPick,cityClose,setCeilingH,setKitchenH,setKitchenPreset,setSelWidth,setSelSill,setSelWinH,setSelStructW,setSelStructD,setWallLength,setBeamDir,flipColumn,setBeamWidth,setBeamDrop});
 
 /* ====================================================================
    UNDO / REDO — a snapshot stack over the room/design's geometry (walls, openings,
@@ -7688,6 +7782,7 @@ window.addEventListener('keydown', ev=>{
     if(ev.key==='Escape'&&(S.selModRef||S.bsSel)){ closeLibPanel(); return; }
     return;
   }
+  if((ev.key==='Delete'||ev.key==='Backspace')&&S.screen==='editor'&&S.selFx&&$('modalStep').style.display!=='flex'){ ev.preventDefault(); removeFixture(S.selFx); return; }
   if(mod && k==='z' && !ev.shiftKey){ ev.preventDefault(); undoAction(); return; }
   if(mod && (k==='z'&&ev.shiftKey || k==='y')){ ev.preventDefault(); redoAction(); return; }
   if((ev.key==='Backspace'||ev.key==='Delete') && S.screen==='layout' && S.roomMode==='open' && S.selWall!=null && S.walls[S.selWall]){
@@ -8922,7 +9017,8 @@ function renderLibPanelBody(){
     // Full freedom: every modelled cabinet is offered in both modes. One that does not match the
     // slot (type, width, series, profile, anchor kind) carries its reason as a warning, not a lock.
     const opts={cats:thumbCatsFor(ref,s),maxW:slack,profile:shutterProfile(),cross:S.libCross,family:anchorFamily(s)};
-    const entries=lib.entries.filter(e=>e.path).map(e=>({...e,reason:CabinetCatalog.whyInvalid(e,opts)})).filter(e=>!S.libFitOnly||!e.reason);
+    const kh=kitchenHeightOf(lib.entries);   // kitchen-height-options: wrong-height versions are not offered at all
+    const entries=lib.entries.filter(e=>e.path&&fitsKitchenHeight(e,kh)).map(e=>({...e,reason:CabinetCatalog.whyInvalid(e,opts)})).filter(e=>!S.libFitOnly||!e.reason);
     entries.sort((a,b)=>b.w-a.w||a.code.localeCompare(b.code));
     const el=$('libList'); if(!el) return;
     el.innerHTML=entries.length?libTreeHtml(CabinetCatalog.groupTree(entries,S.libBrowse))
@@ -8940,6 +9036,16 @@ function removeRoomAcc(i){ const list=S.plan.placedAccessories||[]; list.splice(
   scheduleAutosave(); renderLibPanelBody(); }
 function toggleLibCross(v){ S.libCross=!!v; renderLibPanelBody(); }
 function setLibBrowse(v){ S.libBrowse=v; renderLibPanelBody(); }
+// kitchen-height-options: every wall, tall and mid-tall group comes in a short and a tall version
+// (725/1085, 2040/2400, 1290/1650). An 8ft kitchen — the default when no height is set — takes the
+// taller of each, a 7ft kitchen the shorter. Returns zone -> the one height this kitchen uses.
+const kitchenFt=()=>(S.options.kitchenHeightMm||2500)>=2300?'8ft':'7ft';
+const KH_ZONES=['WC','WB','WLC','TC','TB','TCL','TLC','MD','MDW'];
+const zoneOfEntry=e=>e.zone||String(e.code||'').split('-')[0];   // every code starts with its zone (WC-…, TC-…)
+const fitsKitchenHeight=(e,kh)=>{ const z=zoneOfEntry(e); return !kh[z]||e.h===kh[z]; };
+function kitchenHeightOf(entries){ const hs={};
+  for(const e of entries){ const z=zoneOfEntry(e); if(KH_ZONES.includes(z)) (hs[z]=hs[z]||new Set()).add(e.h); }
+  return Object.fromEntries(Object.entries(hs).map(([z,s])=>[z,kitchenFt()==='8ft'?Math.max(...s):Math.min(...s)])); }
 function toggleLibFitOnly(v){ S.libFitOnly=!!v; renderLibPanelBody(); }
 // One click opens every folder in the list (opening fires the thumbnail loader); again closes them.
 function toggleLibExpandAll(){
@@ -9411,13 +9517,33 @@ function designerSummaryHtml(projects){
         ||`<tr><td colspan="8" style="${td};text-align:left;color:var(--muted2)">No designer has created a project yet.</td></tr>`}
     </table></div>`;
 }
+// AI spend this month per designer (server.mjs: charged). The admin can change a limit.
+function aiUsageHtml(rows){
+  const td='padding:9px 10px;border-bottom:1px solid var(--line);text-align:right', th=td+';font-size:11px;color:var(--muted2);font-weight:600';
+  return `<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 8px;margin-bottom:8px;overflow-x:auto;flex:1 1 100%">
+    <div style="padding:8px 10px 2px;font-size:12px;font-weight:600">AI usage · this month</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:420px">
+      <tr><th style="${th};text-align:left">Designer</th><th style="${th}">AI used</th><th style="${th}">Monthly limit</th><th style="${th}"></th></tr>
+      ${rows.map(u=>`<tr><td style="${td};text-align:left;font-weight:600" title="${esc(u.email)}">${esc(u.name||u.email)}</td>
+        <td style="${td};color:${u.spent>=u.ai_monthly_limit?'var(--accent)':'inherit'}">₹${(+u.spent).toFixed(2)}</td><td style="${td}">₹${+u.ai_monthly_limit}</td>
+        <td style="${td}"><button class="btn ghost" onclick="setAiLimit('${u.id}',${+u.ai_monthly_limit})" style="padding:5px 10px;font-size:11.5px">Change</button></td></tr>`).join('')
+        ||`<tr><td colspan="4" style="${td};text-align:left;color:var(--muted2)">No designers yet.</td></tr>`}
+    </table></div>`;
+}
+async function setAiLimit(id,current){
+  const v=prompt('Monthly AI limit in ₹ for this designer:',current); if(v===null) return;
+  const res=await fetch(API+'/api/ai-limit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({designerId:id,limit:v})});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok) return showToast(j.error||'Could not change the limit.');
+  renderDesk();
+}
 async function renderDesk(){
   const head=$('deskHead'); if(!head) return;
   renderDeskHead(DS.me);
   $('deskBuckets').innerHTML='<div style="padding:30px;text-align:center;color:var(--muted2);font-size:13px">Loading projects…</div>';
   try{
     const list=await dsGet('');
-    DS.on=true; S.projectsIndex=list.projects||[]; S.workload=list.workload||{};
+    DS.on=true; S.projectsIndex=list.projects||[]; S.workload=list.workload||{}; S.aiUsage=list.ai||[];
     DS.me=list.me||null; DS.readOnly=!!(DS.me&&DS.me.role==='admin'); renderDeskHead(DS.me);
   }catch(e){
     dsOffline(e);
@@ -9431,8 +9557,10 @@ async function renderDesk(){
   const stat=(n,label)=>`<div style="background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 18px;min-width:120px">
     <div style="font-size:22px;font-weight:600">${n}</div><div style="font-size:11px;color:var(--muted2)">${label}</div></div>`;
   const admin=DS.readOnly, coder=DS.me&&DS.me.email==='dhruvgarg1107@gmail.com';
-  $('deskStats').innerHTML=(admin?designerSummaryHtml(S.projectsIndex):'')+stat(W.assigned,'assigned')+stat(W.inProcess,'in process')+stat(W.submitted,'submitted')
-    +stat(W.designsMade,'designs made')+stat(W.totalRevisions,'revisions · total workload');
+  const myAi=!admin&&S.aiUsage[0];
+  $('deskStats').innerHTML=(admin?designerSummaryHtml(S.projectsIndex)+aiUsageHtml(S.aiUsage):'')+stat(W.assigned,'assigned')+stat(W.inProcess,'in process')+stat(W.submitted,'submitted')
+    +stat(W.designsMade,'designs made')+stat(W.totalRevisions,'revisions · total workload')
+    +(myAi?stat(`₹${(+myAi.spent).toFixed(2)} <span style="font-size:13px;font-weight:400;color:var(--muted2)">/ ₹${+myAi.ai_monthly_limit}</span>`,'AI used this month'):'');
   const card=(p)=>{ const d=p.details||{}; const M=STATUS_META[p.status]||STATUS_META['assigned'];
     return `<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:220px">
@@ -9681,7 +9809,7 @@ const DS={on:false, projectId:null, saving:false, timer:null, lastSavedJson:null
 // the frozen view transform (_tf, recomputed on render), and the trace-over background image
 // (traceImage - a multi-MB data URL; the geometry extracted FROM it is saved, the underlay
 // itself is not, so it does not survive a reload. Flagged, not an oversight).
-const DS_TRANSIENT=['kdetect','upload','_tf','traceImage','traceRect','traceAspect','traceCal','roomDraw','roomDrawDone','scaleWall','_rdType','planPins','pinArm','pinBusy'];
+const DS_TRANSIENT=['kdetect','upload','_tf','traceImage','traceRect','traceAspect','traceCal','traceHidden','traceOverlay','roomDraw','roomDrawDone','scaleWall','_rdType','planPins','pinArm','pinBusy'];
 const isUuid=id=>/^[0-9a-f]{8}-[0-9a-f]{4}/.test(String(id));
 function serializeRoomDesign(r){
   const out={};

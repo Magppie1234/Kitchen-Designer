@@ -13,7 +13,7 @@
 // Every call runs as the signed-in user (server.mjs rejects anonymous calls before this).
 // The admin account is view-only: every POST is refused here, and the database refuses it too.
 import { readJsonBody } from './apiRuntime.js';
-import { requestUser } from './supabase.js';
+import { requestUser, rest } from './supabase.js';
 import * as store from './designStore.js';
 
 // Coder / Tester account: test projects hidden from admin; the only account allowed to delete projects.
@@ -64,9 +64,13 @@ export async function handleDesigns(req, res) {
       const projects = (await store.listProjects())
         .filter((p) => !(me.role === 'admin' && p.owner?.email === CODER));
       const bucket = (s) => projects.filter((p) => p.status === s);
+      // This month's AI spend (schema.sql: ai_usage_month): the designer's own row, or every
+      // designer's for the admin. Empty if the schema has not been updated yet.
+      const ai = (await rest('ai_usage_month?role=eq.designer&select=id,name,email,ai_monthly_limit,spent').catch(() => []))
+        .filter((u) => !(me.role === 'admin' && u.email === CODER));
       return json(res, 200, {
         me: { email: me.email, name: me.name, role: me.role },
-        projects,
+        projects, ai,
         workload: {
           assigned: bucket('assigned').length,
           inProcess: bucket('in-process').length,

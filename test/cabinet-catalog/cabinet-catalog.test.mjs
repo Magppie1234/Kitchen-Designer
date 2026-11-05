@@ -174,10 +174,29 @@ test('By width lists every cabinet in a folder; the ones that cannot go in the s
   assert.equal(whyInvalid(e({ category: 'wall720' }), opts), 'wall cabinet — this is a base space');
   assert.equal(whyInvalid(e({ inSeries: false }), opts), 'not in this series');
   assert.equal(whyInvalid(e({ profiles: ['MD2'] }), opts), 'not offered in shutter profile MD1');
-  // the builder: both modes list every modelled cabinet; a mismatch is a warning and Use stays enabled
+  // the builder: both modes list every modelled cabinet of the kitchen's height; a mismatch is a warning and Use stays enabled
   const html = readFileSync('ui/builder.html', 'utf8');
-  assert.match(html, /const entries=lib\.entries\.filter\(e=>e\.path\)\.map\(e=>\(\{\.\.\.e,reason:CabinetCatalog\.whyInvalid\(e,opts\)\}\)\)/);
+  assert.match(html, /const entries=lib\.entries\.filter\(e=>e\.path&&fitsKitchenHeight\(e,kh\)\)\.map\(e=>\(\{\.\.\.e,reason:CabinetCatalog\.whyInvalid\(e,opts\)\}\)\)/);
   assert.doesNotMatch(html, /\$\{e\.reason\?`disabled/, 'Use is never disabled');
+});
+
+// rules.json: kitchen-height-options
+test('the library offers only the kitchen height of each wall, tall and mid-tall group; no height set is 8ft', () => {
+  const html = readFileSync('ui/builder.html', 'utf8'), i = html.indexOf('const kitchenFt=');
+  const S = { options: {} }, ctx = vm.createContext({ S });
+  vm.runInContext(html.slice(i, html.indexOf('// One click opens every folder', i)).replace(/^const /gm, 'var '), ctx);
+  const entries = [['WC', 725], ['WC', 1085], ['WB', 725], ['WB', 1085], ['TC', 2040], ['TC', 2400], ['MDW', 1290], ['MDW', 1650], ['BC', 300], ['BC', 720]]
+    .map(([zone, h]) => ({ zone, h }));
+  assert.deepEqual({ ...ctx.kitchenHeightOf(entries) }, { WC: 1085, WB: 1085, TC: 2400, MDW: 1650 }, 'unset: 8ft, base heights untouched');
+  S.options.kitchenHeightMm = 2140;
+  assert.deepEqual({ ...ctx.kitchenHeightOf(entries) }, { WC: 725, WB: 725, TC: 2040, MDW: 1290 }, '7ft');
+  S.options.kitchenHeightMm = 2438;
+  assert.equal(ctx.kitchenHeightOf(entries).WC, 1085, 'a typed 8ft value');
+  // entries from a server that does not send the zone: it is read off the code
+  const lib = [{ code: 'TC-SH-TTS-ST-5SX-LHS-XXX-450-2040-560-15', h: 2040 }, { code: 'TC-SH-TTS-ST-5SX-LHS-XXX-450-2400-560-15', h: 2400 },
+    { code: 'BC-DW-CJ-ST-XXX-2HB-XXX-450-720-560-15', h: 720 }];
+  const kh = ctx.kitchenHeightOf(lib);
+  assert.deepEqual(lib.filter((e) => ctx.fitsKitchenHeight(e, kh)).map((e) => e.h), [2400, 720], '8ft: the 2040 tall is not offered');
 });
 
 test('any cabinet can replace a hob; only a hob cabinet keeps it the hob anchor', () => {

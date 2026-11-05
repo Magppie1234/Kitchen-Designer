@@ -5,6 +5,7 @@
 // windows, columns, plus whatever cabinetry the drawing shows (base/wall/tall zones, hob, sink,
 // fridge) so the fixtures screen opens pre-filled. Server-only; GEMINI_API_KEY never leaves it.
 import { GoogleGenAI } from '@google/genai';
+import { addUsage } from './ai-cost.mjs';
 
 export const MODEL = 'gemini-3.8-flash';
 const MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -76,6 +77,7 @@ export async function ask(input) {
     throw fail(status === 429 ? 429 : 502, status === 429 ? 'The plan reader is rate-limited or out of quota. Try again shortly.' : 'The plan reader returned an error.');
   }
   const u = r.usage || {};
+  addUsage(MODEL, u);
   return { json: parseJson(r.output_text), text: r.output_text,
     tokens: { in: u.total_input_tokens || 0, out: (u.total_output_tokens || 0) + (u.total_thought_tokens || 0) } };
 }
